@@ -190,124 +190,9 @@
             <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg space-y-6"><h2 class="text-xl font-semibold border-b pb-3">Vendedores</h2><form id="add-vendedor-form" class="space-y-4"><h3 class="text-lg font-medium">Cadastrar Novo Vendedor</h3><div><label for="vendedor-name" class="block text-sm font-medium">Nome</label><input type="text" id="vendedor-name" required class="mt-1 block w-full rounded-md"></div><div><label for="vendedor-password" class="block text-sm font-medium">Senha</label><input type="password" id="vendedor-password" required class="mt-1 block w-full rounded-md"></div><button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-semibold">Salvar Vendedor</button></form><div class="border-t pt-4 mt-4"><h3 class="text-lg font-medium">Vendedores Cadastrados</h3><ul id="vendedores-list" class="mt-2 space-y-2"></ul></div></div>
         </div>
     </template>
-	<div id="login-screen" class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-        <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
-            <div class="text-center">
-                <i data-lucide="store" class="mx-auto h-14 w-14 text-primary-500"></i>
-                <h2 id="login-store-name" class="mt-4 text-center text-3xl font-bold text-gray-900 dark:text-white">Minha Loja</h2>
-            </div>
-            <div id="user-selection-view">
-                <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">Quem está acessando?</p>
-                <div id="user-list" class="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
-            </div>
-            <div id="password-view" class="hidden mt-6">
-                <button id="back-to-users" class="flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-primary-500 mb-4 transition-colors">
-                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>Trocar de usuário
-                </button>
-                <div id="selected-user-info" class="text-center mb-4"></div>
-                <form id="password-form" class="space-y-4">
-                    <input id="password" name="password" type="password" required class="relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm transition" placeholder="Senha">
-                    <p id="login-error" class="text-red-500 text-sm text-center h-4"></p>
-                    <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-primary-500/30 transform transition-all duration-300 hover:scale-[1.02]">Entrar</button>
-                </form>
-            </div>
-        </div>
-    </div>
 
 <script>
 // O SCRIPT COMPLETO E FUNCIONAL ESTÁ AQUI
-// Variável para guardar o usuário selecionado para login
-    let selectedUserForLogin = null;
-
-    // Função ESSENCIAL que busca os usuários e cria o gerente se necessário
-    async function loadInitialData() {
-        const [users, settingsDoc, storeNameDoc] = await Promise.all([
-            fetchData('users'),
-            db.collection('settings').doc('goals').get(),
-            db.collection('settings').doc('store').get()
-        ]);
-
-        if (users.length === 0) {
-            const gerente = { name: 'gerente', password: '123', role: 'gerente' };
-            const { success } = await saveData('users', gerente, 'gerente');
-            if (success) {
-                showToast('Usuário "gerente" padrão criado!');
-                // Após criar, busca a lista de usuários novamente para garantir que está atualizada
-                state.db.users = await fetchData('users');
-            }
-        } else {
-            state.db.users = users;
-        }
-
-        if (settingsDoc.exists) state.db.settings.goals = settingsDoc.data();
-        if (storeNameDoc.exists) state.db.settings.storeName = storeNameDoc.data().name;
-    }
-
-    // Função que desenha a tela de login com os ícones dos usuários
-    function renderLoginScreen(){
-        const userList = document.getElementById('user-list');
-        userList.innerHTML = ''; // Limpa a lista antes de desenhar
-        document.getElementById('user-selection-view').classList.remove('hidden');
-        document.getElementById('password-view').classList.add('hidden');
-        
-        if (state.db.users.length > 0) {
-            state.db.users.forEach(user => {
-                const userButton = document.createElement('button');
-                userButton.className = 'flex flex-col items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200 transform hover:scale-105 border border-gray-200 dark:border-gray-700';
-                userButton.dataset.username = user.name;
-                userButton.innerHTML = `<div class="w-16 h-16 mb-2 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div><span class="font-semibold text-gray-800 dark:text-gray-200 text-center">${user.name}</span>`;
-                userList.appendChild(userButton);
-            });
-        } else {
-            userList.innerHTML = '<div class="col-span-full text-center text-gray-500"><div class="loader"></div>Carregando usuários...</div>';
-        }
-        lucide.createIcons();
-    }
-
-    // --- LÓGICA DE CLIQUES (A PARTE QUE ESTAVA FALTANDO) ---
-
-    // 1. Ouve o clique em um ícone de usuário
-    document.getElementById('user-list').addEventListener('click', (e) => {
-        const userButton = e.target.closest('button');
-        if (!userButton) return;
-        
-        selectedUserForLogin = userButton.dataset.username;
-        document.getElementById('user-selection-view').classList.add('hidden');
-        document.getElementById('password-view').classList.remove('hidden');
-        document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold">${selectedUserForLogin}</h3>`;
-        document.getElementById('password').value = '';
-        document.getElementById('password').focus();
-    });
-
-    // 2. Ouve o clique no botão "Trocar de usuário" para voltar
-    document.getElementById('back-to-users').addEventListener('click', () => {
-        selectedUserForLogin = null;
-        document.getElementById('login-error').textContent = '';
-        renderLoginScreen();
-    });
-
-    // 3. Ouve o envio do formulário de senha
-    document.getElementById('password-form').addEventListener('submit', e => {
-        e.preventDefault();
-        if (!selectedUserForLogin) return;
-
-        const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
-        const passwordInput = document.getElementById('password');
-
-        if (user && user.password === passwordInput.value) {
-            state.loggedInUser = user;
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            passwordInput.value = ''; 
-            document.getElementById('login-error').textContent = '';
-            initializeAppUI(); // Chama a função que constrói o resto do app
-        } else {
-            document.getElementById('login-error').textContent = 'Senha inválida.';
-            const passwordView = document.getElementById('password-view');
-            passwordView.classList.add('animate-shake');
-            setTimeout(() => passwordView.classList.remove('animate-shake'), 500);
-        }
-    });
 document.addEventListener('DOMContentLoaded', () => {
 
     const firebaseConfig = {
@@ -612,6 +497,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     init();
 });
+function switchView(view) {
+    const views = ['login', 'caixa', 'pedidos', 'relatorios', 'config'];
+    views.forEach(v => {
+        document.getElementById(v).classList.add('hidden');
+    });
+    document.getElementById(view).classList.remove('hidden');
+}
+
 </script>
 </body>
 </html>
