@@ -1,167 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Vendas</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Cpath d='M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z'/%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M16 10a4 4 0 0 1-8 0'/%3E%3C/svg%3E">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: { primary: { '50': '#ecfdf5', '100': '#d1fae5', '200': '#a7f3d0', '300': '#6ee7b7', '400': '#34d399', '500': '#10b981', '600': '#059669', '700': '#047857', '800': '#065f46', '900': '#064e3b', '950': '#022c22' } },
-                    keyframes: { shake: { '0%, 100%': { transform: 'translateX(0)' }, '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' }, '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' } } },
-                    animation: { shake: 'shake 0.5s ease-in-out' }
-                }
-            }
-        }
-    </script>
-    <style>
-        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #f1f1f1; } .dark ::-webkit-scrollbar-track { background: #1f2937; } ::-webkit-scrollbar-thumb { background: #a8a8a8; border-radius: 4px; } .dark ::-webkit-scrollbar-thumb { background: #4b5563; }
-        .view { display: none; } .view.active { display: block; } .fade-in { animation: fadeIn 0.4s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-        #sidebar { transition: transform 0.3s ease-in-out; }
-        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; filter: invert(0.5); } .dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #10b981; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased font-sans">
-
-    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-        <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
-            <div class="text-center">
-                <i data-lucide="store" class="mx-auto h-14 w-14 text-primary-500"></i>
-                <h2 id="login-store-name" class="mt-4 text-center text-3xl font-bold text-gray-900 dark:text-white">Minha Loja</h2>
-            </div>
-            <div id="user-selection-view">
-                <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">Quem está acessando?</p>
-                <div id="user-list" class="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
-            </div>
-            <div id="password-view" class="hidden mt-6">
-                <button id="back-to-users" class="flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-primary-500 mb-4 transition-colors">
-                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>Trocar de usuário
-                </button>
-                <div id="selected-user-info" class="text-center mb-4"></div>
-                <form id="password-form" class="space-y-4">
-                    <input id="password" name="password" type="password" required class="relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm transition" placeholder="Senha">
-                    <p id="login-error" class="text-red-500 text-sm text-center h-4"></p>
-                    <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-primary-500/30 transform transition-all duration-300 hover:scale-[1.02]">Entrar</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div id="app" class="hidden">
-        <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen bg-gray-900 -translate-x-full sm:translate-x-0">
-            <div class="h-full px-3 py-4 overflow-y-auto flex flex-col">
-                <div>
-                    <div class="p-4 mb-4 text-center">
-                        <div id="user-icon" class="w-16 h-16 mx-auto mb-3 rounded-full bg-primary-500 flex items-center justify-center text-white text-3xl font-bold border-4 border-gray-700"></div>
-                        <h5 id="store-name-sidebar" class="text-xl font-semibold text-white">Minha Loja</h5>
-                        <p id="username-sidebar" class="text-sm text-gray-400">Usuário</p>
-                    </div>
-                    <ul id="vendedor-menu" class="space-y-2 font-medium hidden"></ul>
-                    <ul id="gerente-menu" class="space-y-2 font-medium hidden"></ul>
-                </div>
-                <div class="mt-auto">
-                    <button id="theme-toggle" class="w-full flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors">
-                        <i data-lucide="moon" id="theme-icon-moon" class="w-5 h-5"></i><i data-lucide="sun" id="theme-icon-sun" class="w-5 h-5 hidden"></i><span class="ml-3">Alternar Tema</span>
-                    </button>
-                </div>
-            </div>
-        </aside>
-        <main class="sm:ml-64 transition-all duration-300">
-            <header class="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shadow-sm sm:hidden flex items-center justify-between p-4">
-                <button id="mobile-menu-button" class="text-gray-600 dark:text-gray-300"><i data-lucide="menu" class="w-6 h-6"></i></button>
-                <h1 id="current-view-title" class="text-lg font-semibold">Caixa</h1>
-                <div class="w-6"></div>
-            </header>
-            <div class="p-4 lg:p-6">
-                <div id="caixa-view" class="view"></div><div id="pedidos-view" class="view"></div><div id="relatorios-view" class="view"></div><div id="configuracoes-view" class="view"></div>
-            </div>
-        </main>
-    </div>
-
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden sm:hidden"></div>
-    <div id="finalize-order-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center z-50 hidden p-4"></div>
-    <div id="order-details-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center z-50 hidden p-4"></div>
-    <div id="confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center z-[60] hidden p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
-            <i data-lucide="alert-triangle" class="mx-auto h-12 w-12 text-yellow-500"></i><h3 class="text-lg font-semibold mt-4">Você tem certeza?</h3>
-            <p id="confirm-modal-message" class="text-sm text-gray-500 dark:text-gray-400 mt-2">Esta ação não pode ser desfeita.</p>
-            <div class="mt-6 flex justify-center gap-4">
-                <button id="confirm-modal-cancel" class="py-2 px-4 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500">Cancelar</button>
-                <button id="confirm-modal-confirm" class="py-2 px-4 rounded-lg bg-red-600 text-white hover:bg-red-700">Confirmar</button>
-            </div>
-        </div>
-    </div>
-    
-    <div id="whatsapp-data-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center z-50 hidden p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6">
-            <h2 class="text-xl font-bold mb-4">Enviar Cupom no WhatsApp</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Confirme os dados do cliente para enviar o recibo da compra.</p>
-            <form id="whatsapp-data-form">
-                <input type="hidden" id="whatsapp-sale-id">
-                <div class="mb-4">
-                    <label for="client-name-whatsapp" class="block text-sm font-medium mb-1">Nome do Cliente</label>
-                    <input type="text" id="client-name-whatsapp" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
-                </div>
-                <div class="mb-4">
-                    <label for="client-phone-whatsapp" class="block text-sm font-medium mb-1">Nº de WhatsApp (com DDD)</label>
-                    <input type="tel" id="client-phone-whatsapp" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700" placeholder="Ex: 11987654321">
-                </div>
-                <div class="mt-6 flex justify-end gap-3">
-                    <button type="button" id="skip-whatsapp-button" class="bg-gray-200 dark:bg-gray-600 py-2 px-4 rounded-md">Pular</button>
-                    <button type="submit" id="save-whatsapp-button" class="bg-primary-600 text-white py-2 px-4 rounded-md">Salvar e Fechar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <template id="caixa-template">
-        <h1 class="text-3xl font-bold mb-6 hidden sm:block">Caixa</h1>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-1"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"><h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Registrar Item</h2><form id="add-item-form" class="space-y-4"><input type="text" id="item-name" required class="w-full rounded-md" placeholder="Nome do Item"><input type="number" id="item-value" step="0.01" min="0.01" required class="w-full rounded-md" placeholder="Valor (R$)"><select id="item-exchange" class="w-full rounded-md"><option>Sem Troca</option><option>7 dias</option><option>15 dias</option><option>30 dias</option></select><button type="submit" class="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-2 px-4 rounded-lg font-semibold flex items-center justify-center"><i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i> Adicionar Item</button></form></div></div>
-            <div class="lg:col-span-2"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"><h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Pedido Atual</h2><div id="current-order-items" class="space-y-3 max-h-96 overflow-y-auto pr-2"><p id="no-items-message" class="text-gray-500 dark:text-gray-400">Nenhum item adicionado ainda.</p></div><div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700"><div class="flex justify-between items-center text-2xl font-bold"><span>Total:</span> <span id="current-order-total">R$ 0,00</span></div><button id="finalize-order-button" disabled class="mt-4 w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold disabled:bg-gray-400 flex items-center justify-center"><i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Finalizar Pedido</button></div></div></div>
-        </div>
-    </template>
-    <template id="pedidos-template">
-        <h1 class="text-3xl font-bold mb-6 hidden sm:block">Pedidos</h1>
-        <div id="vendedor-pedidos-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex items-center"><div class="bg-blue-100 dark:bg-blue-900 rounded-full p-3 mr-4"><i data-lucide="shopping-cart" class="w-6 h-6 text-blue-500"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400">Pedidos Finalizados</p><p id="pedidos-finalizados" class="text-2xl font-bold">0</p></div></div>
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex items-center"><div class="bg-green-100 dark:bg-green-900 rounded-full p-3 mr-4"><i data-lucide="dollar-sign" class="w-6 h-6 text-green-500"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400">Valor Total</p><p id="valor-total" class="text-2xl font-bold">R$ 0,00</p></div></div>
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex items-center"><div class="bg-yellow-100 dark:bg-yellow-900 rounded-full p-3 mr-4"><i data-lucide="receipt" class="w-6 h-6 text-yellow-500"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400">Ticket Médio</p><p id="ticket-medio" class="text-2xl font-bold">R$ 0,00</p></div></div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-            <form id="filter-form" class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 items-end">
-                <div class="md:col-span-1"><label for="filter-date" class="block text-sm font-medium">Data</label><input type="date" id="filter-date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"></div>
-                <div class="md:col-span-1"><label for="filter-payment" class="block text-sm font-medium">Pagamento</label><select id="filter-payment" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"><option>Todos</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div>
-                <div id="gerente-vendedor-filter-container" class="md:col-span-1 hidden"><label for="filter-vendedor" class="block text-sm font-medium">Vendedor</label><select id="filter-vendedor" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm"><option>Todos</option></select></div>
-                <div class="md:col-span-3 flex gap-2"><button type="submit" class="w-full bg-primary-600 text-white py-2 px-4 rounded-lg"><i data-lucide="search" class="w-4 h-4 mr-2"></i> Buscar</button><button type="reset" class="w-full bg-gray-500 text-white py-2 px-4 rounded-lg"><i data-lucide="rotate-ccw" class="w-4 h-4 mr-2"></i> Limpar</button></div>
-            </form>
-            <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs uppercase bg-gray-50 dark:bg-gray-700"><tr id="orders-table-header-row"><th scope="col" class="px-6 py-3">Cliente</th><th scope="col" class="px-6 py-3">Data</th><th scope="col" class="px-6 py-3">Pagamento</th><th scope="col" class="px-6 py-3 text-right">Valor</th><th scope="col" class="px-6 py-3 text-center">Ações</th><th scope="col" class="px-6 py-3 text-center">Enviar</th></tr></thead><tbody id="orders-table-body"></tbody></table><p id="no-orders-found" class="text-center py-8 text-gray-500 hidden">Nenhum pedido encontrado.</p></div>
-        </div>
-    </template>
-    <template id="relatorios-template">
-        <div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold hidden sm:block">Relatórios</h1><div id="gerente-relatorios-vendedor-select-container" class="hidden w-full sm:w-auto"><select id="relatorios-vendedor-select" class="block w-full max-w-xs rounded-md"><option value="total">Relatório Total</option></select></div></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4"><div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg"><h3 class="font-semibold text-gray-500 dark:text-gray-400">Vendas Hoje</h3><p id="relatorio-vendas-hoje" class="text-3xl font-bold mt-2 text-primary-500">R$ 0,00</p></div><div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg"><h3 class="font-semibold text-gray-500 dark:text-gray-400">Bônus do Dia</h3><p id="relatorio-bonus-dia" class="text-3xl font-bold mt-2 text-primary-500">0</p></div><div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg"><h3 class="font-semibold text-gray-500 dark:text-gray-400">Vendas da Semana</h3><p id="relatorio-vendas-semana" class="text-3xl font-bold mt-2 text-primary-500">R$ 0,00</p></div><div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg"><h3 class="font-semibold text-gray-500 dark:text-gray-400">Bônus da Semana</h3><p id="relatorio-bonus-semana" class="text-3xl font-bold mt-2 text-primary-500">0</p></div></div>
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4"><div class="lg:col-span-3 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg"><h3 class="font-semibold mb-4">Vendas (Últimos 7 dias)</h3><div class="relative h-80"><canvas id="vendas-semana-chart"></canvas></div></div><div class="lg:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg"><h3 class="font-semibold mb-4">Formas de Pagamento</h3><div class="relative h-80"><canvas id="pagamento-chart"></canvas></div></div></div>
-        <div id="vendedor-metas-view" class="hidden"><h2 class="text-2xl font-bold mb-4">Minhas Metas</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg text-center"><h3 class="font-semibold">Meta Diária</h3><p id="meta-diaria-progresso" class="text-2xl font-bold mt-2">R$ 0,00 / R$ 0,00</p></div><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg text-center"><h3 class="font-semibold">Meta Semanal</h3><p id="meta-semanal-progresso" class="text-2xl font-bold mt-2">R$ 0,00 / R$ 0,00</p></div><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg text-center"><h3 class="font-semibold">Meta Mensal</h3><p id="meta-mensal-progresso" class="text-2xl font-bold mt-2">R$ 0,00 / R$ 0,00</p></div></div></div>
-    </template>
-    <template id="configuracoes-template">
-        <h1 class="text-3xl font-bold mb-6 hidden sm:block">Configurações</h1>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg space-y-6"><h2 class="text-xl font-semibold border-b pb-3">Painel Administrativo</h2><div><label for="config-store-name" class="block text-sm font-medium">Nome da Loja</label><input type="text" id="config-store-name" class="mt-1 block w-full rounded-md"></div><div><h3 class="text-lg font-medium">Exportar Vendas (CSV)</h3><div class="flex gap-4 mt-2"><button id="export-dia" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg">Vendas do Dia</button><button id="export-semana" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg">Vendas da Semana</button></div></div><div><h3 class="text-lg font-medium">Definir Metas</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2"><div><label for="meta-diaria" class="block text-sm">Meta Diária (R$)</label><input type="number" id="meta-diaria" class="mt-1 block w-full rounded-md"></div><div><label for="meta-semanal" class="block text-sm">Meta Semanal (R$)</label><input type="number" id="meta-semanal" class="mt-1 block w-full rounded-md"></div><div><label for="meta-mensal" class="block text-sm">Meta Mensal (R$)</label><input type="number" id="meta-mensal" class="mt-1 block w-full rounded-md"></div></div></div><button id="save-settings-button" class="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-2 px-4 rounded-lg font-semibold">Salvar Configurações</button><div class="border-t pt-4 mt-4 border-red-500/30"><h3 class="text-lg font-medium text-red-500">Zona de Perigo</h3><p class="text-sm text-gray-500 mb-2">Esta ação não pode ser desfeita.</p><button id="zerar-vendas-button" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg">Zerar Todas as Vendas</button></div></div>
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg space-y-6"><h2 class="text-xl font-semibold border-b pb-3">Vendedores</h2><form id="add-vendedor-form" class="space-y-4"><h3 class="text-lg font-medium">Cadastrar Novo Vendedor</h3><div><label for="vendedor-name" class="block text-sm font-medium">Nome</label><input type="text" id="vendedor-name" required class="mt-1 block w-full rounded-md"></div><div><label for="vendedor-password" class="block text-sm font-medium">Senha</label><input type="password" id="vendedor-password" required class="mt-1 block w-full rounded-md"></div><button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-semibold">Salvar Vendedor</button></form><div class="border-t pt-4 mt-4"><h3 class="text-lg font-medium">Vendedores Cadastrados</h3><ul id="vendedores-list" class="mt-2 space-y-2"></ul></div></div>
-        </div>
-    </template>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -199,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function saveData(collectionName, data, docId = null) {
         try {
             const docRef = docId ? db.collection(collectionName).doc(docId) : db.collection(collectionName).doc();
-            await docRef.set(data);
+            await docRef.set(data, { merge: true }); // Use merge:true to avoid overwriting entire doc
             return { success: true, id: docRef.id };
         } catch (error) {
             console.error(`Erro ao salvar dados em '${collectionName}':`, error);
@@ -208,11 +44,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    async function deleteData(collectionName, docId) {
+        try {
+            await db.collection(collectionName).doc(docId).delete();
+            return { success: true };
+        } catch (error) {
+            console.error(`Erro ao deletar documento '${docId}' de '${collectionName}':`, error);
+            showToast(`Erro ao deletar dados.`, 'error');
+            return { success: false };
+        }
+    }
+
     async function loadInitialData() {
-        const [users, settingsDoc, storeNameDoc] = await Promise.all([
+        const [users, settingsDoc, storeNameDoc, sales] = await Promise.all([
             fetchData('users'),
             db.collection('settings').doc('goals').get(),
-            db.collection('settings').doc('store').get()
+            db.collection('settings').doc('store').get(),
+            fetchData('sales') // Fetch all sales on initial load for manager
         ]);
 
         if (users.length === 0) {
@@ -228,15 +76,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (settingsDoc.exists) state.db.settings.goals = settingsDoc.data();
         if (storeNameDoc.exists) state.db.settings.storeName = storeNameDoc.data().name;
+        state.db.sales = sales;
     }
 
     const applyTheme=(t)=>{const h=document.documentElement;if(t==='dark'){h.classList.add('dark');document.getElementById('theme-icon-moon').classList.add('hidden');document.getElementById('theme-icon-sun').classList.remove('hidden')}else{h.classList.remove('dark');document.getElementById('theme-icon-moon').classList.remove('hidden');document.getElementById('theme-icon-sun').classList.add('hidden')}};
     const formatCurrency=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
-    const formatDate=d=>d ? new Date(d).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}) : '';
+    const formatDate=d=>d ? new Date(d.seconds * 1000).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}) : '';
     const getDayOfWeek=d=>new Date(d).toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').slice(0,3);
     const showToast=(m,t='success')=>{const e=document.createElement('div');e.className=`fixed bottom-5 right-5 ${t==='success'?'bg-green-500':'bg-red-500'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)};
     const showConfirmModal=(m,onConfirm)=>{const M=document.getElementById('confirm-modal');M.querySelector('#confirm-modal-message').textContent=m;M.classList.remove('hidden');const c=M.querySelector('#confirm-modal-confirm'),n=M.querySelector('#confirm-modal-cancel');const h=()=>{onConfirm();hide()};const k=()=>hide();const hide=()=>{M.classList.add('hidden');c.removeEventListener('click',h);n.removeEventListener('click',k)};c.addEventListener('click',h,{once:true});n.addEventListener('click',k,{once:true})};
-    
+
     function renderLoginScreen(){
         const userList = document.getElementById('user-list');
         userList.innerHTML = '';
@@ -328,20 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hideWhatsAppModal() { document.getElementById('whatsapp-data-modal').classList.add('hidden'); }
-    
-    function renderCaixa() {
-        // Implementação completa de renderCaixa...
-    }
-    async function renderPedidos() {
-        // Implementação completa de renderPedidos...
-    }
-    async function renderRelatorios() {
-        // Implementação completa de renderRelatorios...
-    }
-    function renderConfiguracoes() {
-        // Implementação completa de renderConfiguracoes...
-    }
-    
+
     document.getElementById('whatsapp-data-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('save-whatsapp-button');
@@ -356,7 +192,170 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('skip-whatsapp-button').addEventListener('click', hideWhatsAppModal);
+    
+    function renderCaixa() {
+        // Implementation for Caixa view...
+    }
+    async function renderPedidos() {
+        // Implementation for Pedidos view...
+    }
+    async function renderRelatorios() {
+        // Implementation for Relatorios view...
+    }
+    
+    // --- FIX STARTS HERE ---
+    function renderConfiguracoes() {
+        const storeNameInput = document.getElementById('config-store-name');
+        const metaDiariaInput = document.getElementById('meta-diaria');
+        const metaSemanalInput = document.getElementById('meta-semanal');
+        const metaMensalInput = document.getElementById('meta-mensal');
+        const saveSettingsButton = document.getElementById('save-settings-button');
+        const addVendedorForm = document.getElementById('add-vendedor-form');
+        const vendedoresList = document.getElementById('vendedores-list');
+        const zerarVendasButton = document.getElementById('zerar-vendas-button');
+        const exportDiaButton = document.getElementById('export-dia');
+        const exportSemanaButton = document.getElementById('export-semana');
 
+        // Populate existing settings
+        storeNameInput.value = state.db.settings.storeName;
+        metaDiariaInput.value = state.db.settings.goals.daily || '';
+        metaSemanalInput.value = state.db.settings.goals.weekly || '';
+        metaMensalInput.value = state.db.settings.goals.monthly || '';
+
+        // Function to render the list of sellers
+        const renderVendedoresList = () => {
+            vendedoresList.innerHTML = '';
+            state.db.users.forEach(user => {
+                if (user.role === 'vendedor') {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-2 rounded';
+                    li.innerHTML = `<span>${user.name}</span> <button data-id="${user.id}" class="delete-vendedor-btn p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-full"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
+                    vendedoresList.appendChild(li);
+                }
+            });
+            lucide.createIcons();
+
+            // Add event listeners for delete buttons
+            document.querySelectorAll('.delete-vendedor-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    const userId = e.currentTarget.dataset.id;
+                    const user = state.db.users.find(u => u.id === userId);
+                    showConfirmModal(`Tem certeza que deseja excluir o vendedor "${user.name}"?`, async () => {
+                        const { success } = await deleteData('users', userId);
+                        if (success) {
+                            showToast('Vendedor excluído com sucesso!');
+                            state.db.users = state.db.users.filter(u => u.id !== userId);
+                            renderVendedoresList();
+                        }
+                    });
+                });
+            });
+        };
+        renderVendedoresList();
+
+        // Event listener for adding a new seller
+        addVendedorForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('vendedor-name');
+            const passwordInput = document.getElementById('vendedor-password');
+            const name = nameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (name && password) {
+                const newUser = { name, password, role: 'vendedor' };
+                const { success, id } = await saveData('users', newUser);
+                if (success) {
+                    showToast('Vendedor cadastrado com sucesso!');
+                    state.db.users.push({ id, ...newUser });
+                    nameInput.value = '';
+                    passwordInput.value = '';
+                    renderVendedoresList();
+                }
+            }
+        });
+
+        // Event listener for saving general settings
+        saveSettingsButton.addEventListener('click', async () => {
+            const newStoreName = storeNameInput.value.trim();
+            const newGoals = {
+                daily: parseFloat(metaDiariaInput.value) || 0,
+                weekly: parseFloat(metaSemanalInput.value) || 0,
+                monthly: parseFloat(metaMensalInput.value) || 0,
+            };
+
+            await saveData('settings', { name: newStoreName }, 'store');
+            await saveData('settings', newGoals, 'goals');
+            
+            state.db.settings.storeName = newStoreName;
+            state.db.settings.goals = newGoals;
+            
+            document.getElementById('store-name-sidebar').textContent = newStoreName;
+            document.getElementById('login-store-name').textContent = newStoreName;
+
+            showToast('Configurações salvas com sucesso!');
+        });
+        
+        // Event listener for clearing all sales
+        zerarVendasButton.addEventListener('click', () => {
+            showConfirmModal('Esta ação irá apagar TODOS os registros de vendas permanentemente. Deseja continuar?', async () => {
+                showToast('Excluindo vendas... Isso pode levar um momento.', 'info');
+                const salesToDelete = await fetchData('sales');
+                const deletePromises = salesToDelete.map(sale => deleteData('sales', sale.id));
+                await Promise.all(deletePromises);
+                state.db.sales = [];
+                showToast('Todas as vendas foram zeradas com sucesso!', 'success');
+            });
+        });
+
+        const exportSalesToCSV = (period) => {
+            const now = new Date();
+            const salesToExport = state.db.sales.filter(sale => {
+                const saleDate = new Date(sale.date.seconds * 1000);
+                if (period === 'day') {
+                    return saleDate.toDateString() === now.toDateString();
+                }
+                if (period === 'week') {
+                    const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+                    return saleDate >= weekStart;
+                }
+                return false;
+            });
+
+            if (salesToExport.length === 0) {
+                showToast('Nenhuma venda encontrada para o período selecionado.', 'error');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "ID,Data,Vendedor,Cliente,Valor Total,Pagamento,Itens\r\n";
+
+            salesToExport.forEach(sale => {
+                const row = [
+                    sale.id,
+                    formatDate(sale.date),
+                    sale.seller,
+                    `"${sale.clientName || 'N/A'}"`,
+                    sale.total,
+                    sale.paymentMethod,
+                    `"${sale.items.map(item => `${item.name} (R$${item.value})`).join('; ')}"`
+                ].join(',');
+                csvContent += row + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `vendas_${period}_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        exportDiaButton.addEventListener('click', () => exportSalesToCSV('day'));
+        exportSemanaButton.addEventListener('click', () => exportSalesToCSV('week'));
+    }
+    // --- FIX ENDS HERE ---
+    
     document.getElementById('user-list').addEventListener('click', (e) => {
         const userButton = e.target.closest('button');
         if (!userButton) return;
@@ -411,5 +410,3 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
 });
 </script>
-</body>
-</html>
