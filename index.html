@@ -588,7 +588,7 @@
                     });
                 });
 
-                let csvContent = "data:text/csv;charset=utf-8,\uFEFF"
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
                     + headers.join(",") + "\n" 
                     + rows.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
 
