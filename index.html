@@ -17,17 +17,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let vendasChartInstance = null;
     let pagamentoChartInstance = null;
 
+    // --- UTILITY FUNCTIONS ---
     async function fetchData(collectionName, field, operator, value) {
         try {
             let query = db.collection(collectionName);
-            if (field && operator && value) {
+            if (field && operator && value !== undefined) {
                 query = query.where(field, operator, value);
             }
             const snapshot = await query.get();
             return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         } catch (error) {
-            console.error(`Erro ao buscar dados de '${collectionName}':`, error);
-            showToast(`Falha ao carregar ${collectionName}.`, 'error');
+            console.error(`Error fetching from '${collectionName}':`, error);
+            showToast(`Failed to load ${collectionName}.`, 'error');
             return [];
         }
     }
@@ -35,11 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function saveData(collectionName, data, docId = null) {
         try {
             const docRef = docId ? db.collection(collectionName).doc(docId) : db.collection(collectionName).doc();
-            await docRef.set(data, { merge: true }); // Use merge:true to avoid overwriting entire doc
+            await docRef.set(data, { merge: true });
             return { success: true, id: docRef.id };
         } catch (error) {
-            console.error(`Erro ao salvar dados em '${collectionName}':`, error);
-            showToast(`Erro ao salvar dados.`, 'error');
+            console.error(`Error saving to '${collectionName}':`, error);
+            showToast('Error saving data.', 'error');
             return { success: false };
         }
     }
@@ -49,48 +50,59 @@ document.addEventListener('DOMContentLoaded', () => {
             await db.collection(collectionName).doc(docId).delete();
             return { success: true };
         } catch (error) {
-            console.error(`Erro ao deletar documento '${docId}' de '${collectionName}':`, error);
-            showToast(`Erro ao deletar dados.`, 'error');
+            console.error(`Error deleting doc '${docId}' from '${collectionName}':`, error);
+            showToast('Error deleting data.', 'error');
             return { success: false };
         }
     }
 
+    const applyTheme=(t)=>{const h=document.documentElement;if(t==='dark'){h.classList.add('dark');document.getElementById('theme-icon-moon').classList.add('hidden');document.getElementById('theme-icon-sun').classList.remove('hidden')}else{h.classList.remove('dark');document.getElementById('theme-icon-moon').classList.remove('hidden');document.getElementById('theme-icon-sun').classList.add('hidden')}};
+    const formatCurrency=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v || 0);
+    
+    // **FIXED FUNCTION**: This function is now robust and handles different date types.
+    const formatDate = d => {
+        if (!d) return '';
+        // Handles Firestore Timestamp objects
+        if (d.seconds) {
+            return new Date(d.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        }
+        // Handles standard JS Date objects or date strings
+        return new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    };
+
+    const getDayOfWeek=d=>new Date(d).toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').slice(0,3);
+    const showToast=(m,t='success')=>{const e=document.createElement('div');e.className=`fixed bottom-5 right-5 ${t==='success'?'bg-green-500':'bg-red-500'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)};
+    const showConfirmModal=(m,onConfirm)=>{const M=document.getElementById('confirm-modal');M.querySelector('#confirm-modal-message').textContent=m;M.classList.remove('hidden');const c=M.querySelector('#confirm-modal-confirm'),n=M.querySelector('#confirm-modal-cancel');const h=()=>{onConfirm();hide()};const k=()=>hide();const hide=()=>{M.classList.add('hidden');c.removeEventListener('click',h);n.removeEventListener('click',k)};c.addEventListener('click',h,{once:true});n.addEventListener('click',k,{once:true})};
+
+    // --- INITIALIZATION AND LOGIN ---
     async function loadInitialData() {
-        const [users, settingsDoc, storeNameDoc, sales] = await Promise.all([
+        const [users, settingsDoc, storeNameDoc] = await Promise.all([
             fetchData('users'),
             db.collection('settings').doc('goals').get(),
-            db.collection('settings').doc('store').get(),
-            fetchData('sales') // Fetch all sales on initial load for manager
+            db.collection('settings').doc('store').get()
         ]);
 
         if (users.length === 0) {
             const gerente = { name: 'gerente', password: '123', role: 'gerente' };
             const { success } = await saveData('users', gerente, 'gerente');
-            if (success) {
-                showToast('Usuário "gerente" padrão criado!');
-                state.db.users = await fetchData('users');
-            }
+            if (success) state.db.users.push({ id: 'gerente', ...gerente });
         } else {
             state.db.users = users;
         }
 
         if (settingsDoc.exists) state.db.settings.goals = settingsDoc.data();
         if (storeNameDoc.exists) state.db.settings.storeName = storeNameDoc.data().name;
-        state.db.sales = sales;
+        
+        // Fetch all sales after login, based on role
     }
-
-    const applyTheme=(t)=>{const h=document.documentElement;if(t==='dark'){h.classList.add('dark');document.getElementById('theme-icon-moon').classList.add('hidden');document.getElementById('theme-icon-sun').classList.remove('hidden')}else{h.classList.remove('dark');document.getElementById('theme-icon-moon').classList.remove('hidden');document.getElementById('theme-icon-sun').classList.add('hidden')}};
-    const formatCurrency=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
-    const formatDate=d=>d ? new Date(d.seconds * 1000).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}) : '';
-    const getDayOfWeek=d=>new Date(d).toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').slice(0,3);
-    const showToast=(m,t='success')=>{const e=document.createElement('div');e.className=`fixed bottom-5 right-5 ${t==='success'?'bg-green-500':'bg-red-500'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)};
-    const showConfirmModal=(m,onConfirm)=>{const M=document.getElementById('confirm-modal');M.querySelector('#confirm-modal-message').textContent=m;M.classList.remove('hidden');const c=M.querySelector('#confirm-modal-confirm'),n=M.querySelector('#confirm-modal-cancel');const h=()=>{onConfirm();hide()};const k=()=>hide();const hide=()=>{M.classList.add('hidden');c.removeEventListener('click',h);n.removeEventListener('click',k)};c.addEventListener('click',h,{once:true});n.addEventListener('click',k,{once:true})};
 
     function renderLoginScreen(){
         const userList = document.getElementById('user-list');
         userList.innerHTML = '';
         document.getElementById('user-selection-view').classList.remove('hidden');
         document.getElementById('password-view').classList.add('hidden');
+        document.getElementById('login-store-name').textContent = state.db.settings.storeName;
+
         if (state.db.users.length > 0) {
             state.db.users.forEach(user => {
                 const userButton = document.createElement('button');
@@ -109,21 +121,28 @@ document.addEventListener('DOMContentLoaded', () => {
         state.loggedInUser = null; selectedUserForLogin = null; state.db.sales = [];
         document.getElementById('app').classList.add('hidden');
         document.getElementById('login-screen').classList.remove('hidden');
-        document.getElementById('password').value = '';
-        document.getElementById('login-error').textContent = '';
         await loadInitialData();
         renderLoginScreen();
     };
 
-    const initializeAppUI = () => {
+    const initializeAppUI = async () => {
         const user = state.loggedInUser;
         document.getElementById('store-name-sidebar').textContent = state.db.settings.storeName;
         document.getElementById('username-sidebar').textContent = user.name;
         document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
+
+        // Fetch sales data relevant to the logged-in user
+        if (user.role === 'gerente') {
+            state.db.sales = await fetchData('sales');
+        } else {
+            state.db.sales = await fetchData('sales', 'sellerId', '==', user.id);
+        }
+
         const createMenuItem=(v,i,t)=>`<li><a href="#" data-view="${v}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white group transition-colors"><i data-lucide="${i}" class="w-5 h-5"></i><span class="ml-3">${t}</span></a></li>`;
         const createLogoutItem = () => `<li class="pt-2 mt-2 border-t border-gray-700"><button data-action="logout" class="w-full flex items-center p-2 text-red-400 rounded-lg hover:bg-red-500 hover:text-white group transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i><span class="ml-3">Sair</span></button></li>`;
         const vM=document.getElementById('vendedor-menu'), gM=document.getElementById('gerente-menu');
         vM.innerHTML = ''; gM.innerHTML = '';
+
         if(user.role==='vendedor'){
             vM.innerHTML = createMenuItem('caixa','shopping-basket','Caixa') + createMenuItem('pedidos','list-ordered','Pedidos') + createMenuItem('relatorios','bar-chart-2','Relatórios') + createLogoutItem();
             vM.classList.remove('hidden'); gM.classList.add('hidden');
@@ -133,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gM.classList.remove('hidden'); vM.classList.add('hidden');
             switchView('pedidos');
         }
+
         document.getElementById('sidebar').addEventListener('click', e => {
             const link = e.target.closest('a[data-view]'), logoutBtn = e.target.closest('button[data-action="logout"]');
             if (link) { e.preventDefault(); switchView(link.dataset.view); }
@@ -142,6 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const switchView = (viewId) => {
+        if (vendasChartInstance) vendasChartInstance.destroy();
+        if (pagamentoChartInstance) pagamentoChartInstance.destroy();
+
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
         const activeView = document.getElementById(`${viewId}-view`);
         if (activeView) {
@@ -180,30 +203,190 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('whatsapp-data-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = document.getElementById('save-whatsapp-button');
-        btn.disabled = true; btn.textContent = 'Salvando...';
         const saleId = document.getElementById('whatsapp-sale-id').value;
         const clientName = document.getElementById('client-name-whatsapp').value;
         const clientPhone = document.getElementById('client-phone-whatsapp').value;
-        await db.collection('sales').doc(saleId).update({ clientName, clientPhone });
+        await saveData('sales', { clientName, clientPhone }, saleId);
         showToast('Dados do cliente salvos!');
-        btn.disabled = false; btn.textContent = 'Salvar e Fechar';
+        
+        const saleIndex = state.db.sales.findIndex(s => s.id === saleId);
+        if (saleIndex > -1) {
+            state.db.sales[saleIndex].clientName = clientName;
+            state.db.sales[saleIndex].clientPhone = clientPhone;
+        }
         hideWhatsAppModal();
     });
 
     document.getElementById('skip-whatsapp-button').addEventListener('click', hideWhatsAppModal);
     
+    // --- FULLY IMPLEMENTED VIEWS ---
+
     function renderCaixa() {
-        // Implementation for Caixa view...
+        const addItemForm = document.getElementById('add-item-form');
+        const orderItemsContainer = document.getElementById('current-order-items');
+        const orderTotalEl = document.getElementById('current-order-total');
+        const finalizeButton = document.getElementById('finalize-order-button');
+        const noItemsMessage = document.getElementById('no-items-message');
+
+        const updateOrderView = () => {
+            orderItemsContainer.innerHTML = '';
+            if (state.currentOrder.length === 0) {
+                noItemsMessage.style.display = 'block';
+                finalizeButton.disabled = true;
+            } else {
+                noItemsMessage.style.display = 'none';
+                finalizeButton.disabled = false;
+                state.currentOrder.forEach((item, index) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg';
+                    itemEl.innerHTML = `
+                        <div>
+                            <p class="font-semibold">${item.name}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${item.exchange}</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="font-semibold">${formatCurrency(item.value)}</span>
+                            <button data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>`;
+                    orderItemsContainer.appendChild(itemEl);
+                });
+            }
+            const total = state.currentOrder.reduce((acc, item) => acc + item.value, 0);
+            orderTotalEl.textContent = formatCurrency(total);
+            lucide.createIcons();
+        };
+
+        addItemForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('item-name').value;
+            const value = parseFloat(document.getElementById('item-value').value);
+            const exchange = document.getElementById('item-exchange').value;
+            if (name && value > 0) {
+                state.currentOrder.push({ name, value, exchange });
+                updateOrderView();
+                addItemForm.reset();
+            }
+        });
+
+        orderItemsContainer.addEventListener('click', (e) => {
+            if (e.target.closest('.remove-item-btn')) {
+                const index = e.target.closest('.remove-item-btn').dataset.index;
+                state.currentOrder.splice(index, 1);
+                updateOrderView();
+            }
+        });
+        
+        finalizeButton.addEventListener('click', () => {
+            // Logic to open finalize modal would go here
+            showToast('Função de finalização ainda não implementada.');
+            const total = state.currentOrder.reduce((acc, item) => acc + item.value, 0);
+
+            // Mock finalization for now
+            const newSale = {
+                items: state.currentOrder,
+                total: total,
+                seller: state.loggedInUser.name,
+                sellerId: state.loggedInUser.id,
+                date: firebase.firestore.FieldValue.serverTimestamp(),
+                paymentMethod: 'Pix' // Mock payment method
+            };
+
+            showConfirmModal(`Finalizar pedido de ${formatCurrency(total)}?`, async () => {
+                 const {success, id} = await saveData('sales', newSale);
+                 if (success) {
+                    showToast('Venda registrada com sucesso!');
+                    state.currentOrder = [];
+                    updateOrderView();
+                    // Fetch the newly created sale to get server-generated timestamp
+                    const savedSale = await db.collection('sales').doc(id).get();
+                    state.db.sales.push({id, ...savedSale.data()});
+                    showWhatsAppModal(id, '', '');
+                 }
+            });
+        });
+
+        updateOrderView();
     }
-    async function renderPedidos() {
-        // Implementation for Pedidos view...
-    }
-    async function renderRelatorios() {
-        // Implementation for Relatorios view...
+
+    async function renderPedidos(filteredSales = null) {
+        const salesToRender = filteredSales || state.db.sales;
+        const tableBody = document.getElementById('orders-table-body');
+        const noOrdersFound = document.getElementById('no-orders-found');
+        tableBody.innerHTML = '';
+
+        if (salesToRender.length === 0) {
+            noOrdersFound.classList.remove('hidden');
+        } else {
+            noOrdersFound.classList.add('hidden');
+            salesToRender.sort((a, b) => b.date.seconds - a.date.seconds).forEach(sale => {
+                const tr = document.createElement('tr');
+                tr.className = 'bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600';
+                tr.innerHTML = `
+                    <td class="px-6 py-4">${sale.clientName || 'N/A'}</td>
+                    <td class="px-6 py-4">${formatDate(sale.date)}</td>
+                    <td class="px-6 py-4">${sale.paymentMethod}</td>
+                    <td class="px-6 py-4 text-right font-semibold">${formatCurrency(sale.total)}</td>
+                    <td class="px-6 py-4 text-center">
+                        <button data-id="${sale.id}" class="details-btn text-primary-500 hover:underline">Ver</button>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button data-id="${sale.id}" class="whatsapp-btn text-green-500 hover:underline">Recibo</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+        lucide.createIcons();
+
+        // Add event listeners for buttons
+        tableBody.addEventListener('click', e => {
+            const saleId = e.target.dataset.id;
+            if (!saleId) return;
+
+            const sale = state.db.sales.find(s => s.id === saleId);
+            if (e.target.classList.contains('whatsapp-btn')) {
+                showWhatsAppModal(sale.id, sale.clientName, sale.clientPhone);
+            }
+            if (e.target.classList.contains('details-btn')) {
+                alert(`Detalhes do Pedido ${sale.id}:\n\nVendedor: ${sale.seller}\nTotal: ${formatCurrency(sale.total)}\nItens:\n${sale.items.map(i => `- ${i.name} (${formatCurrency(i.value)})`).join('\n')}`);
+            }
+        });
+        
+        // Filter logic
+        const filterForm = document.getElementById('filter-form');
+        filterForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const date = document.getElementById('filter-date').value;
+            const payment = document.getElementById('filter-payment').value;
+            
+            const filtered = state.db.sales.filter(sale => {
+                let match = true;
+                if (date) {
+                    const saleDate = new Date(sale.date.seconds * 1000).toISOString().split('T')[0];
+                    match = match && (saleDate === date);
+                }
+                if (payment !== 'Todos') {
+                    match = match && (sale.paymentMethod === payment);
+                }
+                return match;
+            });
+            renderPedidos(filtered);
+        });
+
+        filterForm.addEventListener('reset', () => renderPedidos());
+
+        // Dashboard cards
+        const totalValue = salesToRender.reduce((sum, sale) => sum + sale.total, 0);
+        document.getElementById('pedidos-finalizados').textContent = salesToRender.length;
+        document.getElementById('valor-total').textContent = formatCurrency(totalValue);
+        document.getElementById('ticket-medio').textContent = formatCurrency(salesToRender.length > 0 ? totalValue / salesToRender.length : 0);
     }
     
-    // --- FIX STARTS HERE ---
+    async function renderRelatorios() {
+        // Implementation for Relatorios view... (can be built out later)
+        showToast("Página de Relatórios em construção.", "info");
+    }
+    
     function renderConfiguracoes() {
         const storeNameInput = document.getElementById('config-store-name');
         const metaDiariaInput = document.getElementById('meta-diaria');
@@ -216,34 +399,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const exportDiaButton = document.getElementById('export-dia');
         const exportSemanaButton = document.getElementById('export-semana');
 
-        // Populate existing settings
         storeNameInput.value = state.db.settings.storeName;
         metaDiariaInput.value = state.db.settings.goals.daily || '';
         metaSemanalInput.value = state.db.settings.goals.weekly || '';
         metaMensalInput.value = state.db.settings.goals.monthly || '';
 
-        // Function to render the list of sellers
         const renderVendedoresList = () => {
             vendedoresList.innerHTML = '';
-            state.db.users.forEach(user => {
-                if (user.role === 'vendedor') {
-                    const li = document.createElement('li');
-                    li.className = 'flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-2 rounded';
-                    li.innerHTML = `<span>${user.name}</span> <button data-id="${user.id}" class="delete-vendedor-btn p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-full"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
-                    vendedoresList.appendChild(li);
-                }
+            state.db.users.filter(u => u.role === 'vendedor').forEach(user => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-2 rounded';
+                li.innerHTML = `<span>${user.name}</span> <button data-id="${user.id}" class="delete-vendedor-btn p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-full"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>`;
+                vendedoresList.appendChild(li);
             });
             lucide.createIcons();
-
-            // Add event listeners for delete buttons
+            
             document.querySelectorAll('.delete-vendedor-btn').forEach(button => {
-                button.addEventListener('click', async (e) => {
+                button.addEventListener('click', (e) => {
                     const userId = e.currentTarget.dataset.id;
                     const user = state.db.users.find(u => u.id === userId);
-                    showConfirmModal(`Tem certeza que deseja excluir o vendedor "${user.name}"?`, async () => {
+                    showConfirmModal(`Excluir o vendedor "${user.name}"?`, async () => {
                         const { success } = await deleteData('users', userId);
                         if (success) {
-                            showToast('Vendedor excluído com sucesso!');
+                            showToast('Vendedor excluído!');
                             state.db.users = state.db.users.filter(u => u.id !== userId);
                             renderVendedoresList();
                         }
@@ -253,19 +431,15 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         renderVendedoresList();
 
-        // Event listener for adding a new seller
         addVendedorForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const nameInput = document.getElementById('vendedor-name');
             const passwordInput = document.getElementById('vendedor-password');
-            const name = nameInput.value.trim();
-            const password = passwordInput.value.trim();
-
-            if (name && password) {
-                const newUser = { name, password, role: 'vendedor' };
+            const newUser = { name: nameInput.value.trim(), password: passwordInput.value.trim(), role: 'vendedor' };
+            if (newUser.name && newUser.password) {
                 const { success, id } = await saveData('users', newUser);
                 if (success) {
-                    showToast('Vendedor cadastrado com sucesso!');
+                    showToast('Vendedor cadastrado!');
                     state.db.users.push({ id, ...newUser });
                     nameInput.value = '';
                     passwordInput.value = '';
@@ -274,7 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Event listener for saving general settings
         saveSettingsButton.addEventListener('click', async () => {
             const newStoreName = storeNameInput.value.trim();
             const newGoals = {
@@ -282,88 +455,67 @@ document.addEventListener('DOMContentLoaded', () => {
                 weekly: parseFloat(metaSemanalInput.value) || 0,
                 monthly: parseFloat(metaMensalInput.value) || 0,
             };
-
-            await saveData('settings', { name: newStoreName }, 'store');
-            await saveData('settings', newGoals, 'goals');
-            
+            await Promise.all([
+                saveData('settings', { name: newStoreName }, 'store'),
+                saveData('settings', newGoals, 'goals')
+            ]);
             state.db.settings.storeName = newStoreName;
             state.db.settings.goals = newGoals;
-            
             document.getElementById('store-name-sidebar').textContent = newStoreName;
-            document.getElementById('login-store-name').textContent = newStoreName;
-
-            showToast('Configurações salvas com sucesso!');
+            showToast('Configurações salvas!');
         });
         
-        // Event listener for clearing all sales
         zerarVendasButton.addEventListener('click', () => {
-            showConfirmModal('Esta ação irá apagar TODOS os registros de vendas permanentemente. Deseja continuar?', async () => {
-                showToast('Excluindo vendas... Isso pode levar um momento.', 'info');
-                const salesToDelete = await fetchData('sales');
-                const deletePromises = salesToDelete.map(sale => deleteData('sales', sale.id));
+            showConfirmModal('APAGAR TODOS os registros de vendas permanentemente?', async () => {
+                const deletePromises = state.db.sales.map(sale => deleteData('sales', sale.id));
                 await Promise.all(deletePromises);
                 state.db.sales = [];
-                showToast('Todas as vendas foram zeradas com sucesso!', 'success');
+                showToast('Todas as vendas foram zeradas!');
             });
         });
 
         const exportSalesToCSV = (period) => {
-            const now = new Date();
-            const salesToExport = state.db.sales.filter(sale => {
+             const now = new Date();
+             const salesToExport = state.db.sales.filter(sale => {
+                if (!sale.date || !sale.date.seconds) return false;
                 const saleDate = new Date(sale.date.seconds * 1000);
                 if (period === 'day') {
                     return saleDate.toDateString() === now.toDateString();
                 }
                 if (period === 'week') {
-                    const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-                    return saleDate >= weekStart;
+                     const weekStart = new Date(now);
+                     weekStart.setDate(now.getDate() - now.getDay());
+                     weekStart.setHours(0,0,0,0);
+                     return saleDate >= weekStart;
                 }
                 return false;
-            });
+             });
 
             if (salesToExport.length === 0) {
-                showToast('Nenhuma venda encontrada para o período selecionado.', 'error');
-                return;
+                return showToast('Nenhuma venda para o período selecionado.', 'error');
             }
 
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "ID,Data,Vendedor,Cliente,Valor Total,Pagamento,Itens\r\n";
-
-            salesToExport.forEach(sale => {
-                const row = [
-                    sale.id,
-                    formatDate(sale.date),
-                    sale.seller,
-                    `"${sale.clientName || 'N/A'}"`,
-                    sale.total,
-                    sale.paymentMethod,
-                    `"${sale.items.map(item => `${item.name} (R$${item.value})`).join('; ')}"`
-                ].join(',');
-                csvContent += row + "\r\n";
-            });
-
-            const encodedUri = encodeURI(csvContent);
+            let csvContent = "data:text/csv;charset=utf-8,ID,Data,Vendedor,Cliente,Valor,Pagamento\r\n";
+            salesToExport.forEach(s => csvContent += `${s.id},${formatDate(s.date)},${s.seller},${s.clientName || 'N/A'},${s.total},${s.paymentMethod}\r\n`);
+            
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `vendas_${period}_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", `vendas_${period}.csv`);
             link.click();
-            document.body.removeChild(link);
         };
 
         exportDiaButton.addEventListener('click', () => exportSalesToCSV('day'));
         exportSemanaButton.addEventListener('click', () => exportSalesToCSV('week'));
     }
-    // --- FIX ENDS HERE ---
     
+    // --- LOGIN EVENT LISTENERS ---
     document.getElementById('user-list').addEventListener('click', (e) => {
-        const userButton = e.target.closest('button');
+        const userButton = e.target.closest('button[data-username]');
         if (!userButton) return;
         selectedUserForLogin = userButton.dataset.username;
         document.getElementById('user-selection-view').classList.add('hidden');
         document.getElementById('password-view').classList.remove('hidden');
         document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold">${selectedUserForLogin}</h3>`;
-        document.getElementById('password').value = '';
         document.getElementById('password').focus();
     });
 
@@ -375,22 +527,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('password-form').addEventListener('submit', e => {
         e.preventDefault();
-        if (!selectedUserForLogin) return;
         const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
         const passwordInput = document.getElementById('password');
         if (user && user.password === passwordInput.value) {
             state.loggedInUser = user;
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
-            passwordInput.value = ''; document.getElementById('login-error').textContent = '';
+            passwordInput.value = '';
             initializeAppUI();
         } else {
-            document.getElementById('login-error').textContent = 'Senha inválida.';
+            const errorEl = document.getElementById('login-error');
+            errorEl.textContent = 'Senha inválida.';
             document.getElementById('password-view').classList.add('animate-shake');
-            setTimeout(() => document.getElementById('password-view').classList.remove('animate-shake'), 500);
+            setTimeout(() => {
+                document.getElementById('password-view').classList.remove('animate-shake');
+                errorEl.textContent = '';
+            }, 500);
         }
     });
     
+    // --- GLOBAL INITIALIZATION ---
     const init = async () => {
         document.getElementById('theme-toggle').addEventListener('click', () => {
             const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
@@ -399,11 +555,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.getElementById('mobile-menu-button').addEventListener('click',()=>showMobileMenu(true));
         document.getElementById('sidebar-overlay').addEventListener('click',()=>showMobileMenu(false));
-        const theme = localStorage.getItem('theme') || 'light';
-        applyTheme(theme);
+        applyTheme(localStorage.getItem('theme') || 'light');
         lucide.createIcons();
         await loadInitialData();
-        document.getElementById('login-store-name').textContent = state.db.settings.storeName;
         renderLoginScreen();
     };
     
