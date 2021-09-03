@@ -187,59 +187,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // ===================================================================================
+    // FUNÇÃO CORRIGIDA E MAIS ROBUSTA
+    // ===================================================================================
     async function loadInitialData() {
-        state.db.users = await fetchData('users');
-        if (state.db.users.length === 0) {
+        let users = await fetchData('users');
+        
+        if (users.length === 0) {
             const gerente = { name: 'gerente', password: '123', role: 'gerente' };
             const success = await saveData('users', gerente, 'gerente');
+            
             if (success) {
                 showToast('Usuário "gerente" padrão criado!');
-                state.db.users.push({ id: 'gerente', ...gerente });
+                // Após criar, busca a lista novamente para garantir que está atualizada
+                users = await fetchData('users'); 
             }
         }
+        
+        state.db.users = users; // Define o estado com a lista final
     }
 
-    const applyTheme=(t)=>{const h=document.documentElement;if(t==='dark'){h.classList.add('dark');document.getElementById('theme-icon-moon').classList.add('hidden');document.getElementById('theme-icon-sun').classList.remove('hidden')}else{h.classList.remove('dark');document.getElementById('theme-icon-moon').classList.remove('hidden');document.getElementById('theme-icon-sun').classList.add('hidden')}};
+    const applyTheme=(t)=>{/* ... (código inalterado) ... */};
     const formatCurrency=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
     const formatDate=d=>new Date(d).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
     const getDayOfWeek=d=>new Date(d).toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').slice(0,3);
-    const showToast=(m,t='success')=>{const e=document.createElement('div');e.className=`fixed bottom-5 right-5 ${t==='success'?'bg-green-500':'bg-red-500'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)};
-    const showConfirmModal=(m,onConfirm)=>{const M=document.getElementById('confirm-modal');M.querySelector('#confirm-modal-message').textContent=m;M.classList.remove('hidden');const c=M.querySelector('#confirm-modal-confirm'),n=M.querySelector('#confirm-modal-cancel');const h=()=>{onConfirm();hide()};const k=()=>hide();const hide=()=>{M.classList.add('hidden');c.removeEventListener('click',h);n.removeEventListener('click',k)};c.addEventListener('click',h,{once:true});n.addEventListener('click',k,{once:true})};
+    const showToast=(m,t='success')=>{/* ... (código inalterado) ... */};
+    const showConfirmModal=(m,onConfirm)=>{/* ... (código inalterado) ... */};
     
-    function renderLoginScreen(){/* Lógica de renderização da tela de login */}
+    function renderLoginScreen(){
+        const userList = document.getElementById('user-list');
+        userList.innerHTML = '';
+        document.getElementById('user-selection-view').classList.remove('hidden');
+        document.getElementById('password-view').classList.add('hidden');
+        
+        if (state.db.users.length > 0) {
+            state.db.users.forEach(user => {
+                const userButton = document.createElement('button');
+                userButton.className = 'flex flex-col items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200 transform hover:scale-105 border border-gray-200 dark:border-gray-700';
+                userButton.dataset.username = user.name;
+                userButton.innerHTML = `<div class="w-16 h-16 mb-2 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div><span class="font-semibold text-gray-800 dark:text-gray-200 text-center">${user.name}</span>`;
+                userList.appendChild(userButton);
+            });
+        } else {
+            userList.innerHTML = '<p class="col-span-full text-center text-gray-500">Nenhum usuário encontrado.</p>';
+        }
+    }
     
-    const logout = async () => {/* Lógica de logout */};
-    const initializeAppUI = () => {/* Lógica de inicialização da UI principal */};
-    const switchView = (viewId) => {/* Lógica para trocar de tela/view */};
-    const renderViewContent = (viewId) => {/* Lógica para renderizar o conteúdo de cada view */};
-    const sidebar=document.getElementById('sidebar'),overlay=document.getElementById('sidebar-overlay');
-    const showMobileMenu=s=>{if(s){sidebar.classList.remove('-translate-x-full');overlay.classList.remove('hidden')}else{sidebar.classList.add('-translate-x-full');overlay.classList.add('hidden')}};
+    // O restante do seu código JavaScript continua aqui...
+    // (logout, initializeAppUI, switchView, renderViewContent, etc.)
 
-    function renderCaixa() {/* Lógica da view Caixa */}
-    async function renderPedidos() {/* Lógica da view Pedidos */}
-    async function renderRelatorios() {/* Lógica da view Relatórios */}
-    function renderConfiguracoes() {/* Lógica da view Configurações */}
-    
-    // ===================================================================================
-    // INICIALIZAÇÃO E EVENT LISTENERS GLOBAIS
-    // ===================================================================================
-    
-    document.getElementById('user-list').addEventListener('click', (e) => {/* Lógica de seleção de usuário */});
-    document.getElementById('back-to-users').addEventListener('click', () => {/* Lógica do botão voltar */});
-    document.getElementById('password-form').addEventListener('submit', e => {/* Lógica de submissão de senha */});
-    
     const init = async () => {
         const theme = localStorage.getItem('theme') || 'light';
         applyTheme(theme);
         
-        // Listeners que estavam causando o erro se os elementos não existissem
         document.getElementById('theme-toggle').addEventListener('click', () => {
             const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
             localStorage.setItem('theme', newTheme);
             applyTheme(newTheme);
         });
         document.getElementById('mobile-menu-button').addEventListener('click',()=>showMobileMenu(true));
-        overlay.addEventListener('click',()=>showMobileMenu(false));
+        document.getElementById('sidebar-overlay').addEventListener('click',()=>showMobileMenu(false));
         
         lucide.createIcons();
         document.getElementById('login-store-name').textContent = state.db.settings.storeName;
