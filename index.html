@@ -447,7 +447,7 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Vendedor</h3>
+                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Usuário</h3>
                     <form id="add-vendedor-form" class="space-y-4">
                         <div>
                             <label for="vendedor-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome</label>
@@ -457,11 +457,15 @@
                             <label for="vendedor-password" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Senha</label>
                             <input type="password" id="vendedor-password" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
                         </div>
-                        <button type="submit" class="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors">Salvar Vendedor</button>
+                        <div class="flex items-center">
+                            <input id="create-as-manager" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500">
+                            <label for="create-as-manager" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Criar como Gerente</label>
+                        </div>
+                        <button type="submit" class="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors">Salvar Usuário</button>
                     </form>
                 </div>
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Vendedores Cadastrados</h3>
+                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Usuários Cadastrados</h3>
                     <ul id="vendedores-list" class="space-y-2"></ul>
                 </div>
             </div>
@@ -471,7 +475,7 @@
     <!-- Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, orderBy, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
@@ -689,6 +693,8 @@
 
             const switchView = (viewId) => {
                 if(state.listeners.sales) { state.listeners.sales(); state.listeners.sales = null; }
+                if(state.listeners.users) { state.listeners.users(); state.listeners.users = null; }
+
 
                 document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
                 const activeView = document.getElementById(`${viewId}-view`);
@@ -870,23 +876,20 @@
                     renderTable(sales);
                 };
                 
-                let q;
-                if (isGerente) {
-                    q = query(collection(db, "sales"), orderBy("date", "desc"));
-                } else {
-                    q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), orderBy("date", "desc"));
+                let q = collection(db, "sales");
+                if (!isGerente) {
+                    q = query(q, where("vendedor", "==", state.loggedInUser.name));
                 }
 
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
-                    const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    let allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    allSales.sort((a, b) => b.date.seconds - a.date.seconds);
                     state.db.sales = allSales;
                     filterAndRender(allSales);
                 }, (error) => {
-                    console.error("Erro ao buscar pedidos: ", error)
-                    if (error.code === 'failed-precondition') {
-                         const tbody = c.querySelector('#orders-table-body');
-                         tbody.innerHTML = `<tr><td colspan="10" class="text-center p-8 text-red-500"><b>Erro de Banco de Dados:</b> A consulta atual precisa de um índice. Por favor, acesse seu painel do Firebase e crie o índice conforme a mensagem de erro no console do navegador.</td></tr>`;
-                     }
+                    console.error("Erro ao buscar pedidos: ", error);
+                    const tbody = c.querySelector('#orders-table-body');
+                    tbody.innerHTML = `<tr><td colspan="10" class="text-center p-8 text-red-500"><b>Erro:</b> Não foi possível carregar os pedidos.</td></tr>`;
                 });
 
                 c.querySelector('#filter-form').addEventListener('submit', e => { e.preventDefault(); filterAndRender(state.db.sales); });
@@ -975,16 +978,15 @@
                     document.getElementById('recorde-melhor-semana').textContent = formatCurrency(melhorSemanaValor);
                 };
 
-                const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), orderBy("date", "desc"));
+                const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name));
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
                     const mySales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    mySales.sort((a, b) => b.date.seconds - a.date.seconds);
                     state.db.sales = mySales;
                     updateGoalsUI(mySales);
                 }, (error) => {
                     console.error("Erro ao buscar metas: ", error);
-                     if (error.code === 'failed-precondition') {
-                         c.innerHTML = `<div class="text-center p-8 text-red-500"><b>Erro de Banco de Dados:</b> A consulta atual precisa de um índice. Por favor, acesse seu painel do Firebase e crie o índice conforme a mensagem de erro no console do navegador.</div>`;
-                     }
+                    c.innerHTML = `<div class="text-center p-8 text-red-500"><b>Erro:</b> Não foi possível carregar os dados de metas.</div>`;
                 });
             }
 
@@ -994,37 +996,43 @@
                 c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
                 c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
                 c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
-                let allSalesForExport = [];
-
+                
                 const exportVendedorSelect = c.querySelector('#export-vendedor-select');
                 exportVendedorSelect.innerHTML = '<option value="Todos">Todos os Vendedores</option>';
                 const vendedores = state.db.users.filter(u => u.role === 'vendedor').map(u => u.name);
                 vendedores.forEach(name => {
                     exportVendedorSelect.innerHTML += `<option value="${name}">${name}</option>`;
                 });
-
-                const q = query(collection(db, "sales"));
-                state.listeners.sales = onSnapshot(q, (snapshot) => {
-                    allSalesForExport = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                }, (error) => {
-                    console.error("Erro ao buscar vendas para exportação:", error);
-                    showToast('Erro ao carregar vendas para exportar.', 'error');
-                });
-
-
-                const getFilteredSales = () => {
+                
+                const handleExport = async (startDate, endDate, filename) => {
+                    let salesQuery = collection(db, "sales");
                     const selectedVendedor = exportVendedorSelect.value;
-                    if (selectedVendedor === 'Todos') {
-                        return allSalesForExport;
+                    
+                    let conditions = [
+                        where('date', '>=', startDate),
+                        where('date', '<=', endDate)
+                    ];
+
+                    if (selectedVendedor !== 'Todos') {
+                        conditions.push(where('vendedor', '==', selectedVendedor));
                     }
-                    return allSalesForExport.filter(s => s.vendedor === selectedVendedor);
+                    
+                    try {
+                        const q = query(salesQuery, ...conditions);
+                        const salesSnapshot = await getDocs(q);
+                        const salesToExport = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        exportToCSV(salesToExport, filename);
+                    } catch (error) {
+                        console.error("Erro ao exportar vendas:", error);
+                        showToast('Erro ao exportar. Tente criar um índice no Firebase se o erro persistir.', 'error');
+                    }
                 };
                 
                 c.querySelector('#export-today-btn').addEventListener('click', () => {
-                    const today = new Date();
-                    const salesToExport = getFilteredSales().filter(s => s.date.toDate().toDateString() === today.toDateString());
-                    const filename = `vendas_dia_${today.toISOString().split('T')[0]}_${exportVendedorSelect.value}`;
-                    exportToCSV(salesToExport, filename);
+                    const todayStart = new Date(new Date().setHours(0,0,0,0));
+                    const todayEnd = new Date(new Date().setHours(23,59,59,999));
+                    const filename = `vendas_dia_${new Date().toISOString().split('T')[0]}_${exportVendedorSelect.value}`;
+                    handleExport(Timestamp.fromDate(todayStart), Timestamp.fromDate(todayEnd), filename);
                 });
 
                 c.querySelector('#export-week-btn').addEventListener('click', () => {
@@ -1032,53 +1040,57 @@
                     const dayOfWeek = today.getDay();
                     const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
                     const weekStart = new Date(new Date(today.setDate(diff)).setHours(0, 0, 0, 0));
-                    
-                    const salesToExport = getFilteredSales().filter(s => s.date.toDate() >= weekStart);
+                    const weekEnd = new Date(new Date(weekStart).setDate(weekStart.getDate() + 6));
+                    weekEnd.setHours(23,59,59,999);
                     const filename = `vendas_semana_${new Date().toISOString().split('T')[0]}_${exportVendedorSelect.value}`;
-                    exportToCSV(salesToExport, filename);
+                    handleExport(Timestamp.fromDate(weekStart), Timestamp.fromDate(weekEnd), filename);
                 });
 
                 c.querySelector('#export-month-btn').addEventListener('click', () => {
                     const today = new Date();
                     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-
-                    const salesToExport = getFilteredSales().filter(s => s.date.toDate() >= monthStart);
+                    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                    monthEnd.setHours(23,59,59,999);
                     const filename = `vendas_mes_${today.getFullYear()}_${today.getMonth() + 1}_${exportVendedorSelect.value}`;
-                    exportToCSV(salesToExport, filename);
+                    handleExport(Timestamp.fromDate(monthStart), Timestamp.fromDate(monthEnd), filename);
                 });
 
                 c.querySelector('#export-range-btn').addEventListener('click', () => {
                     const startDateInput = c.querySelector('#start-date').value;
                     const endDateInput = c.querySelector('#end-date').value;
-
                     if (!startDateInput || !endDateInput) {
                         showToast('Por favor, selecione data de início e fim.', 'error');
                         return;
                     }
-
                     const startDate = new Date(startDateInput + 'T00:00:00');
                     const endDate = new Date(endDateInput + 'T23:59:59');
-
-                    const salesToExport = getFilteredSales().filter(s => {
-                        const saleDate = s.date.toDate();
-                        return saleDate >= startDate && saleDate <= endDate;
-                    });
-                    
                     const filename = `vendas_de_${startDateInput}_a_${endDateInput}_${exportVendedorSelect.value}`;
-                    exportToCSV(salesToExport, filename);
+                    handleExport(Timestamp.fromDate(startDate), Timestamp.fromDate(endDate), filename);
                 });
-
 
                 const updateVendedoresList=()=>{
                     const list=c.querySelector('#vendedores-list');
                     list.innerHTML='';
-                    const vendedores = state.db.users.filter(u=>u.role==='vendedor');
-                    if(vendedores.length === 0){
-                        list.innerHTML = '<p class="text-slate-500 text-sm text-center">Nenhum vendedor cadastrado.</p>';
+                    const users = state.db.users;
+                    if(users.length === 0){
+                        list.innerHTML = '<p class="text-slate-500 text-sm text-center">Nenhum usuário cadastrado.</p>';
                         return;
                     }
-                    vendedores.forEach(v=>{
-                        list.innerHTML+=`<li class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md"><span>${v.name}</span><button data-userid="${v.id}" data-username="${v.name}" class="remove-vendedor-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button></li>`
+                    users.forEach(v=>{
+                         const roleClass = v.role === 'gerente' 
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300' 
+                            : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+                        const roleText = v.role.charAt(0).toUpperCase() + v.role.slice(1);
+
+                        list.innerHTML+=`<li class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md">
+                            <div>
+                                <span>${v.name}</span>
+                                <span class="text-xs ml-2 px-2 py-0.5 rounded-full font-medium ${roleClass}">${roleText}</span>
+                            </div>
+                            <button data-userid="${v.id}" data-username="${v.name}" class="remove-vendedor-btn text-red-500 hover:text-red-700 ${v.name === state.loggedInUser.name ? 'hidden' : ''}">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </li>`;
                     });
                     lucide.createIcons();
                 };
@@ -1091,15 +1103,20 @@
                 
                 c.querySelector('#add-vendedor-form').addEventListener('submit',async e=>{
                     e.preventDefault();
-                    const n=c.querySelector('#vendedor-name').value.trim(), p=c.querySelector('#vendedor-password').value;
+                    const n=c.querySelector('#vendedor-name').value.trim(), 
+                          p=c.querySelector('#vendedor-password').value;
+                    const isManager = c.querySelector('#create-as-manager').checked;
+                    const role = isManager ? 'gerente' : 'vendedor';
+
                     if(!n || !p) { showToast('Nome e senha são obrigatórios.','error'); return; }
                     if(state.db.users.some(u=>u.name.toLowerCase()===n.toLowerCase())){showToast('Nome de usuário já existe.','error');return}
+                    
                     try {
-                        await addDoc(collection(db, "users"), {name:n,password:p,role:'vendedor'});
-                        showToast('Vendedor cadastrado!', 'success');
+                        await addDoc(collection(db, "users"), {name:n,password:p,role:role});
+                        showToast('Usuário cadastrado!', 'success');
                         e.target.reset();
                     } catch {
-                        showToast('Erro ao cadastrar vendedor.', 'error');
+                        showToast('Erro ao cadastrar usuário.', 'error');
                     }
                 });
 
@@ -1107,11 +1124,11 @@
                     const removeBtn = e.target.closest('.remove-vendedor-btn');
                     if (removeBtn) {
                         const { userid, username } = removeBtn.dataset;
-                        showConfirmModal(`Tem certeza que deseja remover o vendedor "${username}"?`, async () => {
+                        showConfirmModal(`Tem certeza que deseja remover o usuário "${username}"?`, async () => {
                            try {
                                await deleteDoc(doc(db, "users", userid));
-                               showToast(`Vendedor "${username}" removido.`, 'success');
-                           } catch (error) { showToast('Erro ao remover vendedor.', 'error'); }
+                               showToast(`Usuário "${username}" removido.`, 'success');
+                           } catch (error) { showToast('Erro ao remover usuário.', 'error'); }
                         });
                     }
                 });
@@ -1227,16 +1244,15 @@
                 const isGerente = state.loggedInUser.role === 'gerente';
                 const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
                 
-                let q;
-                 if (isGerente) {
-                    q = query(collection(db, "sales"), orderBy("date", "desc"));
-                } else {
-                    q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), orderBy("date", "desc"));
+                let q = collection(db, "sales");
+                if (!isGerente) {
+                    q = query(q, where("vendedor", "==", state.loggedInUser.name));
                 }
 
-
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
-                    const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    let allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    allSales.sort((a, b) => b.date.seconds - a.date.seconds);
+
                     state.db.sales = allSales;
                     
                     if (isGerente) {
@@ -1260,9 +1276,7 @@
                     }
                 }, (error) => {
                     console.error("Erro ao buscar relatórios: ", error);
-                     if (error.code === 'failed-precondition') {
-                         c.innerHTML = `<div class="text-center p-8 text-red-500"><b>Erro de Banco de Dados:</b> A consulta atual precisa de um índice. Por favor, acesse seu painel do Firebase e crie o índice conforme a mensagem de erro no console do navegador.</div>`;
-                     }
+                    c.innerHTML = `<div class="text-center p-8 text-red-500"><b>Erro:</b> Não foi possível carregar os relatórios.</div>`;
                 });
             }
 
@@ -1291,4 +1305,3 @@
 </body>
 
 </html>
-
