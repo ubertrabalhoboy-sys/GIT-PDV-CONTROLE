@@ -103,29 +103,8 @@
     <template id="caixa-template">
         <h1 class="text-3xl font-bold mb-6 hidden sm:block">Caixa</h1>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-1">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-                    <h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Registrar Item</h2>
-                    <form id="add-item-form" class="space-y-4">
-                        <input type="text" id="item-name" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Nome do Item">
-                        <input type="number" id="item-value" step="0.01" min="0.01" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Valor (R$)">
-                        <select id="item-exchange" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                            <option>Sem Troca</option><option>7 dias</option><option>15 dias</option><option>30 dias</option>
-                        </select>
-                        <button type="submit" class="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-2 px-4 rounded-lg hover:from-primary-600 hover:to-primary-700 font-semibold flex items-center justify-center"><i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i> Adicionar Item</button>
-                    </form>
-                </div>
-            </div>
-            <div class="lg:col-span-2">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-                    <h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Pedido Atual</h2>
-                    <div id="current-order-items" class="space-y-3 max-h-96 overflow-y-auto pr-2"><p id="no-items-message" class="text-gray-500 dark:text-gray-400">Nenhum item adicionado ainda.</p></div>
-                    <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <div class="flex justify-between items-center text-2xl font-bold"><span>Total:</span> <span id="current-order-total">R$ 0,00</span></div>
-                        <button id="finalize-order-button" disabled class="mt-4 w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 font-semibold disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center"><i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Finalizar Pedido</button>
-                    </div>
-                </div>
-            </div>
+            <div class="lg:col-span-1"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"><h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Registrar Item</h2><form id="add-item-form" class="space-y-4"><input type="text" id="item-name" required class="w-full rounded-md" placeholder="Nome do Item"><input type="number" id="item-value" step="0.01" min="0.01" required class="w-full rounded-md" placeholder="Valor (R$)"><select id="item-exchange" class="w-full rounded-md"><option>Sem Troca</option><option>7 dias</option><option>15 dias</option><option>30 dias</option></select><button type="submit" class="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-2 px-4 rounded-lg font-semibold flex items-center justify-center"><i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i> Adicionar Item</button></form></div></div>
+            <div class="lg:col-span-2"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"><h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Pedido Atual</h2><div id="current-order-items" class="space-y-3 max-h-96 overflow-y-auto pr-2"><p id="no-items-message" class="text-gray-500 dark:text-gray-400">Nenhum item adicionado ainda.</p></div><div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700"><div class="flex justify-between items-center text-2xl font-bold"><span>Total:</span> <span id="current-order-total">R$ 0,00</span></div><button id="finalize-order-button" disabled class="mt-4 w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold disabled:bg-gray-400 flex items-center justify-center"><i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Finalizar Pedido</button></div></div></div>
         </div>
     </template>
     <template id="pedidos-template">
@@ -145,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
         storageBucket: "pdv-vendas-8a65a.appspot.com",
         messagingSenderId: "37533259212",
         appId: "1:37533259212:web:9e79fecb52aa2b4765b969",
-        measurementId: "G-7PYWX52SEG"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -217,16 +195,79 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    const logout = async () => { /* ... */ };
-    const initializeAppUI = () => { /* ... */ };
-    const switchView = (viewId) => { /* ... */ };
-    const renderViewContent = (viewId) => { /* ... */ };
-    const sidebar=document.getElementById('sidebar'),overlay=document.getElementById('sidebar-overlay');
+    const logout = async () => {
+        state.loggedInUser = null; selectedUserForLogin = null; state.db.sales = [];
+        document.getElementById('app').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('password').value = '';
+        document.getElementById('login-error').textContent = '';
+        await loadInitialData();
+        renderLoginScreen();
+    };
+
+    const initializeAppUI = () => {
+        const user = state.loggedInUser;
+        document.getElementById('store-name-sidebar').textContent = state.db.settings.storeName;
+        document.getElementById('login-store-name').textContent = state.db.settings.storeName;
+        document.getElementById('username-sidebar').textContent = user.name;
+        document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
+        const createMenuItem=(v,i,t)=>`<li><a href="#" data-view="${v}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 group"><i data-lucide="${i}"></i><span>${t}</span></a></li>`;
+        const createLogoutItem = () => `<li class="pt-2 mt-2 border-t border-gray-700"><button data-action="logout" class="w-full flex items-center p-2 text-red-400 rounded-lg hover:bg-red-500 hover:text-white group"><i data-lucide="log-out"></i><span>Sair</span></button></li>`;
+        const vM=document.getElementById('vendedor-menu'), gM=document.getElementById('gerente-menu');
+        vM.innerHTML = ''; gM.innerHTML = '';
+        if(user.role==='vendedor'){
+            vM.innerHTML = createMenuItem('caixa','shopping-basket','Caixa') + createMenuItem('pedidos','list-ordered','Pedidos') + createMenuItem('relatorios','bar-chart-2','Relatórios') + createLogoutItem();
+            vM.classList.remove('hidden'); gM.classList.add('hidden');
+            switchView('caixa');
+        } else {
+            gM.innerHTML = createMenuItem('pedidos','list-ordered','Pedidos') + createMenuItem('relatorios','area-chart','Relatórios') + createMenuItem('configuracoes','settings','Configurações') + createLogoutItem();
+            gM.classList.remove('hidden'); vM.classList.add('hidden');
+            switchView('pedidos');
+        }
+        document.getElementById('sidebar').addEventListener('click', e => {
+            const link = e.target.closest('a[data-view]'), logoutBtn = e.target.closest('button[data-action="logout"]');
+            if (link) { e.preventDefault(); switchView(link.dataset.view); }
+            if (logoutBtn) { logout(); }
+        });
+        lucide.createIcons();
+    };
+
+    const switchView = (viewId) => {
+        if (state.currentView === viewId && document.getElementById(`${viewId}-view`).innerHTML !== '') return;
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
+        const activeView = document.getElementById(`${viewId}-view`);
+        if (activeView) {
+            activeView.classList.add('active', 'fade-in'); state.currentView = viewId;
+            const link = document.querySelector(`#sidebar a[data-view="${viewId}"]`);
+            if(link) {
+               document.getElementById('current-view-title').textContent = link.querySelector('span').textContent;
+               document.querySelectorAll('#sidebar ul li a').forEach(l => l.classList.remove('bg-primary-600', 'text-white'));
+               link.classList.add('bg-primary-600', 'text-white');
+            }
+            renderViewContent(viewId);
+        }
+        showMobileMenu(false);
+    };
+
+    const renderViewContent = (viewId) => {
+        const viewContainer = document.getElementById(`${viewId}-view`);
+        viewContainer.innerHTML = document.getElementById(`${viewId}-template`).innerHTML;
+        lucide.createIcons();
+        switch(viewId) {
+            case 'caixa': renderCaixa(); break;
+            case 'pedidos': renderPedidos(); break;
+            case 'relatorios': renderRelatorios(); break;
+            case 'configuracoes': renderConfiguracoes(); break;
+        }
+    };
+    
+    const sidebar=document.getElementById('sidebar'), overlay=document.getElementById('sidebar-overlay');
     const showMobileMenu=s=>{if(s){sidebar.classList.remove('-translate-x-full');overlay.classList.remove('hidden')}else{sidebar.classList.add('-translate-x-full');overlay.classList.add('hidden')}};
-    function renderCaixa() { /* ... */ }
-    async function renderPedidos() { /* ... */ }
-    async function renderRelatorios() { /* ... */ }
-    function renderConfiguracoes() { /* ... */ }
+    
+    function renderCaixa() { /* Toda a lógica da view Caixa aqui */ }
+    async function renderPedidos() { /* Toda a lógica da view Pedidos aqui */ }
+    async function renderRelatorios() { /* Toda a lógica da view Relatórios aqui */ }
+    function renderConfiguracoes() { /* Toda a lógica da view Configurações aqui */ }
     
     document.getElementById('user-list').addEventListener('click', (e) => {
         const userButton = e.target.closest('button');
@@ -234,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedUserForLogin = userButton.dataset.username;
         document.getElementById('user-selection-view').classList.add('hidden');
         document.getElementById('password-view').classList.remove('hidden');
-        document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-300 text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold text-gray-900 dark:text-white">${selectedUserForLogin}</h3>`;
+        document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold">${selectedUserForLogin}</h3>`;
         document.getElementById('password').value = '';
         document.getElementById('password').focus();
     });
@@ -258,15 +299,12 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeAppUI();
         } else {
             document.getElementById('login-error').textContent = 'Senha inválida.';
-            const passwordView = document.getElementById('password-view');
-            passwordView.classList.add('animate-shake');
-            setTimeout(() => passwordView.classList.remove('animate-shake'), 500);
+            document.getElementById('password-view').classList.add('animate-shake');
+            setTimeout(() => document.getElementById('password-view').classList.remove('animate-shake'), 500);
         }
     });
     
     const init = async () => {
-        const theme = localStorage.getItem('theme') || 'light';
-        applyTheme(theme);
         document.getElementById('theme-toggle').addEventListener('click', () => {
             const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
             localStorage.setItem('theme', newTheme);
@@ -274,8 +312,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.getElementById('mobile-menu-button').addEventListener('click',()=>showMobileMenu(true));
         document.getElementById('sidebar-overlay').addEventListener('click',()=>showMobileMenu(false));
+        
+        const theme = localStorage.getItem('theme') || 'light';
+        applyTheme(theme);
         lucide.createIcons();
         document.getElementById('login-store-name').textContent = state.db.settings.storeName;
+        
         await loadInitialData();
         renderLoginScreen();
     };
