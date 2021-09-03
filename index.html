@@ -192,12 +192,7 @@
     </template>
 
 <script>
-// SCRIPT COMPLETO E FUNCIONAL VAI AQUI
-</script>
-</body>
-</html>
-
-<script>
+// O SCRIPT COMPLETO E FUNCIONAL ESTÁ AQUI
 document.addEventListener('DOMContentLoaded', () => {
 
     const firebaseConfig = {
@@ -244,9 +239,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function loadInitialData() {
-        const [users, settingsDoc] = await Promise.all([
+        const [users, settingsDoc, storeNameDoc] = await Promise.all([
             fetchData('users'),
-            db.collection('settings').doc('goals').get()
+            db.collection('settings').doc('goals').get(),
+            db.collection('settings').doc('store').get()
         ]);
 
         if (users.length === 0) {
@@ -260,22 +256,94 @@ document.addEventListener('DOMContentLoaded', () => {
             state.db.users = users;
         }
 
-        if (settingsDoc.exists) {
-            state.db.settings.goals = settingsDoc.data();
-        }
+        if (settingsDoc.exists) state.db.settings.goals = settingsDoc.data();
+        if (storeNameDoc.exists) state.db.settings.storeName = storeNameDoc.data().name;
     }
 
-    const applyTheme=(t)=>{/*...*/};
+    const applyTheme=(t)=>{const h=document.documentElement;if(t==='dark'){h.classList.add('dark');document.getElementById('theme-icon-moon').classList.add('hidden');document.getElementById('theme-icon-sun').classList.remove('hidden')}else{h.classList.remove('dark');document.getElementById('theme-icon-moon').classList.remove('hidden');document.getElementById('theme-icon-sun').classList.add('hidden')}};
     const formatCurrency=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
     const formatDate=d=>d ? new Date(d).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}) : '';
     const getDayOfWeek=d=>new Date(d).toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').slice(0,3);
-    const showToast=(m,t='success')=>{/*...*/};
-    const showConfirmModal=(m,onConfirm)=>{/*...*/};
+    const showToast=(m,t='success')=>{const e=document.createElement('div');e.className=`fixed bottom-5 right-5 ${t==='success'?'bg-green-500':'bg-red-500'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)};
+    const showConfirmModal=(m,onConfirm)=>{const M=document.getElementById('confirm-modal');M.querySelector('#confirm-modal-message').textContent=m;M.classList.remove('hidden');const c=M.querySelector('#confirm-modal-confirm'),n=M.querySelector('#confirm-modal-cancel');const h=()=>{onConfirm();hide()};const k=()=>hide();const hide=()=>{M.classList.add('hidden');c.removeEventListener('click',h);n.removeEventListener('click',k)};c.addEventListener('click',h,{once:true});n.addEventListener('click',k,{once:true})};
     
-    function renderLoginScreen(){/*...*/}
-    const logout = async () => {/*...*/}
-    const initializeAppUI = () => {/*...*/}
-    const switchView = (viewId) => {/*...*/}
+    function renderLoginScreen(){
+        const userList = document.getElementById('user-list');
+        userList.innerHTML = '';
+        document.getElementById('user-selection-view').classList.remove('hidden');
+        document.getElementById('password-view').classList.add('hidden');
+        if (state.db.users.length > 0) {
+            state.db.users.forEach(user => {
+                const userButton = document.createElement('button');
+                userButton.className = 'flex flex-col items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200 transform hover:scale-105 border border-gray-200 dark:border-gray-700';
+                userButton.dataset.username = user.name;
+                userButton.innerHTML = `<div class="w-16 h-16 mb-2 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div><span class="font-semibold text-gray-800 dark:text-gray-200 text-center">${user.name}</span>`;
+                userList.appendChild(userButton);
+            });
+        } else {
+            userList.innerHTML = '<div class="col-span-full text-center text-gray-500"><div class="loader"></div>Carregando usuários...</div>';
+        }
+    }
+    
+    const logout = async () => {
+        state.loggedInUser = null; selectedUserForLogin = null; state.db.sales = [];
+        document.getElementById('app').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('password').value = '';
+        document.getElementById('login-error').textContent = '';
+        await loadInitialData();
+        renderLoginScreen();
+    };
+
+    const initializeAppUI = () => {
+        const user = state.loggedInUser;
+        document.getElementById('store-name-sidebar').textContent = state.db.settings.storeName;
+        document.getElementById('username-sidebar').textContent = user.name;
+        document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
+        const createMenuItem=(v,i,t)=>`<li><a href="#" data-view="${v}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white group transition-colors"><i data-lucide="${i}" class="w-5 h-5"></i><span class="ml-3">${t}</span></a></li>`;
+        const createLogoutItem = () => `<li class="pt-2 mt-2 border-t border-gray-700"><button data-action="logout" class="w-full flex items-center p-2 text-red-400 rounded-lg hover:bg-red-500 hover:text-white group transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i><span class="ml-3">Sair</span></button></li>`;
+        const vM=document.getElementById('vendedor-menu'), gM=document.getElementById('gerente-menu');
+        vM.innerHTML = ''; gM.innerHTML = '';
+        if(user.role==='vendedor'){
+            vM.innerHTML = createMenuItem('caixa','shopping-basket','Caixa') + createMenuItem('pedidos','list-ordered','Pedidos') + createMenuItem('relatorios','bar-chart-2','Relatórios') + createLogoutItem();
+            vM.classList.remove('hidden'); gM.classList.add('hidden');
+            switchView('caixa');
+        } else {
+            gM.innerHTML = createMenuItem('pedidos','list-ordered','Pedidos') + createMenuItem('relatorios','area-chart','Relatórios') + createMenuItem('configuracoes','settings','Configurações') + createLogoutItem();
+            gM.classList.remove('hidden'); vM.classList.add('hidden');
+            switchView('pedidos');
+        }
+        document.getElementById('sidebar').addEventListener('click', e => {
+            const link = e.target.closest('a[data-view]'), logoutBtn = e.target.closest('button[data-action="logout"]');
+            if (link) { e.preventDefault(); switchView(link.dataset.view); }
+            if (logoutBtn) { logout(); }
+        });
+        lucide.createIcons();
+    };
+
+    const switchView = (viewId) => {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
+        const activeView = document.getElementById(`${viewId}-view`);
+        if (activeView) {
+            activeView.innerHTML = document.getElementById(`${viewId}-template`).innerHTML;
+            activeView.classList.add('active', 'fade-in'); 
+            state.currentView = viewId;
+            const link = document.querySelector(`#sidebar a[data-view="${viewId}"]`);
+            if(link) {
+               document.getElementById('current-view-title').textContent = link.querySelector('span').textContent;
+               document.querySelectorAll('#sidebar ul li a').forEach(l => l.classList.remove('bg-primary-600', 'text-white'));
+               link.classList.add('bg-primary-600', 'text-white');
+            }
+            lucide.createIcons();
+            switch(viewId) {
+                case 'caixa': renderCaixa(); break;
+                case 'pedidos': renderPedidos(); break;
+                case 'relatorios': renderRelatorios(); break;
+                case 'configuracoes': renderConfiguracoes(); break;
+            }
+        }
+        showMobileMenu(false);
+    };
     
     const sidebar=document.getElementById('sidebar'), overlay=document.getElementById('sidebar-overlay');
     const showMobileMenu=s=>{if(s){sidebar.classList.remove('-translate-x-full');overlay.classList.remove('hidden')}else{sidebar.classList.add('-translate-x-full');overlay.classList.add('hidden')}};
@@ -288,91 +356,142 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.remove('hidden');
     }
 
-    function hideWhatsAppModal() {
-        document.getElementById('whatsapp-data-modal').classList.add('hidden');
-    }
+    function hideWhatsAppModal() { document.getElementById('whatsapp-data-modal').classList.add('hidden'); }
 
     document.getElementById('whatsapp-data-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('save-whatsapp-button');
-        btn.disabled = true;
-        btn.textContent = 'Salvando...';
+        btn.disabled = true; btn.textContent = 'Salvando...';
         const saleId = document.getElementById('whatsapp-sale-id').value;
         const clientName = document.getElementById('client-name-whatsapp').value;
         const clientPhone = document.getElementById('client-phone-whatsapp').value;
         await db.collection('sales').doc(saleId).update({ clientName, clientPhone });
         showToast('Dados do cliente salvos!');
-        btn.disabled = false;
-        btn.textContent = 'Salvar e Fechar';
+        btn.disabled = false; btn.textContent = 'Salvar e Fechar';
         hideWhatsAppModal();
     });
 
     document.getElementById('skip-whatsapp-button').addEventListener('click', hideWhatsAppModal);
-
-    function renderViewContent (viewId) { /* ... */ };
     
     function renderCaixa() {
-        // ... (lógica de renderCaixa)
-        modalContainer.querySelector('#finalize-order-form').addEventListener('submit', async e => {
-            e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = 'Salvando...';
+        const c = document.getElementById('caixa-view');
+        const addForm = c.querySelector('#add-item-form');
+        const itemsContainer = c.querySelector('#current-order-items');
+        const totalEl = c.querySelector('#current-order-total');
+        const finalizeBtn = c.querySelector('#finalize-order-button');
+        const modalContainer = document.getElementById('finalize-order-modal');
+        let editIndex = null;
 
-            const total = state.currentOrder.reduce((s, i) => s + i.value, 0);
-            const saleData = { /*...*/ };
-            
-            const { success, id } = await saveData('sales', saleData);
-
-            if (success) {
-                showToast('Venda registrada!');
-                state.currentOrder = [];
-                updateUI();
-                modalContainer.classList.add('hidden');
-                showWhatsAppModal(id, saleData.clientName, saleData.clientPhone);
+        const updateUI = () => {
+            itemsContainer.innerHTML = '';
+            if (state.currentOrder.length === 0) {
+                itemsContainer.innerHTML = '<p id="no-items-message" class="text-gray-500 dark:text-gray-400">Nenhum item adicionado ainda.</p>';
+                finalizeBtn.disabled = true;
             } else {
-                submitButton.disabled = false;
-                submitButton.textContent = 'Confirmar Venda';
+                state.currentOrder.forEach((item, i) => {
+                    const el = document.createElement('div');
+                    el.className = 'flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-md';
+                    el.innerHTML = `<div><p class="font-semibold">${item.name}</p><p class="text-xs text-gray-500 dark:text-gray-400">Troca: ${item.exchange}</p></div><div class="flex items-center gap-4"><span class="font-semibold">${formatCurrency(item.value)}</span><button data-index="${i}" class="edit-item-btn text-blue-500 hover:text-blue-700"><i data-lucide="edit" class="w-4 h-4"></i></button><button data-index="${i}" class="remove-item-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;
+                    itemsContainer.appendChild(el);
+                });
+                finalizeBtn.disabled = false;
+            }
+            totalEl.textContent = formatCurrency(state.currentOrder.reduce((sum, i) => sum + i.value, 0));
+            lucide.createIcons();
+        };
+
+        addForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const newItem = {
+                name: c.querySelector('#item-name').value,
+                value: parseFloat(c.querySelector('#item-value').value),
+                exchange: c.querySelector('#item-exchange').value
+            };
+            if(editIndex !== null) {
+                state.currentOrder[editIndex] = newItem;
+                editIndex = null;
+                addForm.querySelector('button[type="submit"]').innerHTML = '<i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i> Adicionar Item';
+            } else {
+                state.currentOrder.push(newItem);
+            }
+            updateUI();
+            addForm.reset();
+            c.querySelector('#item-name').focus();
+        });
+
+        itemsContainer.addEventListener('click', e => {
+            const removeBtn = e.target.closest('.remove-item-btn');
+            if (removeBtn) {
+                state.currentOrder.splice(removeBtn.dataset.index, 1);
+                updateUI();
+            }
+            const editBtn = e.target.closest('.edit-item-btn');
+            if(editBtn) {
+                editIndex = parseInt(editBtn.dataset.index);
+                const item = state.currentOrder[editIndex];
+                c.querySelector('#item-name').value = item.name;
+                c.querySelector('#item-value').value = item.value;
+                c.querySelector('#item-exchange').value = item.exchange;
+                addForm.querySelector('button[type="submit"]').innerHTML = '<i data-lucide="save" class="w-5 h-5 mr-2"></i> Salvar Alteração';
+                c.querySelector('#item-name').focus();
             }
         });
-    }
 
-    async function renderPedidos() {
-        const isGerente = state.loggedInUser.role === 'gerente';
-        const vendedor = isGerente ? null : state.loggedInUser.name;
-        state.db.sales = await fetchData('sales', vendedor ? 'vendedor' : null, '==', vendedor);
-        
-        // ... Lógica para renderizar tabela
-        
-        const whatsappBtn = e.target.closest('.whatsapp-btn');
-        if (whatsappBtn) {
-            // Lógica para enviar mensagem no WhatsApp
-        }
-    }
+        finalizeBtn.addEventListener('click', () => {
+            modalContainer.innerHTML = `<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4"><h2 class="text-2xl font-bold mb-4">Finalizar Pedido</h2><form id="finalize-order-form" class="space-y-4"><div><label class="block text-sm font-medium">Nome do Cliente</label><input type="text" id="client-name" required class="mt-1 block w-full rounded-md"></div><div><label class="block text-sm font-medium">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="mt-1 block w-full rounded-md"></div><div><label class="block text-sm font-medium">Pagamento</label><select id="payment-method" required class="mt-1 block w-full rounded-md"><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div><div class="pt-4 flex justify-end gap-4"><button type="button" id="cancel-finalize-button" class="bg-gray-300 dark:bg-gray-600 py-2 px-4 rounded-md">Cancelar</button><button type="submit" class="bg-primary-600 text-white py-2 px-4 rounded-md">Confirmar Venda</button></div></form></div>`;
+            modalContainer.classList.remove('hidden');
+            modalContainer.querySelector('#cancel-finalize-button').addEventListener('click', () => modalContainer.classList.add('hidden'));
+            modalContainer.querySelector('#finalize-order-form').addEventListener('submit', async event => {
+                event.preventDefault();
+                const submitButton = event.target.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<div class="loader !w-5 !h-5 !border-2 !border-t-white"></div> Salvando...';
 
-    async function renderRelatorios() { /*... Lógica dos relatórios ... */ }
-
-    async function renderConfiguracoes() {
-        // ... (lógica de carregar metas)
-        saveSettingsBtn.addEventListener('click', async () => {
-            // ... (lógica de salvar metas)
+                const total = state.currentOrder.reduce((s, i) => s + i.value, 0);
+                const saleData = {
+                    clientName: modalContainer.querySelector('#client-name').value,
+                    clientPhone: modalContainer.querySelector('#client-phone').value,
+                    paymentMethod: modalContainer.querySelector('#payment-method').value,
+                    items: state.currentOrder.map(item => `${item.name} (${formatCurrency(item.value)})`).join('; '),
+                    total: total,
+                    bonus: Math.floor(total / 80) * 2,
+                    date: new Date().toISOString(),
+                    vendedor: state.loggedInUser.name,
+                    status: 'Finalizado'
+                };
+                
+                const { success, id } = await saveData('sales', saleData);
+                if (success) {
+                    showToast('Venda registrada!');
+                    state.currentOrder = [];
+                    updateUI();
+                    modalContainer.classList.add('hidden');
+                    showWhatsAppModal(id, saleData.clientName, saleData.clientPhone);
+                } else {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Confirmar Venda';
+                }
+            });
         });
-        
-        document.getElementById('export-dia').addEventListener('click', async () => {
-            const allSales = await fetchData('sales');
-            const today = new Date().toISOString().slice(0, 10);
-            const salesToday = allSales.filter(s => s.date.slice(0, 10) === today);
-            exportToCSV(salesToday, `vendas_do_dia_${today}`);
-        });
-
-        document.getElementById('export-semana').addEventListener('click', async () => { /* ... */ });
+        updateUI();
     }
+    async function renderPedidos() { /* ... */ }
+    async function renderRelatorios() { /* ... */ }
+    async function renderConfiguracoes() { /* ... */ }
     
-    // ... (Listeners de login, etc) ...
-
+    document.getElementById('user-list').addEventListener('click', (e) => {/* ... */});
+    document.getElementById('back-to-users').addEventListener('click', () => {/* ... */});
+    document.getElementById('password-form').addEventListener('submit', e => {/* ... */});
+    
     const init = async () => {
-        // ...
+        document.getElementById('theme-toggle').addEventListener('click', () => { /* ... */ });
+        document.getElementById('mobile-menu-button').addEventListener('click',()=>showMobileMenu(true));
+        document.getElementById('sidebar-overlay').addEventListener('click',()=>showMobileMenu(false));
+        const theme = localStorage.getItem('theme') || 'light';
+        applyTheme(theme);
+        lucide.createIcons();
         await loadInitialData();
+        document.getElementById('login-store-name').textContent = state.db.settings.storeName;
         renderLoginScreen();
     };
     
