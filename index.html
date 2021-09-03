@@ -328,21 +328,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hideWhatsAppModal() { document.getElementById('whatsapp-data-modal').classList.add('hidden'); }
-
-    document.getElementById('whatsapp-data-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('save-whatsapp-button');
-        btn.disabled = true; btn.textContent = 'Salvando...';
-        const saleId = document.getElementById('whatsapp-sale-id').value;
-        const clientName = document.getElementById('client-name-whatsapp').value;
-        const clientPhone = document.getElementById('client-phone-whatsapp').value;
-        await db.collection('sales').doc(saleId).update({ clientName, clientPhone });
-        showToast('Dados do cliente salvos!');
-        btn.disabled = false; btn.textContent = 'Salvar e Fechar';
-        hideWhatsAppModal();
-    });
-
-    document.getElementById('skip-whatsapp-button').addEventListener('click', hideWhatsAppModal);
     
     function renderCaixa() {
         // Implementação completa de renderCaixa...
@@ -357,6 +342,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // Implementação completa de renderConfiguracoes...
     }
     
+    document.getElementById('whatsapp-data-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('save-whatsapp-button');
+        btn.disabled = true; btn.textContent = 'Salvando...';
+        const saleId = document.getElementById('whatsapp-sale-id').value;
+        const clientName = document.getElementById('client-name-whatsapp').value;
+        const clientPhone = document.getElementById('client-phone-whatsapp').value;
+        await db.collection('sales').doc(saleId).update({ clientName, clientPhone });
+        showToast('Dados do cliente salvos!');
+        btn.disabled = false; btn.textContent = 'Salvar e Fechar';
+        hideWhatsAppModal();
+    });
+
+    document.getElementById('skip-whatsapp-button').addEventListener('click', hideWhatsAppModal);
+
     document.getElementById('user-list').addEventListener('click', (e) => {
         const userButton = e.target.closest('button');
         if (!userButton) return;
