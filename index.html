@@ -127,8 +127,37 @@
     <template id="caixa-template">
         <h1 class="text-3xl font-bold mb-6 hidden sm:block">Caixa</h1>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-1"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"><h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Registrar Item</h2><form id="add-item-form" class="space-y-4"><input type="text" id="item-name" required class="w-full rounded-md" placeholder="Nome do Item"><input type="number" id="item-value" step="0.01" min="0.01" required class="w-full rounded-md" placeholder="Valor (R$)"><select id="item-exchange" class="w-full rounded-md"><option>Sem Troca</option><option>7 dias</option><option>15 dias</option><option>30 dias</option></select><button type="submit" class="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-2 px-4 rounded-lg font-semibold flex items-center justify-center"><i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i> Adicionar Item</button></form></div></div>
-            <div class="lg:col-span-2"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"><h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Pedido Atual</h2><div id="current-order-items" class="space-y-3 max-h-96 overflow-y-auto pr-2"><p id="no-items-message" class="text-gray-500 dark:text-gray-400">Nenhum item adicionado ainda.</p></div><div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700"><div class="flex justify-between items-center text-2xl font-bold"><span>Total:</span> <span id="current-order-total">R$ 0,00</span></div><button id="finalize-order-button" disabled class="mt-4 w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold disabled:bg-gray-400 flex items-center justify-center"><i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Finalizar Pedido</button></div></div></div>
+            <div class="lg:col-span-1">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Registrar Item</h2>
+                    <form id="add-item-form" class="space-y-4">
+                        <input type="text" id="item-name" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Nome do Item">
+                        <input type="number" id="item-value" step="0.01" min="0.01" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Valor (R$)">
+                        <select id="item-exchange" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                            <option>Sem Troca</option><option>7 dias</option><option>15 dias</option><option>30 dias</option>
+                        </select>
+                        <button type="submit" class="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-2 px-4 rounded-lg hover:from-primary-600 hover:to-primary-700 font-semibold flex items-center justify-center transition-all duration-300 transform hover:scale-105 shadow-md">
+                            <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i> Adicionar Item
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="lg:col-span-2">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Pedido Atual</h2>
+                    <div id="current-order-items" class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                        <p id="no-items-message" class="text-gray-500 dark:text-gray-400">Nenhum item adicionado ainda.</p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex justify-between items-center text-2xl font-bold">
+                            <span>Total:</span> <span id="current-order-total">R$ 0,00</span>
+                        </div>
+                        <button id="finalize-order-button" disabled class="mt-4 w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 font-semibold disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-300 transform disabled:transform-none hover:scale-105 shadow-lg">
+                            <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Finalizar Pedido
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </template>
     <template id="pedidos-template">
@@ -162,6 +191,9 @@
         </div>
     </template>
 
+<script>
+// O SCRIPT COMPLETO E FUNCIONAL VAI AQUI
+// (COLE O SCRIPT DA RESPOSTA ANTERIOR AQUI)
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
