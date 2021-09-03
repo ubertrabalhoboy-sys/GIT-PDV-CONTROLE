@@ -416,6 +416,35 @@
                 <button id="save-goals-button" class="mt-4 bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors text-sm">Salvar Metas</button>
             </div>
 
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Exportar Vendas (CSV)</h3>
+                <div class="space-y-4 border-t dark:border-slate-700 pt-4">
+                    <div>
+                        <label for="export-vendedor-select" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Filtrar por Vendedor</label>
+                        <select id="export-vendedor-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></select>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button id="export-today-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas do Dia</button>
+                        <button id="export-week-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas da Semana</button>
+                        <button id="export-month-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas do Mês</button>
+                    </div>
+                    <div class="border-t dark:border-slate-700 pt-4">
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Exportar por data específica:</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="start-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Data de Início</label>
+                                <input type="date" id="start-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm">
+                            </div>
+                            <div>
+                                <label for="end-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Data Final</label>
+                                <input type="date" id="end-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm">
+                            </div>
+                        </div>
+                        <button id="export-range-btn" class="w-full mt-2 bg-primary-600 text-white p-2 rounded-md hover:bg-primary-700 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4"></i>Exportar Período</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Vendedor</h3>
@@ -473,6 +502,8 @@
                 listeners: { users: null, sales: null }
             };
             let selectedUserForLogin = null;
+            let vendasChartInstance = null;
+            let pagamentoChartInstance = null;
 
             async function loadInitialData() {
                 try {
@@ -520,6 +551,46 @@
             };
             const showToast = (m, t = 'success') => { const e = document.createElement('div'); e.className = `fixed bottom-5 right-5 ${t === 'success' ? 'bg-primary-600' : 'bg-red-600'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 3000) };
             const showConfirmModal = (m, onConfirm) => { const M = document.getElementById('confirm-modal'); M.querySelector('#confirm-modal-message').textContent = m; M.classList.remove('hidden'); const c = M.querySelector('#confirm-modal-confirm'), n = M.querySelector('#confirm-modal-cancel'); const h = () => { onConfirm(); hide() }; const k = () => hide(); const hide = () => { M.classList.add('hidden'); c.removeEventListener('click', h); n.removeEventListener('click', k) }; c.addEventListener('click', h, { once: true }); n.addEventListener('click', k, { once: true }) };
+
+            function exportToCSV(data, filename) {
+                if (data.length === 0) {
+                    showToast('Nenhuma venda encontrada para exportar.', 'error');
+                    return;
+                }
+
+                const formatItems = (items) => {
+                    return items.map(item => `${item.name} (${formatCurrency(item.value)})`).join('; ');
+                };
+
+                const headers = [
+                    "ID da Venda", "Data", "Cliente", "Telefone", "Vendedor", 
+                    "Itens", "Total", "Forma de Pagamento", "Bônus"
+                ];
+                
+                const rows = data.map(sale => [
+                    sale.id,
+                    new Date(sale.date.seconds * 1000).toLocaleString('pt-BR'),
+                    sale.clientName,
+                    sale.clientPhone || '',
+                    sale.vendedor,
+                    formatItems(sale.items),
+                    sale.total,
+                    sale.paymentMethod,
+                    sale.bonus
+                ]);
+
+                let csvContent = "data:text/csv;charset=utf-8," 
+                    + headers.join(",") + "\n" 
+                    + rows.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `${filename}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
 
             function renderLoginScreen() {
                 const userList = document.getElementById('user-list');
@@ -923,6 +994,80 @@
                 c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
                 c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
                 c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
+                let allSalesForExport = [];
+
+                const exportVendedorSelect = c.querySelector('#export-vendedor-select');
+                exportVendedorSelect.innerHTML = '<option value="Todos">Todos os Vendedores</option>';
+                const vendedores = state.db.users.filter(u => u.role === 'vendedor').map(u => u.name);
+                vendedores.forEach(name => {
+                    exportVendedorSelect.innerHTML += `<option value="${name}">${name}</option>`;
+                });
+
+                const q = query(collection(db, "sales"));
+                state.listeners.sales = onSnapshot(q, (snapshot) => {
+                    allSalesForExport = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }, (error) => {
+                    console.error("Erro ao buscar vendas para exportação:", error);
+                    showToast('Erro ao carregar vendas para exportar.', 'error');
+                });
+
+
+                const getFilteredSales = () => {
+                    const selectedVendedor = exportVendedorSelect.value;
+                    if (selectedVendedor === 'Todos') {
+                        return allSalesForExport;
+                    }
+                    return allSalesForExport.filter(s => s.vendedor === selectedVendedor);
+                };
+                
+                c.querySelector('#export-today-btn').addEventListener('click', () => {
+                    const today = new Date();
+                    const salesToExport = getFilteredSales().filter(s => s.date.toDate().toDateString() === today.toDateString());
+                    const filename = `vendas_dia_${today.toISOString().split('T')[0]}_${exportVendedorSelect.value}`;
+                    exportToCSV(salesToExport, filename);
+                });
+
+                c.querySelector('#export-week-btn').addEventListener('click', () => {
+                    const today = new Date();
+                    const dayOfWeek = today.getDay();
+                    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+                    const weekStart = new Date(new Date(today.setDate(diff)).setHours(0, 0, 0, 0));
+                    
+                    const salesToExport = getFilteredSales().filter(s => s.date.toDate() >= weekStart);
+                    const filename = `vendas_semana_${new Date().toISOString().split('T')[0]}_${exportVendedorSelect.value}`;
+                    exportToCSV(salesToExport, filename);
+                });
+
+                c.querySelector('#export-month-btn').addEventListener('click', () => {
+                    const today = new Date();
+                    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+                    const salesToExport = getFilteredSales().filter(s => s.date.toDate() >= monthStart);
+                    const filename = `vendas_mes_${today.getFullYear()}_${today.getMonth() + 1}_${exportVendedorSelect.value}`;
+                    exportToCSV(salesToExport, filename);
+                });
+
+                c.querySelector('#export-range-btn').addEventListener('click', () => {
+                    const startDateInput = c.querySelector('#start-date').value;
+                    const endDateInput = c.querySelector('#end-date').value;
+
+                    if (!startDateInput || !endDateInput) {
+                        showToast('Por favor, selecione data de início e fim.', 'error');
+                        return;
+                    }
+
+                    const startDate = new Date(startDateInput + 'T00:00:00');
+                    const endDate = new Date(endDateInput + 'T23:59:59');
+
+                    const salesToExport = getFilteredSales().filter(s => {
+                        const saleDate = s.date.toDate();
+                        return saleDate >= startDate && saleDate <= endDate;
+                    });
+                    
+                    const filename = `vendas_de_${startDateInput}_a_${endDateInput}_${exportVendedorSelect.value}`;
+                    exportToCSV(salesToExport, filename);
+                });
+
 
                 const updateVendedoresList=()=>{
                     const list=c.querySelector('#vendedores-list');
@@ -1014,11 +1159,16 @@
             function renderRelatorios() {
                 const c = document.getElementById('relatorios-view');
                 if(!c) return;
-                let vendasChartInstance=null, pagamentoChartInstance=null;
-
+                
                 const updateReports = (sales) => {
-                    if(vendasChartInstance) vendasChartInstance.destroy();
-                    if(pagamentoChartInstance) pagamentoChartInstance.destroy();
+                    if(vendasChartInstance) {
+                        vendasChartInstance.destroy();
+                        vendasChartInstance = null;
+                    }
+                    if(pagamentoChartInstance) {
+                        pagamentoChartInstance.destroy();
+                        pagamentoChartInstance = null;
+                    }
 
                     const today = new Date();
                     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -1141,3 +1291,4 @@
 </body>
 
 </html>
+
