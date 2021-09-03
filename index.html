@@ -1,566 +1,944 @@
-<script>
-document.addEventListener('DOMContentLoaded', () => {
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
-        authDomain: "pdv-vendas-8a65a.firebaseapp.com",
-        projectId: "pdv-vendas-8a65a",
-        storageBucket: "pdv-vendas-8a65a.appspot.com",
-        messagingSenderId: "37533259212",
-        appId: "1:37533259212:web:9e79fecb52aa2b4765b969",
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDV de Vendas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    let state = { loggedInUser: null, currentView: '', currentOrder: [], db: { users: [], settings: { storeName: "Minha Loja", goals: {} }, sales: [] } };
-    let selectedUserForLogin = null;
-    let vendasChartInstance = null;
-    let pagamentoChartInstance = null;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* bg-slate-50 */
+        }
+        html.dark body {
+            background-color: #0f172a; /* bg-slate-900 */
+        }
 
-    // --- UTILITY FUNCTIONS ---
-    async function fetchData(collectionName, field, operator, value) {
-        try {
-            let query = db.collection(collectionName);
-            if (field && operator && value !== undefined) {
-                query = query.where(field, operator, value);
+        /* Animações */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+
+        .fade-out {
+            animation: fadeOut 0.3s ease-in-out forwards;
+        }
+
+        .animate-shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
             }
-            const snapshot = await query.get();
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } catch (error) {
-            console.error(`Error fetching from '${collectionName}':`, error);
-            showToast(`Failed to load ${collectionName}.`, 'error');
-            return [];
-        }
-    }
 
-    async function saveData(collectionName, data, docId = null) {
-        try {
-            const docRef = docId ? db.collection(collectionName).doc(docId) : db.collection(collectionName).doc();
-            await docRef.set(data, { merge: true });
-            return { success: true, id: docRef.id };
-        } catch (error) {
-            console.error(`Error saving to '${collectionName}':`, error);
-            showToast('Error saving data.', 'error');
-            return { success: false };
-        }
-    }
-    
-    async function deleteData(collectionName, docId) {
-        try {
-            await db.collection(collectionName).doc(docId).delete();
-            return { success: true };
-        } catch (error) {
-            console.error(`Error deleting doc '${docId}' from '${collectionName}':`, error);
-            showToast('Error deleting data.', 'error');
-            return { success: false };
-        }
-    }
-
-    const applyTheme=(t)=>{const h=document.documentElement;if(t==='dark'){h.classList.add('dark');document.getElementById('theme-icon-moon').classList.add('hidden');document.getElementById('theme-icon-sun').classList.remove('hidden')}else{h.classList.remove('dark');document.getElementById('theme-icon-moon').classList.remove('hidden');document.getElementById('theme-icon-sun').classList.add('hidden')}};
-    const formatCurrency=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v || 0);
-    
-    // **FIXED FUNCTION**: This function is now robust and handles different date types.
-    const formatDate = d => {
-        if (!d) return '';
-        // Handles Firestore Timestamp objects
-        if (d.seconds) {
-            return new Date(d.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-        }
-        // Handles standard JS Date objects or date strings
-        return new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-    };
-
-    const getDayOfWeek=d=>new Date(d).toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').slice(0,3);
-    const showToast=(m,t='success')=>{const e=document.createElement('div');e.className=`fixed bottom-5 right-5 ${t==='success'?'bg-green-500':'bg-red-500'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)};
-    const showConfirmModal=(m,onConfirm)=>{const M=document.getElementById('confirm-modal');M.querySelector('#confirm-modal-message').textContent=m;M.classList.remove('hidden');const c=M.querySelector('#confirm-modal-confirm'),n=M.querySelector('#confirm-modal-cancel');const h=()=>{onConfirm();hide()};const k=()=>hide();const hide=()=>{M.classList.add('hidden');c.removeEventListener('click',h);n.removeEventListener('click',k)};c.addEventListener('click',h,{once:true});n.addEventListener('click',k,{once:true})};
-
-    // --- INITIALIZATION AND LOGIN ---
-    async function loadInitialData() {
-        const [users, settingsDoc, storeNameDoc] = await Promise.all([
-            fetchData('users'),
-            db.collection('settings').doc('goals').get(),
-            db.collection('settings').doc('store').get()
-        ]);
-
-        if (users.length === 0) {
-            const gerente = { name: 'gerente', password: '123', role: 'gerente' };
-            const { success } = await saveData('users', gerente, 'gerente');
-            if (success) state.db.users.push({ id: 'gerente', ...gerente });
-        } else {
-            state.db.users = users;
-        }
-
-        if (settingsDoc.exists) state.db.settings.goals = settingsDoc.data();
-        if (storeNameDoc.exists) state.db.settings.storeName = storeNameDoc.data().name;
-        
-        // Fetch all sales after login, based on role
-    }
-
-    function renderLoginScreen(){
-        const userList = document.getElementById('user-list');
-        userList.innerHTML = '';
-        document.getElementById('user-selection-view').classList.remove('hidden');
-        document.getElementById('password-view').classList.add('hidden');
-        document.getElementById('login-store-name').textContent = state.db.settings.storeName;
-
-        if (state.db.users.length > 0) {
-            state.db.users.forEach(user => {
-                const userButton = document.createElement('button');
-                userButton.className = 'flex flex-col items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200 transform hover:scale-105 border border-gray-200 dark:border-gray-700';
-                userButton.dataset.username = user.name;
-                userButton.innerHTML = `<div class="w-16 h-16 mb-2 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div><span class="font-semibold text-gray-800 dark:text-gray-200 text-center">${user.name}</span>`;
-                userList.appendChild(userButton);
-            });
-        } else {
-            userList.innerHTML = '<div class="col-span-full text-center text-gray-500"><div class="loader"></div>Carregando usuários...</div>';
-        }
-        lucide.createIcons();
-    }
-    
-    const logout = async () => {
-        state.loggedInUser = null; selectedUserForLogin = null; state.db.sales = [];
-        document.getElementById('app').classList.add('hidden');
-        document.getElementById('login-screen').classList.remove('hidden');
-        await loadInitialData();
-        renderLoginScreen();
-    };
-
-    const initializeAppUI = async () => {
-        const user = state.loggedInUser;
-        document.getElementById('store-name-sidebar').textContent = state.db.settings.storeName;
-        document.getElementById('username-sidebar').textContent = user.name;
-        document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
-
-        // Fetch sales data relevant to the logged-in user
-        if (user.role === 'gerente') {
-            state.db.sales = await fetchData('sales');
-        } else {
-            state.db.sales = await fetchData('sales', 'sellerId', '==', user.id);
-        }
-
-        const createMenuItem=(v,i,t)=>`<li><a href="#" data-view="${v}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white group transition-colors"><i data-lucide="${i}" class="w-5 h-5"></i><span class="ml-3">${t}</span></a></li>`;
-        const createLogoutItem = () => `<li class="pt-2 mt-2 border-t border-gray-700"><button data-action="logout" class="w-full flex items-center p-2 text-red-400 rounded-lg hover:bg-red-500 hover:text-white group transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i><span class="ml-3">Sair</span></button></li>`;
-        const vM=document.getElementById('vendedor-menu'), gM=document.getElementById('gerente-menu');
-        vM.innerHTML = ''; gM.innerHTML = '';
-
-        if(user.role==='vendedor'){
-            vM.innerHTML = createMenuItem('caixa','shopping-basket','Caixa') + createMenuItem('pedidos','list-ordered','Pedidos') + createMenuItem('relatorios','bar-chart-2','Relatórios') + createLogoutItem();
-            vM.classList.remove('hidden'); gM.classList.add('hidden');
-            switchView('caixa');
-        } else {
-            gM.innerHTML = createMenuItem('pedidos','list-ordered','Pedidos') + createMenuItem('relatorios','area-chart','Relatórios') + createMenuItem('configuracoes','settings','Configurações') + createLogoutItem();
-            gM.classList.remove('hidden'); vM.classList.add('hidden');
-            switchView('pedidos');
-        }
-
-        document.getElementById('sidebar').addEventListener('click', e => {
-            const link = e.target.closest('a[data-view]'), logoutBtn = e.target.closest('button[data-action="logout"]');
-            if (link) { e.preventDefault(); switchView(link.dataset.view); }
-            if (logoutBtn) { logout(); }
-        });
-        lucide.createIcons();
-    };
-
-    const switchView = (viewId) => {
-        if (vendasChartInstance) vendasChartInstance.destroy();
-        if (pagamentoChartInstance) pagamentoChartInstance.destroy();
-
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
-        const activeView = document.getElementById(`${viewId}-view`);
-        if (activeView) {
-            activeView.innerHTML = document.getElementById(`${viewId}-template`).innerHTML;
-            activeView.classList.add('active', 'fade-in'); 
-            state.currentView = viewId;
-            const link = document.querySelector(`#sidebar a[data-view="${viewId}"]`);
-            if(link) {
-               document.getElementById('current-view-title').textContent = link.querySelector('span').textContent;
-               document.querySelectorAll('#sidebar ul li a').forEach(l => l.classList.remove('bg-primary-600', 'text-white'));
-               link.classList.add('bg-primary-600', 'text-white');
-            }
-            lucide.createIcons();
-            switch(viewId) {
-                case 'caixa': renderCaixa(); break;
-                case 'pedidos': renderPedidos(); break;
-                case 'relatorios': renderRelatorios(); break;
-                case 'configuracoes': renderConfiguracoes(); break;
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
-        showMobileMenu(false);
-    };
-    
-    const sidebar=document.getElementById('sidebar'), overlay=document.getElementById('sidebar-overlay');
-    const showMobileMenu=s=>{if(s){sidebar.classList.remove('-translate-x-full');overlay.classList.remove('hidden')}else{sidebar.classList.add('-translate-x-full');overlay.classList.add('hidden')}};
 
-    function showWhatsAppModal(saleId, clientName, clientPhone) {
-        const modal = document.getElementById('whatsapp-data-modal');
-        modal.querySelector('#whatsapp-sale-id').value = saleId;
-        modal.querySelector('#client-name-whatsapp').value = clientName || '';
-        modal.querySelector('#client-phone-whatsapp').value = clientPhone || '';
-        modal.classList.remove('hidden');
-    }
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
 
-    function hideWhatsAppModal() { document.getElementById('whatsapp-data-modal').classList.add('hidden'); }
-
-    document.getElementById('whatsapp-data-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const saleId = document.getElementById('whatsapp-sale-id').value;
-        const clientName = document.getElementById('client-name-whatsapp').value;
-        const clientPhone = document.getElementById('client-phone-whatsapp').value;
-        await saveData('sales', { clientName, clientPhone }, saleId);
-        showToast('Dados do cliente salvos!');
-        
-        const saleIndex = state.db.sales.findIndex(s => s.id === saleId);
-        if (saleIndex > -1) {
-            state.db.sales[saleIndex].clientName = clientName;
-            state.db.sales[saleIndex].clientPhone = clientPhone;
+            to {
+                opacity: 0;
+            }
         }
-        hideWhatsAppModal();
-    });
 
-    document.getElementById('skip-whatsapp-button').addEventListener('click', hideWhatsAppModal);
-    
-    // --- FULLY IMPLEMENTED VIEWS ---
+        @keyframes shake {
 
-    function renderCaixa() {
-        const addItemForm = document.getElementById('add-item-form');
-        const orderItemsContainer = document.getElementById('current-order-items');
-        const orderTotalEl = document.getElementById('current-order-total');
-        const finalizeButton = document.getElementById('finalize-order-button');
-        const noItemsMessage = document.getElementById('no-items-message');
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
 
-        const updateOrderView = () => {
-            orderItemsContainer.innerHTML = '';
-            if (state.currentOrder.length === 0) {
-                noItemsMessage.style.display = 'block';
-                finalizeButton.disabled = true;
-            } else {
-                noItemsMessage.style.display = 'none';
-                finalizeButton.disabled = false;
-                state.currentOrder.forEach((item, index) => {
-                    const itemEl = document.createElement('div');
-                    itemEl.className = 'flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg';
-                    itemEl.innerHTML = `
-                        <div>
-                            <p class="font-semibold">${item.name}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">${item.exchange}</p>
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { // Alterado para um tom de verde
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                            950: '#052e16'
+                        },
+                        slate: {
+                           50: '#f8fafc',
+                           100: '#f1f5f9',
+                           200: '#e2e8f0',
+                           300: '#cbd5e1',
+                           400: '#94a3b8',
+                           500: '#64748b',
+                           600: '#475569',
+                           700: '#334155',
+                           800: '#1e293b',
+                           900: '#0f172a',
+                           950: '#020617'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="text-slate-700 dark:text-slate-300">
+
+    <!-- Tela de Login -->
+    <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-900">
+        <div class="w-full max-w-sm mx-auto">
+             <div class="absolute top-5 right-5">
+                <button id="theme-toggle" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-lg text-sm p-2.5">
+                    <i id="theme-icon-sun" data-lucide="sun" class="w-5 h-5 hidden"></i>
+                    <i id="theme-icon-moon" data-lucide="moon" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg text-center">
+                <div class="mx-auto mb-4 inline-block p-3 bg-primary-100 dark:bg-primary-900/50 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-primary-600 dark:text-primary-400"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <h1 id="login-store-name" class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Minha Loja</h1>
+                <p class="text-slate-500 dark:text-slate-400 mb-8">Quem está acessando?</p>
+
+                <!-- Seleção de Usuário -->
+                <div id="user-selection-view">
+                    <div id="user-list" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <!-- Usuários são inseridos aqui -->
+                        <p class="col-span-full text-center text-slate-500">Carregando usuários...</p>
+                    </div>
+                </div>
+
+                <!-- Inserção de Senha -->
+                <div id="password-view" class="hidden">
+                    <div id="selected-user-info" class="mb-4"></div>
+                    <form id="password-form">
+                        <input type="password" id="password" class="w-full px-4 py-2 text-center text-lg bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-primary-500 focus:border-primary-500" placeholder="Digite sua senha" required>
+                        <p id="login-error" class="text-red-500 text-sm mt-2 h-5"></p>
+                        <div class="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
+                            <button type="button" id="back-to-users" class="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600">Voltar</button>
+                            <button type="submit" class="w-full sm:w-auto text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Entrar</button>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <span class="font-semibold">${formatCurrency(item.value)}</span>
-                            <button data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                        </div>`;
-                    orderItemsContainer.appendChild(itemEl);
-                });
-            }
-            const total = state.currentOrder.reduce((acc, item) => acc + item.value, 0);
-            orderTotalEl.textContent = formatCurrency(total);
-            lucide.createIcons();
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- App Principal -->
+    <div id="app" class="hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-slate-800">
+            <div class="h-full px-3 py-4 overflow-y-auto">
+                <div class="flex flex-col items-center mb-6 pb-4 border-b border-slate-700">
+                    <div id="user-icon" class="w-16 h-16 mb-2 rounded-full bg-primary-600 flex items-center justify-center text-white text-3xl font-bold"></div>
+                    <h5 id="username-sidebar" class="text-xl font-semibold text-white"></h5>
+                    <span id="store-name-sidebar" class="text-sm text-slate-400"></span>
+                </div>
+                <ul id="vendedor-menu" class="space-y-2 font-medium"></ul>
+                <ul id="gerente-menu" class="space-y-2 font-medium"></ul>
+            </div>
+        </aside>
+
+        <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 sm:hidden"></div>
+
+        <!-- Conteúdo Principal -->
+        <div class="sm:ml-64">
+            <header class="sticky top-0 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm z-20 border-b border-slate-200 dark:border-slate-800">
+                <div class="p-4 flex items-center justify-between">
+                    <button id="mobile-menu-button" class="sm:hidden text-slate-600 dark:text-slate-300">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                    <h2 id="current-view-title" class="text-xl font-bold text-slate-900 dark:text-white"></h2>
+                    <button id="theme-toggle-app" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-lg text-sm p-2.5">
+                       <i id="theme-icon-sun-app" data-lucide="sun" class="w-5 h-5 hidden"></i>
+                       <i id="theme-icon-moon-app" data-lucide="moon" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </header>
+
+            <main class="p-4 md:p-6">
+                <div id="caixa-view" class="view"></div>
+                <div id="pedidos-view" class="view"></div>
+                <div id="relatorios-view" class="view"></div>
+                <div id="configuracoes-view" class="view"></div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div id="finalize-order-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"></div>
+    <div id="order-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"></div>
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Confirmação</h3>
+            <p id="confirm-modal-message" class="mb-6 text-slate-600 dark:text-slate-400"></p>
+            <div class="flex justify-end gap-4">
+                <button id="confirm-modal-cancel" class="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 py-2 px-4 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors">Cancelar</button>
+                <button id="confirm-modal-confirm" class="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates -->
+    <script type="text/html" id="caixa-template">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Registrar Item</h3>
+                <form id="add-item-form" class="space-y-4">
+                    <div><label for="item-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Item</label><input type="text" id="item-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:border-primary-500 focus:ring-primary-500"></div>
+                    <div><label for="item-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor (R$)</label><input type="number" id="item-value" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:border-primary-500 focus:ring-primary-500"></div>
+                    <div><label for="item-exchange" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Troca</label><input type="text" id="item-exchange" placeholder="Sem Troca" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:border-primary-500 focus:ring-primary-500"></div>
+                    <button type="submit" class="w-full bg-primary-600 text-white py-2.5 px-4 rounded-md hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"><i data-lucide="plus-circle" class="w-5 h-5"></i>Adicionar Item</button>
+                </form>
+            </div>
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Pedido Atual</h3>
+                <div id="current-order-items" class="space-y-2 mb-4 min-h-[120px]"></div>
+                <div class="border-t dark:border-slate-700 pt-4 flex justify-between items-center">
+                    <span class="text-xl font-bold text-slate-800 dark:text-slate-100">Total:</span>
+                    <span id="current-order-total" class="text-2xl font-bold text-primary-600 dark:text-primary-400">R$ 0,00</span>
+                </div>
+                <button id="finalize-order-button" class="w-full mt-6 bg-primary-600 text-white py-3 px-4 rounded-md hover:bg-primary-700 transition-colors disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"><i data-lucide="check-circle" class="w-6 h-6"></i>Finalizar Pedido</button>
+            </div>
+        </div>
+    </script>
+
+    <script type="text/html" id="pedidos-template">
+         <div class="space-y-6">
+            <!-- Dashboard Vendedor -->
+            <div id="vendedor-pedidos-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full"><i data-lucide="shopping-cart" class="w-6 h-6 text-blue-600 dark:text-blue-300"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Pedidos Finalizados</p><p id="pedidos-finalizados" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div></div>
+                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-green-100 dark:bg-green-900/50 p-3 rounded-full"><i data-lucide="dollar-sign" class="w-6 h-6 text-green-600 dark:text-green-300"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Valor Total</p><p id="valor-total" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
+                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-yellow-100 dark:bg-yellow-900/50 p-3 rounded-full"><i data-lucide="receipt-text" class="w-6 h-6 text-yellow-600 dark:text-yellow-300"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Ticket Médio</p><p id="ticket-medio" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
+            </div>
+             
+             <!-- Filtros e Tabela -->
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
+                 <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end pb-4 border-b border-slate-200 dark:border-slate-700">
+                     <div class="lg:col-span-2">
+                        <label for="filter-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Data</label>
+                        <input type="date" id="filter-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                     </div>
+                     <div>
+                        <label for="filter-payment" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Pagamento</label>
+                        <select id="filter-payment" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                             <option>Todos</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option>
+                        </select>
+                     </div>
+                     <div id="gerente-vendedor-filter-container" class="hidden">
+                         <label for="filter-vendedor" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Vendedor</label>
+                         <select id="filter-vendedor" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></select>
+                     </div>
+                     <div class="flex gap-2">
+                         <button type="submit" class="w-full bg-primary-600 text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="search" class="w-4 h-4"></i>Buscar</button>
+                         <button type="reset" class="w-full bg-slate-500 hover:bg-slate-600 text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Limpar</button>
+                     </div>
+                 </form>
+                <div class="relative overflow-x-auto pt-4">
+                     <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                         <thead class="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
+                            <tr id="orders-table-header-row">
+                                 <th scope="col" class="px-6 py-3">Cliente</th>
+                                 <th scope="col" class="px-6 py-3">Data</th>
+                                 <th scope="col" class="px-6 py-3">Pagamento</th>
+                                 <th scope="col" class="px-6 py-3 text-right">Total</th>
+                                 <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                            </tr>
+                         </thead>
+                         <tbody id="orders-table-body">
+                           <!-- Linhas da Tabela -->
+                         </tbody>
+                     </table>
+                     <div id="no-orders-found" class="text-center p-8 text-slate-500 hidden">Nenhum pedido encontrado.</div>
+                 </div>
+            </div>
+        </div>
+    </script>
+
+    <script type="text/html" id="relatorios-template">
+        <div class="space-y-6">
+             <div id="gerente-relatorios-vendedor-select-container" class="hidden bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
+                <label for="relatorios-vendedor-select" class="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Visualizar Relatório de:</label>
+                <select id="relatorios-vendedor-select" class="w-full md:w-1/3 block rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></select>
+             </div>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Vendas Hoje</p><p id="relatorio-vendas-hoje" class="text-2xl font-bold text-primary-600">R$ 0,00</p></div>
+                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus Hoje</p><p id="relatorio-bonus-dia" class="text-2xl font-bold text-primary-600">0</p></div>
+                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Vendas na Semana</p><p id="relatorio-vendas-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
+                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus na Semana</p><p id="relatorio-bonus-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
+             </div>
+             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                 <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                     <h3 class="font-bold mb-4 text-slate-900 dark:text-white">Vendas nos últimos 7 dias</h3>
+                     <div class="h-80"><canvas id="vendas-semana-chart"></canvas></div>
+                 </div>
+                 <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                     <h3 class="font-bold mb-4 text-slate-900 dark:text-white">Formas de Pagamento</h3>
+                     <div class="h-80"><canvas id="pagamento-chart"></canvas></div>
+                 </div>
+             </div>
+        </div>
+    </script>
+    
+    <script type="text/html" id="configuracoes-template">
+        <div class="space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-1 text-slate-900 dark:text-white">Painel Administrativo</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Gerencie as informações da sua loja e vendedores.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-200 dark:border-slate-700 pt-4">
+                    <div>
+                         <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Loja</label>
+                         <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                         <button id="save-settings-button" class="mt-2 bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors text-sm">Salvar Nome</button>
+                    </div>
+                     <div>
+                         <h4 class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Zona de Perigo</h4>
+                         <p class="text-xs text-slate-500 mb-2">Esta ação não pode ser desfeita.</p>
+                         <button id="delete-all-sales-button" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm">Zerar Todas as Vendas</button>
+                     </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Vendedor</h3>
+                    <form id="add-vendedor-form" class="space-y-4">
+                        <div>
+                            <label for="vendedor-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome</label>
+                            <input type="text" id="vendedor-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                        </div>
+                        <div>
+                            <label for="vendedor-password" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Senha</label>
+                            <input type="password" id="vendedor-password" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                        </div>
+                        <button type="submit" class="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors">Salvar Vendedor</button>
+                    </form>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Vendedores Cadastrados</h3>
+                    <ul id="vendedores-list" class="space-y-2">
+                        <!-- Lista de vendedores -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </script>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // ===================================================================================
+        // [PASSO MAIS IMPORTANTE] INTEGRAÇÃO COM FIREBASE
+        // ===================================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
+            authDomain: "pdv-vendas-8a65a.firebaseapp.com",
+            projectId: "pdv-vendas-8a65a",
+            storageBucket: "pdv-vendas-8a65a.firebasestorage.app",
+            messagingSenderId: "37533259212",
+            appId: "1:37533259212:web:9e79fecb52aa2b4765b969",
+            measurementId: "G-7PYWX52SEG"
         };
 
-        addItemForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = document.getElementById('item-name').value;
-            const value = parseFloat(document.getElementById('item-value').value);
-            const exchange = document.getElementById('item-exchange').value;
-            if (name && value > 0) {
-                state.currentOrder.push({ name, value, exchange });
-                updateOrderView();
-                addItemForm.reset();
-            }
-        });
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        // ===================================================================================
 
-        orderItemsContainer.addEventListener('click', (e) => {
-            if (e.target.closest('.remove-item-btn')) {
-                const index = e.target.closest('.remove-item-btn').dataset.index;
-                state.currentOrder.splice(index, 1);
-                updateOrderView();
-            }
-        });
-        
-        finalizeButton.addEventListener('click', () => {
-            // Logic to open finalize modal would go here
-            showToast('Função de finalização ainda não implementada.');
-            const total = state.currentOrder.reduce((acc, item) => acc + item.value, 0);
+        document.addEventListener('DOMContentLoaded', () => {
+            let state = {
+                loggedInUser: null,
+                currentView: '',
+                currentOrder: [],
+                db: {
+                    users: [],
+                    settings: { storeName: "Minha Loja" },
+                    sales: []
+                },
+                listeners: {
+                    users: null,
+                    sales: null
+                }
+            };
+            let selectedUserForLogin = null;
 
-            // Mock finalization for now
-            const newSale = {
-                items: state.currentOrder,
-                total: total,
-                seller: state.loggedInUser.name,
-                sellerId: state.loggedInUser.id,
-                date: firebase.firestore.FieldValue.serverTimestamp(),
-                paymentMethod: 'Pix' // Mock payment method
+            async function loadInitialData() {
+                try {
+                    const settingsDoc = await getDocs(collection(db, "settings"));
+                    if (!settingsDoc.empty) {
+                        state.db.settings = settingsDoc.docs[0].data();
+                    } else {
+                       await setDoc(doc(db, "settings", "storeConfig"), state.db.settings);
+                    }
+                    document.getElementById('login-store-name').textContent = state.db.settings.storeName;
+
+                    const usersQuery = query(collection(db, "users"));
+                    const usersSnapshot = await getDocs(usersQuery);
+
+                    if (usersSnapshot.empty) {
+                        const gerente = { name: 'gerente', password: '123', role: 'gerente' };
+                        await addDoc(collection(db, "users"), gerente);
+                        showToast('Usuário "gerente" criado com sucesso!', 'success');
+                        state.db.users.push(gerente);
+                    } else {
+                        state.db.users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar dados iniciais:", error);
+                    showToast('Falha ao conectar com o banco de dados.', 'error');
+                }
+                renderLoginScreen();
+            }
+            
+            const applyTheme = (t) => {
+                const h = document.documentElement;
+                const isDark = t === 'dark';
+                h.classList.toggle('dark', isDark);
+                ['theme-icon-moon', 'theme-icon-moon-app'].forEach(id => document.getElementById(id)?.classList.toggle('hidden', isDark));
+                ['theme-icon-sun', 'theme-icon-sun-app'].forEach(id => document.getElementById(id)?.classList.toggle('hidden', !isDark));
+            };
+            const formatCurrency = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+            const formatDate = d => {
+                if (d && d.toDate) { 
+                    return d.toDate().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+                }
+                return new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+            };
+            const getDayOfWeek = d => {
+                const date = (d && d.toDate) ? d.toDate() : new Date(d);
+                return date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').slice(0, 3);
+            }
+            const showToast = (m, t = 'success') => { const e = document.createElement('div'); e.className = `fixed bottom-5 right-5 ${t === 'success' ? 'bg-primary-600' : 'bg-red-600'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 3000) };
+            const showConfirmModal = (m, onConfirm) => { const M = document.getElementById('confirm-modal'); M.querySelector('#confirm-modal-message').textContent = m; M.classList.remove('hidden'); const c = M.querySelector('#confirm-modal-confirm'), n = M.querySelector('#confirm-modal-cancel'); const h = () => { onConfirm(); hide() }; const k = () => hide(); const hide = () => { M.classList.add('hidden'); c.removeEventListener('click', h); n.removeEventListener('click', k) }; c.addEventListener('click', h, { once: true }); n.addEventListener('click', k, { once: true }) };
+
+            function renderLoginScreen() {
+                const userList = document.getElementById('user-list');
+                userList.innerHTML = '';
+                document.getElementById('user-selection-view').classList.remove('hidden');
+                document.getElementById('password-view').classList.add('hidden');
+
+                if (state.db.users.length > 0) {
+                    state.db.users.forEach(user => {
+                        const userButton = document.createElement('button');
+                        userButton.className = 'flex flex-col items-center p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200 transform hover:scale-105 border border-slate-200 dark:border-slate-700';
+                        userButton.dataset.username = user.name;
+                        userButton.innerHTML = `<div class="w-16 h-16 mb-2 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div><span class="font-semibold text-slate-800 dark:text-slate-200 text-center">${user.name}</span>`;
+                        userList.appendChild(userButton);
+                    });
+                } else {
+                    userList.innerHTML = '<p class="col-span-full text-center text-slate-500">Nenhum usuário encontrado.</p>';
+                }
+            }
+
+            document.getElementById('user-list').addEventListener('click', (e) => {
+                const userButton = e.target.closest('button');
+                if (!userButton) return;
+                selectedUserForLogin = userButton.dataset.username;
+                document.getElementById('user-selection-view').classList.add('hidden');
+                document.getElementById('password-view').classList.remove('hidden');
+                document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold text-slate-900 dark:text-white">${selectedUserForLogin}</h3>`;
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+            });
+
+            document.getElementById('back-to-users').addEventListener('click', () => {
+                selectedUserForLogin = null;
+                document.getElementById('login-error').textContent = '';
+                renderLoginScreen();
+            });
+
+            document.getElementById('password-form').addEventListener('submit', e => {
+                e.preventDefault();
+                if (!selectedUserForLogin) return;
+
+                const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
+                const passwordInput = document.getElementById('password');
+
+                if (user && user.password === passwordInput.value) {
+                    state.loggedInUser = user;
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    passwordInput.value = ''; document.getElementById('login-error').textContent = '';
+                    initializeAppUI();
+                } else {
+                    document.getElementById('login-error').textContent = 'Senha inválida.';
+                    const passwordView = document.getElementById('password-view');
+                    passwordView.classList.add('animate-shake');
+                    setTimeout(() => passwordView.classList.remove('animate-shake'), 500);
+                }
+            });
+
+            const logout = () => {
+                if (state.listeners.users) state.listeners.users();
+                if (state.listeners.sales) state.listeners.sales();
+                state.listeners = { users: null, sales: null };
+
+                state.loggedInUser = null;
+                selectedUserForLogin = null;
+                state.db.sales = [];
+                state.db.users = [];
+                document.getElementById('app').classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('password').value = '';
+                document.getElementById('login-error').textContent = '';
+                loadInitialData();
             };
 
-            showConfirmModal(`Finalizar pedido de ${formatCurrency(total)}?`, async () => {
-                 const {success, id} = await saveData('sales', newSale);
-                 if (success) {
-                    showToast('Venda registrada com sucesso!');
-                    state.currentOrder = [];
-                    updateOrderView();
-                    // Fetch the newly created sale to get server-generated timestamp
-                    const savedSale = await db.collection('sales').doc(id).get();
-                    state.db.sales.push({id, ...savedSale.data()});
-                    showWhatsAppModal(id, '', '');
-                 }
-            });
-        });
+            const initializeAppUI = () => {
+                const user = state.loggedInUser;
+                document.getElementById('store-name-sidebar').textContent = state.db.settings.storeName;
+                document.getElementById('username-sidebar').textContent = user.name;
+                document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
 
-        updateOrderView();
-    }
+                const createMenuItem = (v, i, t) => `<li><a href="#" data-view="${v}" class="flex items-center p-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white group transition-colors"><i data-lucide="${i}" class="w-5 h-5"></i><span class="ml-3">${t}</span></a></li>`;
+                const createLogoutItem = () => `<li class="pt-2 mt-2 border-t border-slate-700"><button data-action="logout" class="w-full flex items-center p-2 text-red-400 rounded-lg hover:bg-red-500 hover:text-white group transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i><span class="ml-3">Sair</span></button></li>`;
 
-    async function renderPedidos(filteredSales = null) {
-        const salesToRender = filteredSales || state.db.sales;
-        const tableBody = document.getElementById('orders-table-body');
-        const noOrdersFound = document.getElementById('no-orders-found');
-        tableBody.innerHTML = '';
+                const vM = document.getElementById('vendedor-menu'), gM = document.getElementById('gerente-menu');
+                vM.innerHTML = ''; gM.innerHTML = '';
 
-        if (salesToRender.length === 0) {
-            noOrdersFound.classList.remove('hidden');
-        } else {
-            noOrdersFound.classList.add('hidden');
-            salesToRender.sort((a, b) => b.date.seconds - a.date.seconds).forEach(sale => {
-                const tr = document.createElement('tr');
-                tr.className = 'bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600';
-                tr.innerHTML = `
-                    <td class="px-6 py-4">${sale.clientName || 'N/A'}</td>
-                    <td class="px-6 py-4">${formatDate(sale.date)}</td>
-                    <td class="px-6 py-4">${sale.paymentMethod}</td>
-                    <td class="px-6 py-4 text-right font-semibold">${formatCurrency(sale.total)}</td>
-                    <td class="px-6 py-4 text-center">
-                        <button data-id="${sale.id}" class="details-btn text-primary-500 hover:underline">Ver</button>
-                    </td>
-                    <td class="px-6 py-4 text-center">
-                        <button data-id="${sale.id}" class="whatsapp-btn text-green-500 hover:underline">Recibo</button>
-                    </td>
-                `;
-                tableBody.appendChild(tr);
-            });
-        }
-        lucide.createIcons();
-
-        // Add event listeners for buttons
-        tableBody.addEventListener('click', e => {
-            const saleId = e.target.dataset.id;
-            if (!saleId) return;
-
-            const sale = state.db.sales.find(s => s.id === saleId);
-            if (e.target.classList.contains('whatsapp-btn')) {
-                showWhatsAppModal(sale.id, sale.clientName, sale.clientPhone);
-            }
-            if (e.target.classList.contains('details-btn')) {
-                alert(`Detalhes do Pedido ${sale.id}:\n\nVendedor: ${sale.seller}\nTotal: ${formatCurrency(sale.total)}\nItens:\n${sale.items.map(i => `- ${i.name} (${formatCurrency(i.value)})`).join('\n')}`);
-            }
-        });
-        
-        // Filter logic
-        const filterForm = document.getElementById('filter-form');
-        filterForm.addEventListener('submit', e => {
-            e.preventDefault();
-            const date = document.getElementById('filter-date').value;
-            const payment = document.getElementById('filter-payment').value;
-            
-            const filtered = state.db.sales.filter(sale => {
-                let match = true;
-                if (date) {
-                    const saleDate = new Date(sale.date.seconds * 1000).toISOString().split('T')[0];
-                    match = match && (saleDate === date);
+                if (user.role === 'vendedor') {
+                    vM.innerHTML = createMenuItem('caixa', 'shopping-basket', 'Caixa') + createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('relatorios', 'bar-chart-2', 'Relatórios') + createLogoutItem();
+                    vM.classList.remove('hidden'); gM.classList.add('hidden');
+                    switchView('caixa');
+                } else {
+                    gM.innerHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('relatorios', 'area-chart', 'Relatórios') + createMenuItem('configuracoes', 'settings', 'Configurações') + createLogoutItem();
+                    gM.classList.remove('hidden'); vM.classList.add('hidden');
+                    switchView('pedidos');
                 }
-                if (payment !== 'Todos') {
-                    match = match && (sale.paymentMethod === payment);
+
+                document.getElementById('sidebar').addEventListener('click', e => {
+                    const link = e.target.closest('a[data-view]'), logoutBtn = e.target.closest('button[data-action="logout"]');
+                    if (link) { e.preventDefault(); switchView(link.dataset.view); }
+                    if (logoutBtn) { logout(); }
+                });
+                lucide.createIcons();
+            };
+
+            const switchView = (viewId) => {
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
+                const activeView = document.getElementById(`${viewId}-view`);
+                if (activeView) {
+                    activeView.classList.add('active', 'fade-in'); state.currentView = viewId;
+                    const link = document.querySelector(`#sidebar a[data-view="${viewId}"]`);
+                    if (link) {
+                        document.getElementById('current-view-title').textContent = link.querySelector('span').textContent;
+                        document.querySelectorAll('#sidebar ul li a').forEach(l => l.classList.remove('bg-slate-700', 'text-white'));
+                        link.classList.add('bg-slate-700', 'text-white');
+                    }
+                    renderViewContent(viewId);
                 }
-                return match;
-            });
-            renderPedidos(filtered);
-        });
+                showMobileMenu(false);
+            };
 
-        filterForm.addEventListener('reset', () => renderPedidos());
-
-        // Dashboard cards
-        const totalValue = salesToRender.reduce((sum, sale) => sum + sale.total, 0);
-        document.getElementById('pedidos-finalizados').textContent = salesToRender.length;
-        document.getElementById('valor-total').textContent = formatCurrency(totalValue);
-        document.getElementById('ticket-medio').textContent = formatCurrency(salesToRender.length > 0 ? totalValue / salesToRender.length : 0);
-    }
-    
-    async function renderRelatorios() {
-        // Implementation for Relatorios view... (can be built out later)
-        showToast("Página de Relatórios em construção.", "info");
-    }
-    
-    function renderConfiguracoes() {
-        const storeNameInput = document.getElementById('config-store-name');
-        const metaDiariaInput = document.getElementById('meta-diaria');
-        const metaSemanalInput = document.getElementById('meta-semanal');
-        const metaMensalInput = document.getElementById('meta-mensal');
-        const saveSettingsButton = document.getElementById('save-settings-button');
-        const addVendedorForm = document.getElementById('add-vendedor-form');
-        const vendedoresList = document.getElementById('vendedores-list');
-        const zerarVendasButton = document.getElementById('zerar-vendas-button');
-        const exportDiaButton = document.getElementById('export-dia');
-        const exportSemanaButton = document.getElementById('export-semana');
-
-        storeNameInput.value = state.db.settings.storeName;
-        metaDiariaInput.value = state.db.settings.goals.daily || '';
-        metaSemanalInput.value = state.db.settings.goals.weekly || '';
-        metaMensalInput.value = state.db.settings.goals.monthly || '';
-
-        const renderVendedoresList = () => {
-            vendedoresList.innerHTML = '';
-            state.db.users.filter(u => u.role === 'vendedor').forEach(user => {
-                const li = document.createElement('li');
-                li.className = 'flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-2 rounded';
-                li.innerHTML = `<span>${user.name}</span> <button data-id="${user.id}" class="delete-vendedor-btn p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-full"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>`;
-                vendedoresList.appendChild(li);
-            });
-            lucide.createIcons();
+            const renderViewContent = (viewId) => {
+                const viewContainer = document.getElementById(`${viewId}-view`);
+                viewContainer.innerHTML = document.getElementById(`${viewId}-template`).innerHTML;
+                lucide.createIcons();
+                switch (viewId) {
+                    case 'caixa': renderCaixa(); break;
+                    case 'pedidos': renderPedidos(); break;
+                    case 'relatorios': renderRelatorios(); break;
+                    case 'configuracoes': renderConfiguracoes(); break;
+                }
+            };
             
-            document.querySelectorAll('.delete-vendedor-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const userId = e.currentTarget.dataset.id;
-                    const user = state.db.users.find(u => u.id === userId);
-                    showConfirmModal(`Excluir o vendedor "${user.name}"?`, async () => {
-                        const { success } = await deleteData('users', userId);
-                        if (success) {
-                            showToast('Vendedor excluído!');
-                            state.db.users = state.db.users.filter(u => u.id !== userId);
-                            renderVendedoresList();
+            const sidebar = document.getElementById('sidebar'), overlay = document.getElementById('sidebar-overlay');
+            const showMobileMenu = s => { if (s) { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden') } else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden') } };
+            document.getElementById('mobile-menu-button').addEventListener('click', () => showMobileMenu(true));
+            overlay.addEventListener('click', () => showMobileMenu(false));
+
+            function renderCaixa() {
+                const c=document.getElementById('caixa-view'),itemsContainer=c.querySelector('#current-order-items'),totalEl=c.querySelector('#current-order-total'),finalizeBtn=c.querySelector('#finalize-order-button'),addForm=c.querySelector('#add-item-form'),modalContainer=document.getElementById('finalize-order-modal');
+                const updateUI=()=>{itemsContainer.innerHTML='';if(state.currentOrder.length===0){itemsContainer.innerHTML='<p id="no-items-message" class="text-slate-500 dark:text-slate-400 text-center py-4">Nenhum item adicionado.</p>';finalizeBtn.disabled=true}else{state.currentOrder.forEach((item,i)=>{const el=document.createElement('div');el.className='flex justify-between items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-md';el.innerHTML=`<div><p class="font-semibold text-slate-800 dark:text-slate-200">${item.name}</p><p class="text-xs text-slate-500 dark:text-slate-400">Troca: ${item.exchange || 'N/A'}</p></div><div class="flex items-center gap-4"><span class="font-semibold text-slate-800 dark:text-slate-200">${formatCurrency(item.value)}</span><button data-index="${i}" class="remove-item-btn text-red-500 hover:text-red-700 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;itemsContainer.appendChild(el)});finalizeBtn.disabled=false}
+                totalEl.textContent=formatCurrency(state.currentOrder.reduce((sum,i)=>sum+i.value,0));lucide.createIcons()};
+                addForm.addEventListener('submit',e=>{e.preventDefault();state.currentOrder.push({name:c.querySelector('#item-name').value,value:parseFloat(c.querySelector('#item-value').value),exchange:c.querySelector('#item-exchange').value});updateUI();addForm.reset(); c.querySelector('#item-name').focus()});
+                itemsContainer.addEventListener('click',e=>{const b=e.target.closest('.remove-item-btn');if(b){state.currentOrder.splice(b.dataset.index,1);updateUI()}});
+                finalizeBtn.addEventListener('click',()=>{modalContainer.classList.remove('hidden');modalContainer.innerHTML=`<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><h2 class="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Finalizar Pedido</h2><form id="finalize-order-form" class="space-y-4"><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></div><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></div><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Forma de Pagamento</label><select id="payment-method" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div><div class="pt-4 flex justify-end gap-4"><button type="button" id="cancel-finalize-button" class="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 py-2 px-4 rounded-md">Cancelar</button><button type="submit" class="bg-primary-600 text-white py-2 px-4 rounded-md">Confirmar Venda</button></div></form></div>`;
+                modalContainer.querySelector('#cancel-finalize-button').addEventListener('click',()=>modalContainer.classList.add('hidden'));
+                modalContainer.querySelector('#finalize-order-form').addEventListener('submit',async e=>{
+                    e.preventDefault();
+                    const total=state.currentOrder.reduce((s,i)=>s+i.value,0);
+                    const saleData={clientName:modalContainer.querySelector('#client-name').value,clientPhone:modalContainer.querySelector('#client-phone').value,paymentMethod:modalContainer.querySelector('#payment-method').value,items:state.currentOrder, total:total,bonus:Math.floor(total/80)*2,date: new Date(),vendedor:state.loggedInUser.name,status:'Finalizado'};
+                    try {
+                        await addDoc(collection(db, "sales"), saleData);
+                        showToast('Venda registrada com sucesso!', 'success');
+                        state.currentOrder=[];
+                        updateUI();
+                        modalContainer.classList.add('hidden');
+                    } catch (error) {
+                        console.error("Erro ao registrar venda:", error);
+                        showToast('Erro ao registrar a venda.', 'error');
+                    }
+                })});
+                updateUI();
+            }
+
+            function renderPedidos() {
+                const c = document.getElementById('pedidos-view');
+                const isGerente = state.loggedInUser.role === 'gerente';
+                
+                if (isGerente) {
+                    c.querySelector('#vendedor-pedidos-dashboard')?.classList.add('hidden');
+                    c.querySelector('#gerente-vendedor-filter-container').classList.remove('hidden');
+                    if (!c.querySelector('#orders-table-header-row').innerText.includes('Vendedor')) {
+                        c.querySelector('#orders-table-header-row').insertAdjacentHTML('afterbegin', '<th scope="col" class="px-6 py-3">Vendedor</th>');
+                    }
+                    const select = c.querySelector('#filter-vendedor');
+                    select.innerHTML = '<option value="Todos">Todos</option>';
+                    const vendedores = [...new Set(state.db.users.filter(u => u.role === 'vendedor').map(u => u.name))];
+                    vendedores.forEach(name => {
+                        select.innerHTML += `<option value="${name}">${name}</option>`;
+                    });
+                }
+
+                const updateDashboard = (sales) => {
+                    if (isGerente) return;
+                    const totalSales = sales.length;
+                    const totalValue = sales.reduce((sum, order) => sum + parseFloat(order.total || 0), 0);
+                    c.querySelector('#pedidos-finalizados').textContent = totalSales;
+                    c.querySelector('#valor-total').textContent = formatCurrency(totalValue);
+                    c.querySelector('#ticket-medio').textContent = formatCurrency(totalSales > 0 ? totalValue / totalSales : 0);
+                };
+
+                const renderTable = (sales) => {
+                    const tbody = c.querySelector('#orders-table-body');
+                    tbody.innerHTML = '';
+                    if (!sales || sales.length === 0) {
+                        c.querySelector('#no-orders-found').style.display = 'block';
+                    } else {
+                        c.querySelector('#no-orders-found').style.display = 'none';
+                        sales.forEach(s => {
+                            const r = document.createElement('tr');
+                            r.className = 'bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600';
+                            r.innerHTML = 
+                                `${isGerente ? `<td class="px-6 py-4">${s.vendedor}</td>` : ''}
+                                <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
+                                <td class="px-6 py-4">${formatDate(s.date)}</td>
+                                <td class="px-6 py-4">${s.paymentMethod}</td>
+                                <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <button data-order-id="${s.id}" class="view-details-btn text-primary-600 hover:underline">Detalhes</button>
+                                </td>`;
+                            tbody.appendChild(r);
+                        });
+                    }
+                };
+
+                const filterAndRender = () => {
+                    let sales = state.db.sales || [];
+                    const filters = {
+                        date: c.querySelector('#filter-date').value,
+                        payment: c.querySelector('#filter-payment').value,
+                        vendedor: isGerente ? c.querySelector('#filter-vendedor').value : null
+                    };
+
+                    if (filters.date) {
+                         const filterDate = new Date(filters.date + 'T00:00:00');
+                         sales = sales.filter(s => s.date.toDate().toLocaleDateString('pt-BR') === filterDate.toLocaleDateString('pt-BR'));
+                    }
+                    if (filters.payment && filters.payment !== 'Todos') {
+                        sales = sales.filter(s => s.paymentMethod === filters.payment);
+                    }
+                    if (isGerente && filters.vendedor && filters.vendedor !== 'Todos') {
+                        sales = sales.filter(s => s.vendedor === filters.vendedor);
+                    }
+                    
+                    updateDashboard(sales);
+                    renderTable(sales);
+                };
+                
+                if (state.listeners.sales) state.listeners.sales(); 
+                
+                let q = collection(db, "sales");
+                if (!isGerente) {
+                    q = query(q, where("vendedor", "==", state.loggedInUser.name));
+                }
+                q = query(q, orderBy("date", "desc"));
+
+
+                state.listeners.sales = onSnapshot(q, (snapshot) => {
+                    state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    filterAndRender();
+                }, (error) => {
+                    console.error("Erro ao buscar pedidos: ", error);
+                    showToast('Erro ao carregar pedidos.', 'error');
+                });
+
+
+                c.querySelector('#filter-form').addEventListener('submit', e => { e.preventDefault(); filterAndRender(); });
+                c.querySelector('#filter-form').addEventListener('reset', () => { setTimeout(filterAndRender, 0); });
+                c.querySelector('#orders-table-body').addEventListener('click', e => {
+                    const b = e.target.closest('.view-details-btn');
+                    if (b) {
+                        const order = state.db.sales.find(s => s.id == b.dataset.orderId);
+                        if (order) {
+                            const m = document.getElementById('order-details-modal');
+                            m.classList.remove('hidden');
+                            const itemsList = order.items.map(i => `<li>${i.name} (${formatCurrency(i.value)})</li>`).join('');
+                            m.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${formatDate(order.date)}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p class="text-lg font-bold"><strong>Total:</strong> ${formatCurrency(order.total)}</p><p><strong>Pagamento:</strong> ${order.paymentMethod}</p></div></div>`;
+                            m.querySelector('#close-details-modal').addEventListener('click', () => m.classList.add('hidden'));
+                            lucide.createIcons();
+                        }
+                    }
+                });
+            }
+             
+            let vendasChartInstance=null,pagamentoChartInstance=null;
+            function renderRelatorios() {
+                const c = document.getElementById('relatorios-view');
+                if(!c) return;
+                const isGerente = state.loggedInUser.role === 'gerente';
+                const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
+                const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
+                
+                const updateReports = (vendedorName = null) => {
+                    if(vendasChartInstance) vendasChartInstance.destroy();
+                    if(pagamentoChartInstance) pagamentoChartInstance.destroy();
+
+                    let sales = state.db.sales || [];
+                    if (isGerente) {
+                        if (vendedorName && vendedorName !== 'total') {
+                            sales = state.db.sales.filter(s => s.vendedor === vendedorName);
+                        }
+                    } 
+
+                    const today = new Date();
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); 
+                    startOfWeek.setHours(0, 0, 0, 0);
+
+                    const salesToday = sales.filter(s => s.date.toDate().toDateString() === today.toDateString());
+                    const salesWeek = sales.filter(s => s.date.toDate() >= startOfWeek);
+
+                    c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
+                    c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + parseFloat(s.bonus || 0), 0);
+                    c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
+                    c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + parseFloat(s.bonus || 0), 0);
+                    
+                    const salesLast7Days = {};
+                    for (let i = 6; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        const dayKey = d.toISOString().split('T')[0];
+                        salesLast7Days[dayKey] = { label: getDayOfWeek(d), total: 0 };
+                    }
+                    sales.forEach(sale => {
+                        const saleDate = sale.date.toDate();
+                        const sevenDaysAgo = new Date();
+                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+                        sevenDaysAgo.setHours(0,0,0,0);
+                        if (saleDate >= sevenDaysAgo) {
+                            const dayKey = saleDate.toISOString().split('T')[0];
+                            if (salesLast7Days[dayKey]) {
+                                salesLast7Days[dayKey].total += parseFloat(sale.total || 0);
+                            }
                         }
                     });
+
+                    const isDarkMode = document.documentElement.classList.contains('dark');
+                    const gridColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                    const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+                    
+                    const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
+                    if(vendasCtx) {
+                      vendasChartInstance = new Chart(vendasCtx, {
+                          type: 'bar',
+                          data: {
+                              labels: Object.values(salesLast7Days).map(d => d.label),
+                              datasets: [{ label: 'Vendas Diárias', data: Object.values(salesLast7Days).map(d => d.total), backgroundColor: '#22c55e', borderRadius: 5 }]
+                          },
+                          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
+                      });
+                    }
+
+                    const paymentCounts = sales.reduce((acc, sale) => { acc[sale.paymentMethod] = (acc[sale.paymentMethod] || 0) + parseFloat(sale.total); return acc; }, {});
+                    const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
+                    if(pagamentosCtx) {
+                      pagamentoChartInstance = new Chart(pagamentosCtx, {
+                          type: 'doughnut',
+                          data: {
+                              labels: Object.keys(paymentCounts),
+                              datasets: [{ data: Object.values(paymentCounts), backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'], borderColor: isDarkMode ? '#0f172a' : '#f8fafc', borderWidth: 4 }]
+                          },
+                          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
+                      });
+                    }
+                };
+                
+                if (isGerente && vendedorSelectContainer) {
+                    vendedorSelectContainer.classList.remove('hidden');
+                    const vendedores = [...new Set(state.db.sales.map(s => s.vendedor))];
+                    vendedorSelect.innerHTML = '<option value="total">Relatório Total</option>';
+                    vendedores.forEach(name => {
+                        vendedorSelect.innerHTML += `<option value="${name}">${name}</option>`;
+                    });
+                    vendedorSelect.addEventListener('change', (e) => updateReports(e.target.value));
+                }
+                updateReports(isGerente ? vendedorSelect.value : null);
+            }
+
+            function renderConfiguracoes() {
+                const c=document.getElementById('configuracoes-view');
+                c.querySelector('#config-store-name').value=state.db.settings.storeName;
+
+                const updateVendedoresList=()=>{
+                    const list=c.querySelector('#vendedores-list');
+                    list.innerHTML='';
+                    const vendedores = state.db.users.filter(u=>u.role==='vendedor');
+                    if(vendedores.length === 0){
+                        list.innerHTML = '<p class="text-slate-500 text-sm text-center">Nenhum vendedor cadastrado.</p>';
+                        return;
+                    }
+                    vendedores.forEach(v=>{
+                        list.innerHTML+=`<li class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md"><span>${v.name}</span><button data-userid="${v.id}" data-username="${v.name}" class="remove-vendedor-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button></li>`
+                    });
+                    lucide.createIcons();
+                };
+
+                if (state.listeners.users) state.listeners.users();
+                const usersQuery = query(collection(db, "users"));
+                state.listeners.users = onSnapshot(usersQuery, (snapshot) => {
+                     state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                     updateVendedoresList();
                 });
-            });
-        };
-        renderVendedoresList();
+                
+                c.querySelector('#add-vendedor-form').addEventListener('submit',async e=>{
+                    e.preventDefault();
+                    const n=c.querySelector('#vendedor-name').value.trim(), p=c.querySelector('#vendedor-password').value;
+                    if(!n || !p) { showToast('Nome e senha são obrigatórios.','error'); return; }
+                    if(state.db.users.some(u=>u.name.toLowerCase()===n.toLowerCase())){showToast('Nome de usuário já existe.','error');return}
+                    const newSeller={name:n,password:p,role:'vendedor'};
+                    try {
+                        await addDoc(collection(db, "users"), newSeller);
+                        showToast('Vendedor cadastrado!', 'success');
+                        e.target.reset();
+                    } catch {
+                        showToast('Erro ao cadastrar vendedor.', 'error');
+                    }
+                });
 
-        addVendedorForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const nameInput = document.getElementById('vendedor-name');
-            const passwordInput = document.getElementById('vendedor-password');
-            const newUser = { name: nameInput.value.trim(), password: passwordInput.value.trim(), role: 'vendedor' };
-            if (newUser.name && newUser.password) {
-                const { success, id } = await saveData('users', newUser);
-                if (success) {
-                    showToast('Vendedor cadastrado!');
-                    state.db.users.push({ id, ...newUser });
-                    nameInput.value = '';
-                    passwordInput.value = '';
-                    renderVendedoresList();
-                }
+                c.querySelector('#vendedores-list').addEventListener('click', e => {
+                    const removeBtn = e.target.closest('.remove-vendedor-btn');
+                    if (removeBtn) {
+                        const userId = removeBtn.dataset.userid;
+                        const username = removeBtn.dataset.username;
+                        showConfirmModal(`Tem certeza que deseja remover o vendedor "${username}"?`, async () => {
+                           try {
+                               await deleteDoc(doc(db, "users", userId));
+                               showToast(`Vendedor "${username}" removido.`, 'success');
+                           } catch (error) {
+                               console.error("Erro ao remover vendedor: ", error);
+                               showToast('Erro ao remover vendedor.', 'error');
+                           }
+                        });
+                    }
+                });
+
+                c.querySelector('#save-settings-button').addEventListener('click', async ()=> {
+                    const newStoreName = c.querySelector('#config-store-name').value;
+                    try {
+                        await setDoc(doc(db, "settings", "storeConfig"), { storeName: newStoreName });
+                        state.db.settings.storeName = newStoreName;
+                        document.getElementById('store-name-sidebar').textContent = newStoreName;
+                        document.getElementById('login-store-name').textContent = newStoreName;
+                        showToast('Configurações salvas!', 'success');
+                    } catch (error) {
+                        showToast('Erro ao salvar configurações.', 'error');
+                    }
+                });
+                
+                 c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
+                    showConfirmModal('TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas registradas. Isso não pode ser desfeito.', async () => {
+                        try {
+                            const salesQuery = query(collection(db, "sales"));
+                            const salesSnapshot = await getDocs(salesQuery);
+                            if (salesSnapshot.empty) {
+                                showToast('Nenhuma venda para apagar.', 'success');
+                                return;
+                            }
+                            const batch = writeBatch(db);
+                            salesSnapshot.docs.forEach(doc => {
+                                batch.delete(doc.ref);
+                            });
+                            await batch.commit();
+                            showToast('Todas as vendas foram zeradas!', 'success');
+                        } catch (error) {
+                            console.error("Erro ao zerar vendas:", error);
+                            showToast('Ocorreu um erro ao zerar as vendas.', 'error');
+                        }
+                    });
+                 });
             }
-        });
 
-        saveSettingsButton.addEventListener('click', async () => {
-            const newStoreName = storeNameInput.value.trim();
-            const newGoals = {
-                daily: parseFloat(metaDiariaInput.value) || 0,
-                weekly: parseFloat(metaSemanalInput.value) || 0,
-                monthly: parseFloat(metaMensalInput.value) || 0,
+            const init = () => {
+                const theme = localStorage.getItem('theme') || 'light';
+                applyTheme(theme);
+                const themeToggleHandler = () => {
+                    const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+                    localStorage.setItem('theme', newTheme);
+                    applyTheme(newTheme);
+                    if(state.currentView === 'relatorios' && document.getElementById('relatorios-view').classList.contains('active')) {
+                         renderRelatorios();
+                    }
+                };
+                document.getElementById('theme-toggle').addEventListener('click', themeToggleHandler);
+                document.getElementById('theme-toggle-app').addEventListener('click', themeToggleHandler);
+
+                lucide.createIcons();
+                loadInitialData();
             };
-            await Promise.all([
-                saveData('settings', { name: newStoreName }, 'store'),
-                saveData('settings', newGoals, 'goals')
-            ]);
-            state.db.settings.storeName = newStoreName;
-            state.db.settings.goals = newGoals;
-            document.getElementById('store-name-sidebar').textContent = newStoreName;
-            showToast('Configurações salvas!');
+
+            init();
         });
-        
-        zerarVendasButton.addEventListener('click', () => {
-            showConfirmModal('APAGAR TODOS os registros de vendas permanentemente?', async () => {
-                const deletePromises = state.db.sales.map(sale => deleteData('sales', sale.id));
-                await Promise.all(deletePromises);
-                state.db.sales = [];
-                showToast('Todas as vendas foram zeradas!');
-            });
-        });
+    </script>
+</body>
 
-        const exportSalesToCSV = (period) => {
-             const now = new Date();
-             const salesToExport = state.db.sales.filter(sale => {
-                if (!sale.date || !sale.date.seconds) return false;
-                const saleDate = new Date(sale.date.seconds * 1000);
-                if (period === 'day') {
-                    return saleDate.toDateString() === now.toDateString();
-                }
-                if (period === 'week') {
-                     const weekStart = new Date(now);
-                     weekStart.setDate(now.getDate() - now.getDay());
-                     weekStart.setHours(0,0,0,0);
-                     return saleDate >= weekStart;
-                }
-                return false;
-             });
+</html>
 
-            if (salesToExport.length === 0) {
-                return showToast('Nenhuma venda para o período selecionado.', 'error');
-            }
-
-            let csvContent = "data:text/csv;charset=utf-8,ID,Data,Vendedor,Cliente,Valor,Pagamento\r\n";
-            salesToExport.forEach(s => csvContent += `${s.id},${formatDate(s.date)},${s.seller},${s.clientName || 'N/A'},${s.total},${s.paymentMethod}\r\n`);
-            
-            const link = document.createElement("a");
-            link.setAttribute("href", encodeURI(csvContent));
-            link.setAttribute("download", `vendas_${period}.csv`);
-            link.click();
-        };
-
-        exportDiaButton.addEventListener('click', () => exportSalesToCSV('day'));
-        exportSemanaButton.addEventListener('click', () => exportSalesToCSV('week'));
-    }
-    
-    // --- LOGIN EVENT LISTENERS ---
-    document.getElementById('user-list').addEventListener('click', (e) => {
-        const userButton = e.target.closest('button[data-username]');
-        if (!userButton) return;
-        selectedUserForLogin = userButton.dataset.username;
-        document.getElementById('user-selection-view').classList.add('hidden');
-        document.getElementById('password-view').classList.remove('hidden');
-        document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold">${selectedUserForLogin}</h3>`;
-        document.getElementById('password').focus();
-    });
-
-    document.getElementById('back-to-users').addEventListener('click', () => {
-        selectedUserForLogin = null;
-        document.getElementById('login-error').textContent = '';
-        renderLoginScreen();
-    });
-
-    document.getElementById('password-form').addEventListener('submit', e => {
-        e.preventDefault();
-        const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
-        const passwordInput = document.getElementById('password');
-        if (user && user.password === passwordInput.value) {
-            state.loggedInUser = user;
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            passwordInput.value = '';
-            initializeAppUI();
-        } else {
-            const errorEl = document.getElementById('login-error');
-            errorEl.textContent = 'Senha inválida.';
-            document.getElementById('password-view').classList.add('animate-shake');
-            setTimeout(() => {
-                document.getElementById('password-view').classList.remove('animate-shake');
-                errorEl.textContent = '';
-            }, 500);
-        }
-    });
-    
-    // --- GLOBAL INITIALIZATION ---
-    const init = async () => {
-        document.getElementById('theme-toggle').addEventListener('click', () => {
-            const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
-            localStorage.setItem('theme', newTheme);
-            applyTheme(newTheme);
-        });
-        document.getElementById('mobile-menu-button').addEventListener('click',()=>showMobileMenu(true));
-        document.getElementById('sidebar-overlay').addEventListener('click',()=>showMobileMenu(false));
-        applyTheme(localStorage.getItem('theme') || 'light');
-        lucide.createIcons();
-        await loadInitialData();
-        renderLoginScreen();
-    };
-    
-    init();
-});
-</script>
