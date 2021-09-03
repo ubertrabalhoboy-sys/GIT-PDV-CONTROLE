@@ -799,17 +799,24 @@
                     renderTable(sales);
                 };
                 
-                let q = collection(db, "sales");
-                if (!isGerente) { q = query(q, where("vendedor", "==", state.loggedInUser.name)); }
-                // Removido o orderBy daqui para evitar erro de índice no Firebase. A ordenação será feita no cliente.
+                let q;
+                if (isGerente) {
+                    q = query(collection(db, "sales"), orderBy("date", "desc"));
+                } else {
+                    q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), orderBy("date", "desc"));
+                }
 
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
-                    let allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    // Ordenando os dados aqui para garantir que os mais recentes apareçam primeiro
-                    allSales.sort((a, b) => b.date.seconds - a.date.seconds);
+                    const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     state.db.sales = allSales;
                     filterAndRender(allSales);
-                }, (error) => console.error("Erro ao buscar pedidos: ", error));
+                }, (error) => {
+                    console.error("Erro ao buscar pedidos: ", error)
+                    if (error.code === 'failed-precondition') {
+                         const tbody = c.querySelector('#orders-table-body');
+                         tbody.innerHTML = `<tr><td colspan="10" class="text-center p-8 text-red-500"><b>Erro de Banco de Dados:</b> A consulta atual precisa de um índice. Por favor, acesse seu painel do Firebase e crie o índice conforme a mensagem de erro no console do navegador.</td></tr>`;
+                     }
+                });
 
                 c.querySelector('#filter-form').addEventListener('submit', e => { e.preventDefault(); filterAndRender(state.db.sales); });
                 c.querySelector('#filter-form').addEventListener('reset', () => { setTimeout(() => filterAndRender(state.db.sales), 0); });
@@ -897,11 +904,16 @@
                     document.getElementById('recorde-melhor-semana').textContent = formatCurrency(melhorSemanaValor);
                 };
 
-                const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name));
+                const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), orderBy("date", "desc"));
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
                     const mySales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     state.db.sales = mySales;
                     updateGoalsUI(mySales);
+                }, (error) => {
+                    console.error("Erro ao buscar metas: ", error);
+                     if (error.code === 'failed-precondition') {
+                         c.innerHTML = `<div class="text-center p-8 text-red-500"><b>Erro de Banco de Dados:</b> A consulta atual precisa de um índice. Por favor, acesse seu painel do Firebase e crie o índice conforme a mensagem de erro no console do navegador.</div>`;
+                     }
                 });
             }
 
@@ -1065,8 +1077,13 @@
                 const isGerente = state.loggedInUser.role === 'gerente';
                 const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
                 
-                let q = collection(db, "sales");
-                if (!isGerente) { q = query(q, where("vendedor", "==", state.loggedInUser.name)); }
+                let q;
+                 if (isGerente) {
+                    q = query(collection(db, "sales"), orderBy("date", "desc"));
+                } else {
+                    q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), orderBy("date", "desc"));
+                }
+
 
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
                     const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1091,6 +1108,11 @@
                     } else {
                         updateReports(allSales);
                     }
+                }, (error) => {
+                    console.error("Erro ao buscar relatórios: ", error);
+                     if (error.code === 'failed-precondition') {
+                         c.innerHTML = `<div class="text-center p-8 text-red-500"><b>Erro de Banco de Dados:</b> A consulta atual precisa de um índice. Por favor, acesse seu painel do Firebase e crie o índice conforme a mensagem de erro no console do navegador.</div>`;
+                     }
                 });
             }
 
