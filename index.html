@@ -51,95 +51,12 @@
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased font-sans">
 
     <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-        <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
-            <div class="text-center">
-                <i data-lucide="store" class="mx-auto h-14 w-14 text-primary-500"></i>
-                <h2 id="login-store-name" class="mt-4 text-center text-3xl font-bold text-gray-900 dark:text-white">Minha Loja</h2>
-            </div>
-            <div id="user-selection-view">
-                <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">Quem está acessando?</p>
-                <div id="user-list" class="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
-            </div>
-            <div id="password-view" class="hidden mt-6">
-                <button id="back-to-users" class="flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-primary-500 mb-4 transition-colors">
-                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>Trocar de usuário
-                </button>
-                <div id="selected-user-info" class="text-center mb-4"></div>
-                <form id="password-form" class="space-y-4">
-                    <input id="password" name="password" type="password" required class="relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm transition" placeholder="Senha">
-                    <p id="login-error" class="text-red-500 text-sm text-center h-4"></p>
-                    <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-primary-500/30 transform transition-all duration-300 hover:scale-[1.02]">
-                        Entrar
-                    </button>
-                </form>
-            </div>
         </div>
-    </div>
 
     <div id="app" class="hidden">
-        <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen bg-gray-900 -translate-x-full sm:translate-x-0">
-            <div class="h-full px-3 py-4 overflow-y-auto flex flex-col">
-                <div>
-                    <div class="p-4 mb-4 text-center">
-                        <div id="user-icon" class="w-16 h-16 mx-auto mb-3 rounded-full bg-primary-500 flex items-center justify-center text-white text-3xl font-bold border-4 border-gray-700"></div>
-                        <h5 id="store-name-sidebar" class="text-xl font-semibold text-white">Minha Loja</h5>
-                        <p id="username-sidebar" class="text-sm text-gray-400">Usuário</p>
-                    </div>
-                    <ul id="vendedor-menu" class="space-y-2 font-medium hidden"></ul>
-                    <ul id="gerente-menu" class="space-y-2 font-medium hidden"></ul>
-                </div>
-                <div class="mt-auto">
-                    <button id="theme-toggle" class="w-full flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors">
-                        <i data-lucide="moon" id="theme-icon-moon" class="w-5 h-5"></i>
-                        <i data-lucide="sun" id="theme-icon-sun" class="w-5 h-5 hidden"></i>
-                        <span class="ml-3">Alternar Tema</span>
-                    </button>
-                </div>
-            </div>
-        </aside>
-
-        <main class="sm:ml-64 transition-all duration-300">
-            <header class="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shadow-sm sm:hidden flex items-center justify-between p-4">
-                <button id="mobile-menu-button" class="text-gray-600 dark:text-gray-300">
-                    <i data-lucide="menu" class="w-6 h-6"></i>
-                </button>
-                <h1 id="current-view-title" class="text-lg font-semibold">Caixa</h1>
-                <div class="w-6"></div>
-            </header>
-            <div class="p-4 lg:p-6">
-                <div id="caixa-view" class="view"></div>
-                <div id="pedidos-view" class="view"></div>
-                <div id="relatorios-view" class="view"></div>
-                <div id="configuracoes-view" class="view"></div>
-            </div>
-        </main>
-    </div>
-
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden sm:hidden"></div>
-    <div id="finalize-order-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center z-50 hidden p-4"></div>
-    <div id="order-details-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center z-50 hidden p-4"></div>
-    <div id="confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center z-[60] hidden p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
-            <i data-lucide="alert-triangle" class="mx-auto h-12 w-12 text-yellow-500"></i>
-            <h3 class="text-lg font-semibold mt-4">Você tem certeza?</h3>
-            <p id="confirm-modal-message" class="text-sm text-gray-500 dark:text-gray-400 mt-2">Esta ação não pode ser desfeita.</p>
-            <div class="mt-6 flex justify-center gap-4">
-                <button id="confirm-modal-cancel" class="py-2 px-4 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors transform hover:scale-105">Cancelar</button>
-                <button id="confirm-modal-confirm" class="py-2 px-4 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors transform hover:scale-105">Confirmar</button>
-            </div>
         </div>
-    </div>
 
-    <template id="caixa-template">
-        </template>
-    <template id="pedidos-template">
-        </template>
-    <template id="relatorios-template">
-        </template>
-    <template id="configuracoes-template">
-        </template>
-
-<script>
+    <script>
 document.addEventListener('DOMContentLoaded', () => {
 
     const firebaseConfig = {
@@ -187,32 +104,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // ===================================================================================
-    // FUNÇÃO CORRIGIDA E MAIS ROBUSTA
-    // ===================================================================================
     async function loadInitialData() {
         let users = await fetchData('users');
-        
         if (users.length === 0) {
             const gerente = { name: 'gerente', password: '123', role: 'gerente' };
             const success = await saveData('users', gerente, 'gerente');
-            
             if (success) {
                 showToast('Usuário "gerente" padrão criado!');
-                // Após criar, busca a lista novamente para garantir que está atualizada
                 users = await fetchData('users'); 
             }
         }
-        
-        state.db.users = users; // Define o estado com a lista final
+        state.db.users = users;
     }
 
-    const applyTheme=(t)=>{/* ... (código inalterado) ... */};
+    const applyTheme=(t)=>{const h=document.documentElement;if(t==='dark'){h.classList.add('dark');document.getElementById('theme-icon-moon').classList.add('hidden');document.getElementById('theme-icon-sun').classList.remove('hidden')}else{h.classList.remove('dark');document.getElementById('theme-icon-moon').classList.remove('hidden');document.getElementById('theme-icon-sun').classList.add('hidden')}};
     const formatCurrency=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
     const formatDate=d=>new Date(d).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
     const getDayOfWeek=d=>new Date(d).toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').slice(0,3);
-    const showToast=(m,t='success')=>{/* ... (código inalterado) ... */};
-    const showConfirmModal=(m,onConfirm)=>{/* ... (código inalterado) ... */};
+    const showToast=(m,t='success')=>{const e=document.createElement('div');e.className=`fixed bottom-5 right-5 ${t==='success'?'bg-green-500':'bg-red-500'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)};
+    const showConfirmModal=(m,onConfirm)=>{const M=document.getElementById('confirm-modal');M.querySelector('#confirm-modal-message').textContent=m;M.classList.remove('hidden');const c=M.querySelector('#confirm-modal-confirm'),n=M.querySelector('#confirm-modal-cancel');const h=()=>{onConfirm();hide()};const k=()=>hide();const hide=()=>{M.classList.add('hidden');c.removeEventListener('click',h);n.removeEventListener('click',k)};c.addEventListener('click',h,{once:true});n.addEventListener('click',k,{once:true})};
     
     function renderLoginScreen(){
         const userList = document.getElementById('user-list');
@@ -233,9 +143,124 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // O restante do seu código JavaScript continua aqui...
-    // (logout, initializeAppUI, switchView, renderViewContent, etc.)
+    const logout = async () => {
+        state.loggedInUser = null;
+        selectedUserForLogin = null;
+        state.db.sales = [];
+        document.getElementById('app').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('password').value = '';
+        document.getElementById('login-error').textContent = '';
+        await loadInitialData();
+        renderLoginScreen();
+    };
 
+    const initializeAppUI = () => {
+        const user = state.loggedInUser;
+        document.getElementById('store-name-sidebar').textContent = state.db.settings.storeName;
+        document.getElementById('login-store-name').textContent = state.db.settings.storeName;
+        document.getElementById('username-sidebar').textContent = user.name;
+        document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
+        
+        const createMenuItem=(v,i,t)=>`<li><a href="#" data-view="${v}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white group transition-colors"><i data-lucide="${i}" class="w-5 h-5"></i><span class="ml-3">${t}</span></a></li>`;
+        const createLogoutItem = () => `<li class="pt-2 mt-2 border-t border-gray-700"><button data-action="logout" class="w-full flex items-center p-2 text-red-400 rounded-lg hover:bg-red-500 hover:text-white group transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i><span class="ml-3">Sair</span></button></li>`;
+
+        const vM=document.getElementById('vendedor-menu'),gM=document.getElementById('gerente-menu');
+        vM.innerHTML = ''; gM.innerHTML = '';
+        
+        if(user.role==='vendedor'){
+            vM.innerHTML = createMenuItem('caixa','shopping-basket','Caixa') + createMenuItem('pedidos','list-ordered','Pedidos') + createMenuItem('relatorios','bar-chart-2','Relatórios') + createLogoutItem();
+            vM.classList.remove('hidden'); gM.classList.add('hidden');
+            switchView('caixa');
+        } else {
+            gM.innerHTML = createMenuItem('pedidos','list-ordered','Pedidos') + createMenuItem('relatorios','area-chart','Relatórios') + createMenuItem('configuracoes','settings','Configurações') + createLogoutItem();
+            gM.classList.remove('hidden'); vM.classList.add('hidden');
+            switchView('pedidos');
+        }
+
+        document.getElementById('sidebar').addEventListener('click', e => {
+            const link = e.target.closest('a[data-view]'), logoutBtn = e.target.closest('button[data-action="logout"]');
+            if (link) { e.preventDefault(); switchView(link.dataset.view); }
+            if (logoutBtn) { logout(); }
+        });
+        lucide.createIcons();
+    };
+
+    const switchView = (viewId) => {
+        if (state.currentView === viewId && document.getElementById(`${viewId}-view`).innerHTML !== '') return;
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
+        const activeView = document.getElementById(`${viewId}-view`);
+        if (activeView) {
+            activeView.classList.add('active', 'fade-in'); state.currentView = viewId;
+            const link = document.querySelector(`#sidebar a[data-view="${viewId}"]`);
+            if(link) {
+               document.getElementById('current-view-title').textContent = link.querySelector('span').textContent;
+               document.querySelectorAll('#sidebar ul li a').forEach(l => l.classList.remove('bg-primary-600', 'text-white', 'shadow-inner'));
+               link.classList.add('bg-primary-600', 'text-white', 'shadow-inner');
+            }
+            renderViewContent(viewId);
+        }
+        showMobileMenu(false);
+    };
+
+    const renderViewContent = (viewId) => {
+        const viewContainer = document.getElementById(`${viewId}-view`);
+        viewContainer.innerHTML = document.getElementById(`${viewId}-template`).innerHTML;
+        lucide.createIcons();
+        switch(viewId) {
+            case 'caixa': renderCaixa(); break;
+            case 'pedidos': renderPedidos(); break;
+            case 'relatorios': renderRelatorios(); break;
+            case 'configuracoes': renderConfiguracoes(); break;
+        }
+    };
+    
+    const sidebar=document.getElementById('sidebar'),overlay=document.getElementById('sidebar-overlay');
+    const showMobileMenu=s=>{if(s){sidebar.classList.remove('-translate-x-full');overlay.classList.remove('hidden')}else{sidebar.classList.add('-translate-x-full');overlay.classList.add('hidden')}};
+    
+    function renderCaixa() { /* Lógica da view Caixa */ }
+    async function renderPedidos() { /* Lógica da view Pedidos */ }
+    async function renderRelatorios() { /* Lógica da view Relatórios */ }
+    function renderConfiguracoes() { /* Lógica da view Configurações */ }
+    
+    document.getElementById('user-list').addEventListener('click', (e) => {
+        const userButton = e.target.closest('button');
+        if (!userButton) return;
+        selectedUserForLogin = userButton.dataset.username;
+        document.getElementById('user-selection-view').classList.add('hidden');
+        document.getElementById('password-view').classList.remove('hidden');
+        document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-300 text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold text-gray-900 dark:text-white">${selectedUserForLogin}</h3>`;
+        document.getElementById('password').value = '';
+        document.getElementById('password').focus();
+    });
+
+    document.getElementById('back-to-users').addEventListener('click', () => {
+        selectedUserForLogin = null;
+        document.getElementById('login-error').textContent = '';
+        renderLoginScreen();
+    });
+
+    document.getElementById('password-form').addEventListener('submit', e => {
+        e.preventDefault();
+        if (!selectedUserForLogin) return;
+
+        const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
+        const passwordInput = document.getElementById('password');
+
+        if (user && user.password === passwordInput.value) {
+            state.loggedInUser = user;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            passwordInput.value = ''; document.getElementById('login-error').textContent = '';
+            initializeAppUI();
+        } else {
+            document.getElementById('login-error').textContent = 'Senha inválida.';
+            const passwordView = document.getElementById('password-view');
+            passwordView.classList.add('animate-shake');
+            setTimeout(() => passwordView.classList.remove('animate-shake'), 500);
+        }
+    });
+    
     const init = async () => {
         const theme = localStorage.getItem('theme') || 'light';
         applyTheme(theme);
