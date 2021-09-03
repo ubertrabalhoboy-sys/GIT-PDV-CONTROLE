@@ -24,10 +24,6 @@
             animation: fadeIn 0.3s ease-in-out forwards;
         }
 
-        .fade-out {
-            animation: fadeOut 0.3s ease-in-out forwards;
-        }
-
         .animate-shake {
             animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
         }
@@ -39,6 +35,10 @@
         .view.active {
             display: block;
         }
+        
+        .progress-bar {
+            transition: width 0.5s ease-in-out;
+        }
 
         @keyframes fadeIn {
             from {
@@ -49,16 +49,6 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeOut {
-            from {
-                opacity: 1;
-            }
-
-            to {
-                opacity: 0;
             }
         }
 
@@ -92,7 +82,7 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: { // Alterado para um tom de verde
+                        primary: {
                             50: '#f0fdf4',
                             100: '#dcfce7',
                             200: '#bbf7d0',
@@ -144,15 +134,12 @@
                 <h1 id="login-store-name" class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Minha Loja</h1>
                 <p class="text-slate-500 dark:text-slate-400 mb-8">Quem está acessando?</p>
 
-                <!-- Seleção de Usuário -->
                 <div id="user-selection-view">
                     <div id="user-list" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <!-- Usuários são inseridos aqui -->
                         <p class="col-span-full text-center text-slate-500">Carregando usuários...</p>
                     </div>
                 </div>
 
-                <!-- Inserção de Senha -->
                 <div id="password-view" class="hidden">
                     <div id="selected-user-info" class="mb-4"></div>
                     <form id="password-form">
@@ -171,7 +158,6 @@
 
     <!-- App Principal -->
     <div id="app" class="hidden">
-        <!-- Sidebar -->
         <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-slate-800">
             <div class="h-full px-3 py-4 overflow-y-auto">
                 <div class="flex flex-col items-center mb-6 pb-4 border-b border-slate-700">
@@ -186,7 +172,6 @@
 
         <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 sm:hidden"></div>
 
-        <!-- Conteúdo Principal -->
         <div class="sm:ml-64">
             <header class="sticky top-0 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm z-20 border-b border-slate-200 dark:border-slate-800">
                 <div class="p-4 flex items-center justify-between">
@@ -204,6 +189,7 @@
             <main class="p-4 md:p-6">
                 <div id="caixa-view" class="view"></div>
                 <div id="pedidos-view" class="view"></div>
+                <div id="metas-view" class="view"></div>
                 <div id="relatorios-view" class="view"></div>
                 <div id="configuracoes-view" class="view"></div>
             </main>
@@ -213,6 +199,7 @@
     <!-- Modals -->
     <div id="finalize-order-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"></div>
     <div id="order-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"></div>
+    <div id="whatsapp-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Confirmação</h3>
@@ -232,7 +219,17 @@
                 <form id="add-item-form" class="space-y-4">
                     <div><label for="item-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Item</label><input type="text" id="item-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:border-primary-500 focus:ring-primary-500"></div>
                     <div><label for="item-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor (R$)</label><input type="number" id="item-value" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:border-primary-500 focus:ring-primary-500"></div>
-                    <div><label for="item-exchange" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Troca</label><input type="text" id="item-exchange" placeholder="Sem Troca" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:border-primary-500 focus:ring-primary-500"></div>
+                    <div>
+                        <label for="item-exchange" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Prazo de Troca</label>
+                        <select id="item-exchange" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                            <option>Sem Troca</option>
+                            <option>7 dias</option>
+                            <option>15 dias</option>
+                            <option>30 dias</option>
+                            <option>45 dias</option>
+                            <option>60 dias</option>
+                        </select>
+                    </div>
                     <button type="submit" class="w-full bg-primary-600 text-white py-2.5 px-4 rounded-md hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"><i data-lucide="plus-circle" class="w-5 h-5"></i>Adicionar Item</button>
                 </form>
             </div>
@@ -250,14 +247,12 @@
 
     <script type="text/html" id="pedidos-template">
          <div class="space-y-6">
-            <!-- Dashboard Vendedor -->
             <div id="vendedor-pedidos-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full"><i data-lucide="shopping-cart" class="w-6 h-6 text-blue-600 dark:text-blue-300"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Pedidos Finalizados</p><p id="pedidos-finalizados" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div></div>
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-green-100 dark:bg-green-900/50 p-3 rounded-full"><i data-lucide="dollar-sign" class="w-6 h-6 text-green-600 dark:text-green-300"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Valor Total</p><p id="valor-total" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-yellow-100 dark:bg-yellow-900/50 p-3 rounded-full"><i data-lucide="receipt-text" class="w-6 h-6 text-yellow-600 dark:text-yellow-300"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Ticket Médio</p><p id="ticket-medio" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
             </div>
              
-             <!-- Filtros e Tabela -->
             <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
                  <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end pb-4 border-b border-slate-200 dark:border-slate-700">
                      <div class="lg:col-span-2">
@@ -290,12 +285,68 @@
                                  <th scope="col" class="px-6 py-3 text-center">Ações</th>
                             </tr>
                          </thead>
-                         <tbody id="orders-table-body">
-                           <!-- Linhas da Tabela -->
-                         </tbody>
+                         <tbody id="orders-table-body"></tbody>
                      </table>
                      <div id="no-orders-found" class="text-center p-8 text-slate-500 hidden">Nenhum pedido encontrado.</div>
                  </div>
+            </div>
+        </div>
+    </script>
+    
+    <script type="text/html" id="metas-template">
+        <div class="space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Meu Progresso</h3>
+                <div class="space-y-4">
+                    <!-- Meta Diária -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Diária</span>
+                            <span id="progresso-diario-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
+                            <div id="progresso-diario-barra" class="bg-primary-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <!-- Meta Semanal -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Semanal</span>
+                            <span id="progresso-semanal-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
+                            <div id="progresso-semanal-barra" class="bg-primary-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <!-- Meta Mensal -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Mensal</span>
+                            <span id="progresso-mensal-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
+                            <div id="progresso-mensal-barra" class="bg-primary-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md text-center">
+                    <i data-lucide="flame" class="w-8 h-8 mx-auto mb-2 text-red-500"></i>
+                    <p class="text-sm text-slate-500">Meta Batida (Dias seguidos)</p>
+                    <p id="recorde-dias-consecutivos" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md text-center">
+                    <i data-lucide="award" class="w-8 h-8 mx-auto mb-2 text-amber-500"></i>
+                    <p class="text-sm text-slate-500">Melhor Dia</p>
+                    <p id="recorde-melhor-dia" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md text-center">
+                    <i data-lucide="trophy" class="w-8 h-8 mx-auto mb-2 text-sky-500"></i>
+                    <p class="text-sm text-slate-500">Melhor Semana</p>
+                    <p id="recorde-melhor-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p>
+                </div>
             </div>
         </div>
     </script>
@@ -306,11 +357,13 @@
                 <label for="relatorios-vendedor-select" class="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Visualizar Relatório de:</label>
                 <select id="relatorios-vendedor-select" class="w-full md:w-1/3 block rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></select>
              </div>
-             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Vendas Hoje</p><p id="relatorio-vendas-hoje" class="text-2xl font-bold text-primary-600">R$ 0,00</p></div>
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus Hoje</p><p id="relatorio-bonus-dia" class="text-2xl font-bold text-primary-600">0</p></div>
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Vendas na Semana</p><p id="relatorio-vendas-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus na Semana</p><p id="relatorio-bonus-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
+                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Vendas no Mês</p><p id="relatorio-vendas-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
+                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus no Mês</p><p id="relatorio-bonus-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
              </div>
              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                  <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
@@ -328,21 +381,39 @@
     <script type="text/html" id="configuracoes-template">
         <div class="space-y-6">
             <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold mb-1 text-slate-900 dark:text-white">Painel Administrativo</h3>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Gerencie as informações da sua loja e vendedores.</p>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-200 dark:border-slate-700 pt-4">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Painel Administrativo</h3>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-200 dark:border-slate-700 pt-4">
                     <div>
+                         <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Configurações da Loja</h4>
                          <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Loja</label>
                          <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
                          <button id="save-settings-button" class="mt-2 bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors text-sm">Salvar Nome</button>
                     </div>
                      <div>
-                         <h4 class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Zona de Perigo</h4>
-                         <p class="text-xs text-slate-500 mb-2">Esta ação não pode ser desfeita.</p>
+                         <h4 class="text-md font-semibold text-red-600 dark:text-red-500 mb-2">Zona de Perigo</h4>
+                         <p class="text-xs text-slate-500 mb-2">Esta ação não pode ser desfeita e removerá permanentemente todas as vendas do sistema.</p>
                          <button id="delete-all-sales-button" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm">Zerar Todas as Vendas</button>
                      </div>
                 </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Definir Metas</h3>
+                <form id="goals-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="meta-diaria" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Diária (R$)</label>
+                        <input type="number" id="meta-diaria" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                    </div>
+                    <div>
+                        <label for="meta-semanal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Semanal (R$)</label>
+                        <input type="number" id="meta-semanal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                    </div>
+                     <div>
+                        <label for="meta-mensal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Mensal (R$)</label>
+                        <input type="number" id="meta-mensal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                    </div>
+                </form>
+                <button id="save-goals-button" class="mt-4 bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors text-sm">Salvar Metas</button>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -362,9 +433,7 @@
                 </div>
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Vendedores Cadastrados</h3>
-                    <ul id="vendedores-list" class="space-y-2">
-                        <!-- Lista de vendedores -->
-                    </ul>
+                    <ul id="vendedores-list" class="space-y-2"></ul>
                 </div>
             </div>
         </div>
@@ -375,9 +444,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // ===================================================================================
-        // [PASSO MAIS IMPORTANTE] INTEGRAÇÃO COM FIREBASE
-        // ===================================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
             authDomain: "pdv-vendas-8a65a.firebaseapp.com",
@@ -390,7 +456,6 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        // ===================================================================================
 
         document.addEventListener('DOMContentLoaded', () => {
             let state = {
@@ -399,23 +464,25 @@
                 currentOrder: [],
                 db: {
                     users: [],
-                    settings: { storeName: "Minha Loja" },
+                    settings: { 
+                        storeName: "Minha Loja",
+                        goals: { daily: 150, weekly: 1000, monthly: 4000 }
+                    },
                     sales: []
                 },
-                listeners: {
-                    users: null,
-                    sales: null
-                }
+                listeners: { users: null, sales: null }
             };
             let selectedUserForLogin = null;
 
             async function loadInitialData() {
                 try {
-                    const settingsDoc = await getDocs(collection(db, "settings"));
-                    if (!settingsDoc.empty) {
-                        state.db.settings = settingsDoc.docs[0].data();
+                    const settingsRef = doc(db, "settings", "storeConfig");
+                    const settingsSnap = await getDocs(collection(db, "settings"));
+                    if (!settingsSnap.empty) {
+                        const settingsData = settingsSnap.docs[0].data();
+                        state.db.settings = { ...state.db.settings, ...settingsData };
                     } else {
-                       await setDoc(doc(db, "settings", "storeConfig"), state.db.settings);
+                       await setDoc(settingsRef, state.db.settings);
                     }
                     document.getElementById('login-store-name').textContent = state.db.settings.storeName;
 
@@ -444,17 +511,13 @@
                 ['theme-icon-moon', 'theme-icon-moon-app'].forEach(id => document.getElementById(id)?.classList.toggle('hidden', isDark));
                 ['theme-icon-sun', 'theme-icon-sun-app'].forEach(id => document.getElementById(id)?.classList.toggle('hidden', !isDark));
             };
-            const formatCurrency = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+            const formatCurrency = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
             const formatDate = d => {
                 if (d && d.toDate) { 
-                    return d.toDate().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+                    return d.toDate().toLocaleDateString('pt-BR');
                 }
-                return new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+                return new Date(d).toLocaleDateString('pt-BR');
             };
-            const getDayOfWeek = d => {
-                const date = (d && d.toDate) ? d.toDate() : new Date(d);
-                return date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').slice(0, 3);
-            }
             const showToast = (m, t = 'success') => { const e = document.createElement('div'); e.className = `fixed bottom-5 right-5 ${t === 'success' ? 'bg-primary-600' : 'bg-red-600'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 3000) };
             const showConfirmModal = (m, onConfirm) => { const M = document.getElementById('confirm-modal'); M.querySelector('#confirm-modal-message').textContent = m; M.classList.remove('hidden'); const c = M.querySelector('#confirm-modal-confirm'), n = M.querySelector('#confirm-modal-cancel'); const h = () => { onConfirm(); hide() }; const k = () => hide(); const hide = () => { M.classList.add('hidden'); c.removeEventListener('click', h); n.removeEventListener('click', k) }; c.addEventListener('click', h, { once: true }); n.addEventListener('click', k, { once: true }) };
 
@@ -496,8 +559,6 @@
 
             document.getElementById('password-form').addEventListener('submit', e => {
                 e.preventDefault();
-                if (!selectedUserForLogin) return;
-
                 const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
                 const passwordInput = document.getElementById('password');
 
@@ -509,9 +570,8 @@
                     initializeAppUI();
                 } else {
                     document.getElementById('login-error').textContent = 'Senha inválida.';
-                    const passwordView = document.getElementById('password-view');
-                    passwordView.classList.add('animate-shake');
-                    setTimeout(() => passwordView.classList.remove('animate-shake'), 500);
+                    document.getElementById('password-view').classList.add('animate-shake');
+                    setTimeout(() => document.getElementById('password-view').classList.remove('animate-shake'), 500);
                 }
             });
 
@@ -519,15 +579,10 @@
                 if (state.listeners.users) state.listeners.users();
                 if (state.listeners.sales) state.listeners.sales();
                 state.listeners = { users: null, sales: null };
-
-                state.loggedInUser = null;
+                Object.assign(state, { loggedInUser: null, currentOrder: [], db: { ...state.db, sales: [], users: [] }});
                 selectedUserForLogin = null;
-                state.db.sales = [];
-                state.db.users = [];
                 document.getElementById('app').classList.add('hidden');
                 document.getElementById('login-screen').classList.remove('hidden');
-                document.getElementById('password').value = '';
-                document.getElementById('login-error').textContent = '';
                 loadInitialData();
             };
 
@@ -544,7 +599,7 @@
                 vM.innerHTML = ''; gM.innerHTML = '';
 
                 if (user.role === 'vendedor') {
-                    vM.innerHTML = createMenuItem('caixa', 'shopping-basket', 'Caixa') + createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('relatorios', 'bar-chart-2', 'Relatórios') + createLogoutItem();
+                    vM.innerHTML = createMenuItem('caixa', 'shopping-basket', 'Caixa') + createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('metas', 'target', 'Metas') + createMenuItem('relatorios', 'bar-chart-2', 'Relatórios') + createLogoutItem();
                     vM.classList.remove('hidden'); gM.classList.add('hidden');
                     switchView('caixa');
                 } else {
@@ -562,6 +617,8 @@
             };
 
             const switchView = (viewId) => {
+                if(state.listeners.sales) { state.listeners.sales(); state.listeners.sales = null; }
+
                 document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
                 const activeView = document.getElementById(`${viewId}-view`);
                 if (activeView) {
@@ -584,6 +641,7 @@
                 switch (viewId) {
                     case 'caixa': renderCaixa(); break;
                     case 'pedidos': renderPedidos(); break;
+                    case 'metas': renderMetas(); break;
                     case 'relatorios': renderRelatorios(); break;
                     case 'configuracoes': renderConfiguracoes(); break;
                 }
@@ -594,13 +652,63 @@
             document.getElementById('mobile-menu-button').addEventListener('click', () => showMobileMenu(true));
             overlay.addEventListener('click', () => showMobileMenu(false));
 
+            function showWhatsAppModal(saleData) {
+                const modal = document.getElementById('whatsapp-confirm-modal');
+                if (!modal) return;
+
+                const storeName = state.db.settings.storeName;
+                const saleDate = new Date().toLocaleString('pt-BR', {dateStyle: 'short', timeStyle: 'short'});
+                
+                let itemsText = saleData.items.map(item => 
+                    `- ${item.name} (${item.exchange}) - ${formatCurrency(item.value)}`
+                ).join('\n');
+
+                const couponText = `🧾 *Comprovante de Venda* 🧾\n\n*${storeName}*\n\n*Data:* ${saleDate}\n*Cliente:* ${saleData.clientName}\n\n*Itens:*\n${itemsText}\n\n*Total:* *${formatCurrency(saleData.total)}*\n*Vendedor:* ${saleData.vendedor}\n\nObrigado pela sua compra!`;
+
+                const whatsAppNumber = saleData.clientPhone.replace(/\D/g, ''); // Clean phone number
+                const encodedText = encodeURIComponent(couponText);
+                const whatsappUrl = `https://wa.me/55${whatsAppNumber}?text=${encodedText}`;
+
+                modal.innerHTML = `
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 m-4 fade-in">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Venda Finalizada</h3>
+                            <button id="close-whatsapp-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full">&times;</button>
+                        </div>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">Deseja enviar o comprovante para o cliente via WhatsApp?</p>
+                        
+                        <div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-md mb-6 whitespace-pre-wrap text-xs text-slate-700 dark:text-slate-300 font-mono overflow-auto max-h-48">${couponText.replace(/\*/g, '')}</div>
+
+                        <div class="flex flex-col sm:flex-row justify-end gap-3">
+                            <button id="close-whatsapp-modal-btn" class="bg-slate-200 dark:bg-slate-600 py-2 px-4 rounded-md">Fechar</button>
+                            <button id="send-whatsapp-btn" class="bg-green-500 text-white py-2 px-4 rounded-md flex items-center justify-center gap-2 ${!whatsAppNumber ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-600'}" ${!whatsAppNumber ? 'disabled' : ''}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943s-.182-.133-.38-.232z"/></svg>
+                                Enviar via WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                `;
+                modal.classList.remove('hidden');
+
+                const close = () => modal.classList.add('hidden');
+                modal.querySelector('#close-whatsapp-modal').addEventListener('click', close);
+                modal.querySelector('#close-whatsapp-modal-btn').addEventListener('click', close);
+                if(whatsAppNumber) {
+                    modal.querySelector('#send-whatsapp-btn').addEventListener('click', () => {
+                        window.open(whatsappUrl, '_blank');
+                        close();
+                    });
+                }
+            }
+
+
             function renderCaixa() {
                 const c=document.getElementById('caixa-view'),itemsContainer=c.querySelector('#current-order-items'),totalEl=c.querySelector('#current-order-total'),finalizeBtn=c.querySelector('#finalize-order-button'),addForm=c.querySelector('#add-item-form'),modalContainer=document.getElementById('finalize-order-modal');
                 const updateUI=()=>{itemsContainer.innerHTML='';if(state.currentOrder.length===0){itemsContainer.innerHTML='<p id="no-items-message" class="text-slate-500 dark:text-slate-400 text-center py-4">Nenhum item adicionado.</p>';finalizeBtn.disabled=true}else{state.currentOrder.forEach((item,i)=>{const el=document.createElement('div');el.className='flex justify-between items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-md';el.innerHTML=`<div><p class="font-semibold text-slate-800 dark:text-slate-200">${item.name}</p><p class="text-xs text-slate-500 dark:text-slate-400">Troca: ${item.exchange || 'N/A'}</p></div><div class="flex items-center gap-4"><span class="font-semibold text-slate-800 dark:text-slate-200">${formatCurrency(item.value)}</span><button data-index="${i}" class="remove-item-btn text-red-500 hover:text-red-700 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;itemsContainer.appendChild(el)});finalizeBtn.disabled=false}
                 totalEl.textContent=formatCurrency(state.currentOrder.reduce((sum,i)=>sum+i.value,0));lucide.createIcons()};
                 addForm.addEventListener('submit',e=>{e.preventDefault();state.currentOrder.push({name:c.querySelector('#item-name').value,value:parseFloat(c.querySelector('#item-value').value),exchange:c.querySelector('#item-exchange').value});updateUI();addForm.reset(); c.querySelector('#item-name').focus()});
                 itemsContainer.addEventListener('click',e=>{const b=e.target.closest('.remove-item-btn');if(b){state.currentOrder.splice(b.dataset.index,1);updateUI()}});
-                finalizeBtn.addEventListener('click',()=>{modalContainer.classList.remove('hidden');modalContainer.innerHTML=`<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><h2 class="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Finalizar Pedido</h2><form id="finalize-order-form" class="space-y-4"><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></div><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></div><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Forma de Pagamento</label><select id="payment-method" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div><div class="pt-4 flex justify-end gap-4"><button type="button" id="cancel-finalize-button" class="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 py-2 px-4 rounded-md">Cancelar</button><button type="submit" class="bg-primary-600 text-white py-2 px-4 rounded-md">Confirmar Venda</button></div></form></div>`;
+                finalizeBtn.addEventListener('click',()=>{modalContainer.classList.remove('hidden');modalContainer.innerHTML=`<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><h2 class="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Finalizar Pedido</h2><form id="finalize-order-form" class="space-y-4"><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></div><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700" placeholder="Ex: 11987654321"></div><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Forma de Pagamento</label><select id="payment-method" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div><div class="pt-4 flex justify-end gap-4"><button type="button" id="cancel-finalize-button" class="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 py-2 px-4 rounded-md">Cancelar</button><button type="submit" class="bg-primary-600 text-white py-2 px-4 rounded-md">Confirmar Venda</button></div></form></div>`;
                 modalContainer.querySelector('#cancel-finalize-button').addEventListener('click',()=>modalContainer.classList.add('hidden'));
                 modalContainer.querySelector('#finalize-order-form').addEventListener('submit',async e=>{
                     e.preventDefault();
@@ -609,13 +717,11 @@
                     try {
                         await addDoc(collection(db, "sales"), saleData);
                         showToast('Venda registrada com sucesso!', 'success');
+                        modalContainer.classList.add('hidden');
+                        showWhatsAppModal(saleData);
                         state.currentOrder=[];
                         updateUI();
-                        modalContainer.classList.add('hidden');
-                    } catch (error) {
-                        console.error("Erro ao registrar venda:", error);
-                        showToast('Erro ao registrar a venda.', 'error');
-                    }
+                    } catch (error) { showToast('Erro ao registrar a venda.', 'error'); }
                 })});
                 updateUI();
             }
@@ -651,7 +757,8 @@
                     const tbody = c.querySelector('#orders-table-body');
                     tbody.innerHTML = '';
                     if (!sales || sales.length === 0) {
-                        c.querySelector('#no-orders-found').style.display = 'block';
+                        c.querySelector('#no-orders-found').style.display = 'table-row';
+                        tbody.innerHTML = '<tr><td colspan="10" class="text-center p-8 text-slate-500">Nenhum pedido encontrado.</td></tr>';
                     } else {
                         c.querySelector('#no-orders-found').style.display = 'none';
                         sales.forEach(s => {
@@ -660,7 +767,7 @@
                             r.innerHTML = 
                                 `${isGerente ? `<td class="px-6 py-4">${s.vendedor}</td>` : ''}
                                 <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
-                                <td class="px-6 py-4">${formatDate(s.date)}</td>
+                                <td class="px-6 py-4">${new Date(s.date.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
                                 <td class="px-6 py-4">${s.paymentMethod}</td>
                                 <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
                                 <td class="px-6 py-4 text-center">
@@ -671,14 +778,13 @@
                     }
                 };
 
-                const filterAndRender = () => {
-                    let sales = state.db.sales || [];
+                const filterAndRender = (allSales) => {
+                    let sales = allSales || [];
                     const filters = {
                         date: c.querySelector('#filter-date').value,
                         payment: c.querySelector('#filter-payment').value,
                         vendedor: isGerente ? c.querySelector('#filter-vendedor').value : null
                     };
-
                     if (filters.date) {
                          const filterDate = new Date(filters.date + 'T00:00:00');
                          sales = sales.filter(s => s.date.toDate().toLocaleDateString('pt-BR') === filterDate.toLocaleDateString('pt-BR'));
@@ -689,31 +795,24 @@
                     if (isGerente && filters.vendedor && filters.vendedor !== 'Todos') {
                         sales = sales.filter(s => s.vendedor === filters.vendedor);
                     }
-                    
                     updateDashboard(sales);
                     renderTable(sales);
                 };
                 
-                if (state.listeners.sales) state.listeners.sales(); 
-                
                 let q = collection(db, "sales");
-                if (!isGerente) {
-                    q = query(q, where("vendedor", "==", state.loggedInUser.name));
-                }
-                q = query(q, orderBy("date", "desc"));
-
+                if (!isGerente) { q = query(q, where("vendedor", "==", state.loggedInUser.name)); }
+                // Removido o orderBy daqui para evitar erro de índice no Firebase. A ordenação será feita no cliente.
 
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
-                    state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    filterAndRender();
-                }, (error) => {
-                    console.error("Erro ao buscar pedidos: ", error);
-                    showToast('Erro ao carregar pedidos.', 'error');
-                });
+                    let allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // Ordenando os dados aqui para garantir que os mais recentes apareçam primeiro
+                    allSales.sort((a, b) => b.date.seconds - a.date.seconds);
+                    state.db.sales = allSales;
+                    filterAndRender(allSales);
+                }, (error) => console.error("Erro ao buscar pedidos: ", error));
 
-
-                c.querySelector('#filter-form').addEventListener('submit', e => { e.preventDefault(); filterAndRender(); });
-                c.querySelector('#filter-form').addEventListener('reset', () => { setTimeout(filterAndRender, 0); });
+                c.querySelector('#filter-form').addEventListener('submit', e => { e.preventDefault(); filterAndRender(state.db.sales); });
+                c.querySelector('#filter-form').addEventListener('reset', () => { setTimeout(() => filterAndRender(state.db.sales), 0); });
                 c.querySelector('#orders-table-body').addEventListener('click', e => {
                     const b = e.target.closest('.view-details-btn');
                     if (b) {
@@ -722,111 +821,96 @@
                             const m = document.getElementById('order-details-modal');
                             m.classList.remove('hidden');
                             const itemsList = order.items.map(i => `<li>${i.name} (${formatCurrency(i.value)})</li>`).join('');
-                            m.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${formatDate(order.date)}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p class="text-lg font-bold"><strong>Total:</strong> ${formatCurrency(order.total)}</p><p><strong>Pagamento:</strong> ${order.paymentMethod}</p></div></div>`;
+                            m.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p class="text-lg font-bold"><strong>Total:</strong> ${formatCurrency(order.total)}</p><p><strong>Pagamento:</strong> ${order.paymentMethod}</p></div></div>`;
                             m.querySelector('#close-details-modal').addEventListener('click', () => m.classList.add('hidden'));
                             lucide.createIcons();
                         }
                     }
                 });
             }
-             
-            let vendasChartInstance=null,pagamentoChartInstance=null;
-            function renderRelatorios() {
-                const c = document.getElementById('relatorios-view');
-                if(!c) return;
-                const isGerente = state.loggedInUser.role === 'gerente';
-                const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
-                const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
-                
-                const updateReports = (vendedorName = null) => {
-                    if(vendasChartInstance) vendasChartInstance.destroy();
-                    if(pagamentoChartInstance) pagamentoChartInstance.destroy();
 
-                    let sales = state.db.sales || [];
-                    if (isGerente) {
-                        if (vendedorName && vendedorName !== 'total') {
-                            sales = state.db.sales.filter(s => s.vendedor === vendedorName);
-                        }
-                    } 
+            function renderMetas(){
+                const c = document.getElementById('metas-view');
+                if (!c) return;
+                const goals = state.db.settings.goals;
 
-                    const today = new Date();
-                    const startOfWeek = new Date(today);
-                    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); 
-                    startOfWeek.setHours(0, 0, 0, 0);
-
-                    const salesToday = sales.filter(s => s.date.toDate().toDateString() === today.toDateString());
-                    const salesWeek = sales.filter(s => s.date.toDate() >= startOfWeek);
-
-                    c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
-                    c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + parseFloat(s.bonus || 0), 0);
-                    c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
-                    c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + parseFloat(s.bonus || 0), 0);
+                const updateGoalsUI = (sales) => {
+                    const now = new Date();
+                    const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
+                    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                    const dayOfWeek = now.getDay();
+                    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+                    const weekStart = new Date(new Date().setDate(diff));
+                    weekStart.setHours(0, 0, 0, 0);
                     
-                    const salesLast7Days = {};
-                    for (let i = 6; i >= 0; i--) {
-                        const d = new Date();
-                        d.setDate(d.getDate() - i);
-                        const dayKey = d.toISOString().split('T')[0];
-                        salesLast7Days[dayKey] = { label: getDayOfWeek(d), total: 0 };
-                    }
-                    sales.forEach(sale => {
-                        const saleDate = sale.date.toDate();
-                        const sevenDaysAgo = new Date();
-                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-                        sevenDaysAgo.setHours(0,0,0,0);
-                        if (saleDate >= sevenDaysAgo) {
-                            const dayKey = saleDate.toISOString().split('T')[0];
-                            if (salesLast7Days[dayKey]) {
-                                salesLast7Days[dayKey].total += parseFloat(sale.total || 0);
-                            }
-                        }
-                    });
+                    const vendasHoje = sales.filter(s => s.date.toDate() >= todayStart).reduce((sum, s) => sum + s.total, 0);
+                    const vendasSemana = sales.filter(s => s.date.toDate() >= weekStart).reduce((sum, s) => sum + s.total, 0);
+                    const vendasMes = sales.filter(s => s.date.toDate() >= monthStart).reduce((sum, s) => sum + s.total, 0);
 
-                    const isDarkMode = document.documentElement.classList.contains('dark');
-                    const gridColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-                    const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+                    const salesByDay = sales.reduce((acc, s) => {
+                        const day = s.date.toDate().toISOString().split('T')[0];
+                        acc[day] = (acc[day] || 0) + s.total;
+                        return acc;
+                    }, {});
+
+                    const melhorDiaValor = Math.max(0, ...Object.values(salesByDay));
+
+                    const getWeekNumber = (d) => {
+                        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+                        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+                        var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+                        var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+                        return `${d.getUTCFullYear()}-W${weekNo}`;
+                    }
+                    const salesByWeek = sales.reduce((acc, s) => {
+                        const week = getWeekNumber(s.date.toDate());
+                        acc[week] = (acc[week] || 0) + s.total;
+                        return acc;
+                    }, {});
+                    const melhorSemanaValor = Math.max(0, ...Object.values(salesByWeek));
                     
-                    const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
-                    if(vendasCtx) {
-                      vendasChartInstance = new Chart(vendasCtx, {
-                          type: 'bar',
-                          data: {
-                              labels: Object.values(salesLast7Days).map(d => d.label),
-                              datasets: [{ label: 'Vendas Diárias', data: Object.values(salesLast7Days).map(d => d.total), backgroundColor: '#22c55e', borderRadius: 5 }]
-                          },
-                          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
-                      });
+                    let streak = 0;
+                    const sortedDays = Object.keys(salesByDay).sort((a,b) => new Date(b) - new Date(a));
+                    let currentDay = new Date(new Date().setHours(0,0,0,0));
+                    for(let i = 0; i < 365; i++){
+                        const dayStr = currentDay.toISOString().split('T')[0];
+                        const daySales = salesByDay[dayStr] || 0;
+                        if(daySales >= (goals.daily || 0.01)){
+                            streak++;
+                        } else {
+                             if (!sortedDays.includes(dayStr) && currentDay < todayStart) { break; }
+                        }
+                        currentDay.setDate(currentDay.getDate() - 1);
                     }
 
-                    const paymentCounts = sales.reduce((acc, sale) => { acc[sale.paymentMethod] = (acc[sale.paymentMethod] || 0) + parseFloat(sale.total); return acc; }, {});
-                    const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
-                    if(pagamentosCtx) {
-                      pagamentoChartInstance = new Chart(pagamentosCtx, {
-                          type: 'doughnut',
-                          data: {
-                              labels: Object.keys(paymentCounts),
-                              datasets: [{ data: Object.values(paymentCounts), backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'], borderColor: isDarkMode ? '#0f172a' : '#f8fafc', borderWidth: 4 }]
-                          },
-                          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
-                      });
+                    const updateProgressBar = (barId, textId, current, goal) => {
+                        const percentage = Math.min(100, (current / (goal || 1)) * 100);
+                        document.getElementById(barId).style.width = `${percentage}%`;
+                        document.getElementById(textId).textContent = `${formatCurrency(current)} / ${formatCurrency(goal)}`;
                     }
+                    
+                    updateProgressBar('progresso-diario-barra', 'progresso-diario-texto', vendasHoje, goals.daily);
+                    updateProgressBar('progresso-semanal-barra', 'progresso-semanal-texto', vendasSemana, goals.weekly);
+                    updateProgressBar('progresso-mensal-barra', 'progresso-mensal-texto', vendasMes, goals.monthly);
+                    document.getElementById('recorde-dias-consecutivos').textContent = streak;
+                    document.getElementById('recorde-melhor-dia').textContent = formatCurrency(melhorDiaValor);
+                    document.getElementById('recorde-melhor-semana').textContent = formatCurrency(melhorSemanaValor);
                 };
-                
-                if (isGerente && vendedorSelectContainer) {
-                    vendedorSelectContainer.classList.remove('hidden');
-                    const vendedores = [...new Set(state.db.sales.map(s => s.vendedor))];
-                    vendedorSelect.innerHTML = '<option value="total">Relatório Total</option>';
-                    vendedores.forEach(name => {
-                        vendedorSelect.innerHTML += `<option value="${name}">${name}</option>`;
-                    });
-                    vendedorSelect.addEventListener('change', (e) => updateReports(e.target.value));
-                }
-                updateReports(isGerente ? vendedorSelect.value : null);
+
+                const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name));
+                state.listeners.sales = onSnapshot(q, (snapshot) => {
+                    const mySales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    state.db.sales = mySales;
+                    updateGoalsUI(mySales);
+                });
             }
 
             function renderConfiguracoes() {
                 const c=document.getElementById('configuracoes-view');
-                c.querySelector('#config-store-name').value=state.db.settings.storeName;
+                c.querySelector('#config-store-name').value = state.db.settings.storeName;
+                c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
+                c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
+                c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
 
                 const updateVendedoresList=()=>{
                     const list=c.querySelector('#vendedores-list');
@@ -843,8 +927,7 @@
                 };
 
                 if (state.listeners.users) state.listeners.users();
-                const usersQuery = query(collection(db, "users"));
-                state.listeners.users = onSnapshot(usersQuery, (snapshot) => {
+                state.listeners.users = onSnapshot(query(collection(db, "users")), (snapshot) => {
                      state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                      updateVendedoresList();
                 });
@@ -854,9 +937,8 @@
                     const n=c.querySelector('#vendedor-name').value.trim(), p=c.querySelector('#vendedor-password').value;
                     if(!n || !p) { showToast('Nome e senha são obrigatórios.','error'); return; }
                     if(state.db.users.some(u=>u.name.toLowerCase()===n.toLowerCase())){showToast('Nome de usuário já existe.','error');return}
-                    const newSeller={name:n,password:p,role:'vendedor'};
                     try {
-                        await addDoc(collection(db, "users"), newSeller);
+                        await addDoc(collection(db, "users"), {name:n,password:p,role:'vendedor'});
                         showToast('Vendedor cadastrado!', 'success');
                         e.target.reset();
                     } catch {
@@ -867,16 +949,12 @@
                 c.querySelector('#vendedores-list').addEventListener('click', e => {
                     const removeBtn = e.target.closest('.remove-vendedor-btn');
                     if (removeBtn) {
-                        const userId = removeBtn.dataset.userid;
-                        const username = removeBtn.dataset.username;
+                        const { userid, username } = removeBtn.dataset;
                         showConfirmModal(`Tem certeza que deseja remover o vendedor "${username}"?`, async () => {
                            try {
-                               await deleteDoc(doc(db, "users", userId));
+                               await deleteDoc(doc(db, "users", userid));
                                showToast(`Vendedor "${username}" removido.`, 'success');
-                           } catch (error) {
-                               console.error("Erro ao remover vendedor: ", error);
-                               showToast('Erro ao remover vendedor.', 'error');
-                           }
+                           } catch (error) { showToast('Erro ao remover vendedor.', 'error'); }
                         });
                     }
                 });
@@ -884,38 +962,138 @@
                 c.querySelector('#save-settings-button').addEventListener('click', async ()=> {
                     const newStoreName = c.querySelector('#config-store-name').value;
                     try {
-                        await setDoc(doc(db, "settings", "storeConfig"), { storeName: newStoreName });
+                        await setDoc(doc(db, "settings", "storeConfig"), { storeName: newStoreName }, { merge: true });
                         state.db.settings.storeName = newStoreName;
                         document.getElementById('store-name-sidebar').textContent = newStoreName;
                         document.getElementById('login-store-name').textContent = newStoreName;
-                        showToast('Configurações salvas!', 'success');
-                    } catch (error) {
-                        showToast('Erro ao salvar configurações.', 'error');
+                        showToast('Nome da loja salvo!', 'success');
+                    } catch (error) { showToast('Erro ao salvar nome da loja.', 'error'); }
+                });
+
+                c.querySelector('#save-goals-button').addEventListener('click', async () => {
+                    const newGoals = {
+                        daily: parseFloat(c.querySelector('#meta-diaria').value) || 0,
+                        weekly: parseFloat(c.querySelector('#meta-semanal').value) || 0,
+                        monthly: parseFloat(c.querySelector('#meta-mensal').value) || 0,
+                    };
+                    try {
+                        await setDoc(doc(db, "settings", "storeConfig"), { goals: newGoals }, { merge: true });
+                        state.db.settings.goals = newGoals;
+                        showToast('Metas salvas com sucesso!', 'success');
+                    } catch(error) {
+                        showToast('Erro ao salvar metas.', 'error');
                     }
                 });
                 
                  c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
-                    showConfirmModal('TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas registradas. Isso não pode ser desfeito.', async () => {
+                    showConfirmModal('TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas registradas.', async () => {
                         try {
-                            const salesQuery = query(collection(db, "sales"));
-                            const salesSnapshot = await getDocs(salesQuery);
-                            if (salesSnapshot.empty) {
-                                showToast('Nenhuma venda para apagar.', 'success');
-                                return;
-                            }
+                            const salesSnapshot = await getDocs(query(collection(db, "sales")));
+                            if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
                             const batch = writeBatch(db);
-                            salesSnapshot.docs.forEach(doc => {
-                                batch.delete(doc.ref);
-                            });
+                            salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
                             await batch.commit();
                             showToast('Todas as vendas foram zeradas!', 'success');
-                        } catch (error) {
-                            console.error("Erro ao zerar vendas:", error);
-                            showToast('Ocorreu um erro ao zerar as vendas.', 'error');
-                        }
+                        } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
                     });
                  });
             }
+
+            function renderRelatorios() {
+                const c = document.getElementById('relatorios-view');
+                if(!c) return;
+                let vendasChartInstance=null, pagamentoChartInstance=null;
+
+                const updateReports = (sales) => {
+                    if(vendasChartInstance) vendasChartInstance.destroy();
+                    if(pagamentoChartInstance) pagamentoChartInstance.destroy();
+
+                    const today = new Date();
+                    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); 
+                    startOfWeek.setHours(0, 0, 0, 0);
+
+                    const salesToday = sales.filter(s => s.date.toDate().toDateString() === new Date().toDateString());
+                    const salesWeek = sales.filter(s => s.date.toDate() >= startOfWeek);
+                    const salesMonth = sales.filter(s => s.date.toDate() >= startOfMonth);
+
+                    c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + s.total, 0));
+                    c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
+                    c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + s.total, 0));
+                    c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
+                    c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
+                    c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
+                    
+                    const salesLast7Days = {};
+                    for (let i = 6; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        salesLast7Days[d.toISOString().split('T')[0]] = { label: d.toLocaleDateString('pt-BR', {weekday: 'short'}).slice(0,3), total: 0 };
+                    }
+                    sales.forEach(sale => {
+                        const dayKey = sale.date.toDate().toISOString().split('T')[0];
+                        if (salesLast7Days[dayKey]) {
+                            salesLast7Days[dayKey].total += sale.total;
+                        }
+                    });
+
+                    const isDarkMode = document.documentElement.classList.contains('dark');
+                    const gridColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                    const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+                    
+                    const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
+                    if(vendasCtx) {
+                      vendasChartInstance = new Chart(vendasCtx, {
+                          type: 'bar',
+                          data: { labels: Object.values(salesLast7Days).map(d => d.label), datasets: [{ label: 'Vendas Diárias', data: Object.values(salesLast7Days).map(d => d.total), backgroundColor: '#22c55e', borderRadius: 5 }] },
+                          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
+                      });
+                    }
+
+                    const paymentCounts = sales.reduce((acc, sale) => { acc[sale.paymentMethod] = (acc[sale.paymentMethod] || 0) + sale.total; return acc; }, {});
+                    const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
+                    if(pagamentosCtx) {
+                      pagamentoChartInstance = new Chart(pagamentosCtx, {
+                          type: 'doughnut',
+                          data: { labels: Object.keys(paymentCounts), datasets: [{ data: Object.values(paymentCounts), backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'], borderColor: isDarkMode ? '#0f172a' : '#f8fafc', borderWidth: 4 }] },
+                          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
+                      });
+                    }
+                };
+                
+                const isGerente = state.loggedInUser.role === 'gerente';
+                const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
+                
+                let q = collection(db, "sales");
+                if (!isGerente) { q = query(q, where("vendedor", "==", state.loggedInUser.name)); }
+
+                state.listeners.sales = onSnapshot(q, (snapshot) => {
+                    const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    state.db.sales = allSales;
+                    
+                    if (isGerente) {
+                        vendedorSelectContainer.classList.remove('hidden');
+                        const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
+                        const vendedores = [...new Set(allSales.map(s => s.vendedor))];
+                        vendedorSelect.innerHTML = '<option value="total">Relatório Total</option>';
+                        vendedores.forEach(name => { vendedorSelect.innerHTML += `<option value="${name}">${name}</option>`; });
+                        
+                        const newSelect = vendedorSelect.cloneNode(true);
+                        vendedorSelect.parentNode.replaceChild(newSelect, vendedorSelect);
+                        
+                        newSelect.addEventListener('change', (e) => {
+                            const salesToReport = e.target.value === 'total' ? allSales : allSales.filter(s => s.vendedor === e.target.value);
+                            updateReports(salesToReport);
+                        });
+                        
+                        updateReports(allSales);
+                    } else {
+                        updateReports(allSales);
+                    }
+                });
+            }
+
 
             const init = () => {
                 const theme = localStorage.getItem('theme') || 'light';
@@ -924,8 +1102,8 @@
                     const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
                     localStorage.setItem('theme', newTheme);
                     applyTheme(newTheme);
-                    if(state.currentView === 'relatorios' && document.getElementById('relatorios-view').classList.contains('active')) {
-                         renderRelatorios();
+                    if(['relatorios', 'metas'].includes(state.currentView) && document.getElementById(`${state.currentView}-view`).classList.contains('active')) {
+                         renderViewContent(state.currentView);
                     }
                 };
                 document.getElementById('theme-toggle').addEventListener('click', themeToggleHandler);
@@ -941,4 +1119,3 @@
 </body>
 
 </html>
-
