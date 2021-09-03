@@ -562,28 +562,33 @@
                     return;
                 }
 
-                const formatItems = (items) => {
-                    return items.map(item => `${item.name} (${formatCurrency(item.value)})`).join('; ');
-                };
-
                 const headers = [
-                    "ID da Venda", "Data", "Cliente", "Telefone", "Vendedor", 
-                    "Itens", "Total", "Forma de Pagamento", "Bônus"
+                    "Data da Compra", "ID da Venda", "Nome do Cliente", "Telefone do Cliente", "Vendedor",
+                    "Produto", "Valor do Produto", "Garantia (Troca)", "Forma de Pagamento",
+                    "Total da Venda", "Bônus da Venda"
                 ];
                 
-                const rows = data.map(sale => [
-                    sale.id,
-                    new Date(sale.date.seconds * 1000).toLocaleString('pt-BR'),
-                    sale.clientName,
-                    sale.clientPhone || '',
-                    sale.vendedor,
-                    formatItems(sale.items),
-                    sale.total,
-                    sale.paymentMethod,
-                    sale.bonus
-                ]);
+                const rows = [];
+                data.forEach(sale => {
+                    sale.items.forEach(item => {
+                        const row = [
+                            new Date(sale.date.seconds * 1000).toLocaleString('pt-BR'),
+                            sale.id,
+                            sale.clientName,
+                            sale.clientPhone || '',
+                            sale.vendedor,
+                            item.name,
+                            (item.value || 0).toFixed(2).replace('.', ','),
+                            item.exchange,
+                            sale.paymentMethod,
+                            (sale.total || 0).toFixed(2).replace('.', ','),
+                            sale.bonus
+                        ];
+                        rows.push(row);
+                    });
+                });
 
-                let csvContent = "data:text/csv;charset=utf-8," 
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFF"
                     + headers.join(",") + "\n" 
                     + rows.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
 
