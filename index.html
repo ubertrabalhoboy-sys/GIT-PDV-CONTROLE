@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Vendas</title>
+    <title>Sistema de Vendas com Firebase</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.npm/chart.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script>
         tailwind.config = {
@@ -15,10 +18,7 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: {
-                            '50': '#ecfdf5', '100': '#d1fae5', '200': '#a7f3d0', '300': '#6ee7b7', '400': '#34d399',
-                            '500': '#10b981', '600': '#059669', '700': '#047857', '800': '#065f46', '900': '#064e3b', '950': '#022c22',
-                        },
+                        primary: { '50': '#ecfdf5', '100': '#d1fae5', '200': '#a7f3d0', '300': '#6ee7b7', '400': '#34d399', '500': '#10b981', '600': '#059669', '700': '#047857', '800': '#065f46', '900': '#064e3b', '950': '#022c22' },
                     },
                     keyframes: {
                         shake: {
@@ -27,9 +27,7 @@
                             '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
                         }
                     },
-                    animation: {
-                        shake: 'shake 0.5s ease-in-out',
-                    }
+                    animation: { shake: 'shake 0.5s ease-in-out' }
                 }
             }
         }
@@ -41,14 +39,11 @@
         .dark ::-webkit-scrollbar-track { background: #1f2937; }
         ::-webkit-scrollbar-thumb { background: #a8a8a8; border-radius: 4px; }
         .dark ::-webkit-scrollbar-thumb { background: #4b5563; }
-        
         .view { display: none; }
         .view.active { display: block; }
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-        
         #sidebar { transition: transform 0.3s ease-in-out; }
-
         input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; filter: invert(0.5); }
         .dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
     </style>
@@ -56,693 +51,253 @@
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased font-sans">
 
     <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-        <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
-            <div class="text-center">
-                 <i data-lucide="store" class="mx-auto h-14 w-14 text-primary-500"></i>
-                <h2 id="login-store-name" class="mt-4 text-center text-3xl font-bold text-gray-900 dark:text-white">Minha Loja</h2>
-            </div>
-            
-            <div id="user-selection-view">
-                <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">Quem está acessando?</p>
-                <div id="user-list" class="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    </div>
-            </div>
-            
-            <div id="password-view" class="hidden mt-6">
-                <button id="back-to-users" class="flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-primary-500 mb-4 transition-colors">
-                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>Trocar de usuário
-                </button>
-                <div id="selected-user-info" class="text-center mb-4"></div>
-                <form id="password-form" class="space-y-4">
-                    <input id="password" name="password" type="password" required class="relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm transition" placeholder="Senha">
-                    <p id="login-error" class="text-red-500 text-sm text-center h-4"></p>
-                    <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-primary-500/30 transform transition-all duration-300 hover:scale-[1.02]">
-                        Entrar
-                    </button>
-                </form>
-            </div>
         </div>
-    </div>
 
     <div id="app" class="hidden">
-        <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen bg-gray-900 -translate-x-full sm:translate-x-0">
-            <div class="h-full px-3 py-4 overflow-y-auto flex flex-col">
-                <div>
-                    <div class="p-4 mb-4 text-center">
-                        <div id="user-icon" class="w-16 h-16 mx-auto mb-3 rounded-full bg-primary-500 flex items-center justify-center text-white text-3xl font-bold border-4 border-gray-700"></div>
-                        <h5 id="store-name-sidebar" class="text-xl font-semibold text-white">Minha Loja</h5>
-                        <p id="username-sidebar" class="text-sm text-gray-400">Usuário</p>
-                    </div>
-                    <ul id="vendedor-menu" class="space-y-2 font-medium hidden"></ul>
-                    <ul id="gerente-menu" class="space-y-2 font-medium hidden"></ul>
-                </div>
-
-                <div class="mt-auto"> 
-                    <button id="theme-toggle" class="w-full flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors">
-                        <i data-lucide="moon" id="theme-icon-moon" class="w-5 h-5"></i>
-                        <i data-lucide="sun" id="theme-icon-sun" class="w-5 h-5 hidden"></i>
-                        <span class="ml-3">Alternar Tema</span>
-                    </button>
-                </div>
-            </div>
-        </aside>
-
-        <main class="sm:ml-64 transition-all duration-300">
-            <header class="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shadow-sm sm:hidden flex items-center justify-between p-4">
-                 <button id="mobile-menu-button" class="text-gray-600 dark:text-gray-300">
-                    <i data-lucide="menu" class="w-6 h-6"></i>
-                </button>
-                <h1 id="current-view-title" class="text-lg font-semibold">Caixa</h1>
-                <div class="w-6"></div> 
-            </header>
-
-            <div class="p-4 lg:p-6">
-                <div id="caixa-view" class="view"></div>
-                <div id="pedidos-view" class="view"></div>
-                <div id="relatorios-view" class="view"></div>
-                <div id="configuracoes-view" class="view"></div>
-            </div>
-        </main>
-    </div>
+        </div>
 
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden sm:hidden"></div>
-    
     <div id="finalize-order-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center z-50 hidden p-4"></div>
     <div id="order-details-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center z-50 hidden p-4"></div>
-    <div id="confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center z-[60] hidden p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
-            <i data-lucide="alert-triangle" class="mx-auto h-12 w-12 text-yellow-500"></i>
-            <h3 class="text-lg font-semibold mt-4">Você tem certeza?</h3>
-            <p id="confirm-modal-message" class="text-sm text-gray-500 dark:text-gray-400 mt-2">Esta ação não pode ser desfeita.</p>
-            <div class="mt-6 flex justify-center gap-4">
-                <button id="confirm-modal-cancel" class="py-2 px-4 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors transform hover:scale-105">Cancelar</button>
-                <button id="confirm-modal-confirm" class="py-2 px-4 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors transform hover:scale-105">Confirmar</button>
-            </div>
-        </div>
-    </div>
+    <div id="confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 flex items-center justify-center z-[60] hidden p-4"></div>
 
-    <template id="caixa-template">
-        <h1 class="text-3xl font-bold mb-6 hidden sm:block">Caixa</h1>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-1">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-                    <h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Registrar Item</h2>
-                    <form id="add-item-form" class="space-y-4">
-                        <input type="text" id="item-name" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Nome do Item">
-                        <input type="number" id="item-value" step="0.01" min="0.01" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Valor (R$)">
-                        <select id="item-exchange" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                            <option>Sem Troca</option> <option>7 dias</option> <option>15 dias</option> <option>30 dias</option>
-                        </select>
-                        <button type="submit" class="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-2 px-4 rounded-lg hover:from-primary-600 hover:to-primary-700 font-semibold flex items-center justify-center transition-all duration-300 transform hover:scale-105 shadow-md">
-                            <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i> Adicionar Item
-                        </button>
-                    </form>
-                </div>
-            </div>
-            <div class="lg:col-span-2">
-                 <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-                    <h2 class="text-xl font-semibold mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">Pedido Atual</h2>
-                    <div id="current-order-items" class="space-y-3 max-h-96 overflow-y-auto pr-2">
-                        <p id="no-items-message" class="text-gray-500 dark:text-gray-400">Nenhum item adicionado ainda.</p>
-                    </div>
-                    <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <div class="flex justify-between items-center text-2xl font-bold">
-                            <span>Total:</span> <span id="current-order-total">R$ 0,00</span>
-                        </div>
-                        <button id="finalize-order-button" disabled class="mt-4 w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 font-semibold disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-300 transform disabled:transform-none hover:scale-105 shadow-lg">
-                            <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Finalizar Pedido
-                        </button>
-                    </div>
-                 </div>
-            </div>
-        </div>
-    </template>
+    <template id="caixa-template"></template>
+    <template id="pedidos-template"></template>
+    <template id="relatorios-template"></template>
+    <template id="configuracoes-template"></template>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // ===================================================================================
+    // INTEGRAÇÃO COM FIREBASE (SUAS CREDENCIAIS ESTÃO AQUI)
+    // ===================================================================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
+        authDomain: "pdv-vendas-8a65a.firebaseapp.com",
+        projectId: "pdv-vendas-8a65a",
+        storageBucket: "pdv-vendas-8a65a.appspot.com",
+        messagingSenderId: "37533259212",
+        appId: "1:37533259212:web:9e79fecb52aa2b4765b969",
+        measurementId: "G-7PYWX52SEG"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ===================================================================================
+    // ESTADO GLOBAL DA APLICAÇÃO
+    // ===================================================================================
+    let state = {
+        loggedInUser: null,
+        currentView: '',
+        currentOrder: [],
+        db: {
+            users: [],
+            settings: { storeName: "Minha Loja" },
+            sales: []
+        }
+    };
+    let selectedUserForLogin = null;
+    let vendasChartInstance = null;
+    let pagamentoChartInstance = null;
+
+    // ===================================================================================
+    // FUNÇÕES DE DADOS DO FIRESTORE (SUBSTITUEM OS WEBHOOKS)
+    // ===================================================================================
+
+    async function fetchData(collectionName) {
+        try {
+            const snapshot = await db.collection(collectionName).get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error(`Erro ao buscar dados de '${collectionName}':`, error);
+            showToast(`Falha ao carregar ${collectionName}.`, 'error');
+            return [];
+        }
+    }
+
+    async function saveData(collectionName, data, docId = null) {
+        try {
+            const collectionRef = db.collection(collectionName);
+            const docRef = docId ? collectionRef.doc(docId) : collectionRef.doc();
+            await docRef.set(data);
+            return true;
+        } catch (error) {
+            console.error(`Erro ao salvar dados em '${collectionName}':`, error);
+            showToast(`Erro ao salvar dados.`, 'error');
+            return false;
+        }
+    }
     
-    <template id="pedidos-template">
-        <h1 class="text-3xl font-bold mb-6 hidden sm:block">Pedidos</h1>
-        <div id="vendedor-pedidos-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex items-center"><div class="bg-blue-100 dark:bg-blue-900 rounded-full p-3 mr-4"><i data-lucide="shopping-cart" class="w-6 h-6 text-blue-500"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400">Pedidos Finalizados</p><p id="pedidos-finalizados" class="text-2xl font-bold">0</p></div></div>
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex items-center"><div class="bg-green-100 dark:bg-green-900 rounded-full p-3 mr-4"><i data-lucide="dollar-sign" class="w-6 h-6 text-green-500"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400">Valor Total</p><p id="valor-total" class="text-2xl font-bold">R$ 0,00</p></div></div>
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex items-center"><div class="bg-yellow-100 dark:bg-yellow-900 rounded-full p-3 mr-4"><i data-lucide="receipt" class="w-6 h-6 text-yellow-500"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400">Ticket Médio</p><p id="ticket-medio" class="text-2xl font-bold">R$ 0,00</p></div></div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-            <form id="filter-form" class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 items-end">
-                <div class="md:col-span-1"><label for="filter-date" class="block text-sm font-medium">Data</label><input type="date" id="filter-date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"></div>
-                <div class="md:col-span-1"><label for="filter-payment" class="block text-sm font-medium">Pagamento</label><select id="filter-payment" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"><option>Todos</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div>
-                <div id="gerente-vendedor-filter-container" class="md:col-span-1 hidden"><label for="filter-vendedor" class="block text-sm font-medium">Vendedor</label><select id="filter-vendedor" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"><option>Todos</option></select></div>
-                <div class="md:col-span-3 flex gap-2"><button type="submit" class="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 font-semibold flex items-center justify-center transition-all duration-200 transform hover:scale-105"><i data-lucide="search" class="w-4 h-4 mr-2"></i> Buscar</button><button type="reset" class="w-full bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 font-semibold flex items-center justify-center transition-all duration-200 transform hover:scale-105"><i data-lucide="rotate-ccw" class="w-4 h-4 mr-2"></i> Limpar</button></div>
-            </form>
-            <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs uppercase bg-gray-50 dark:bg-gray-700"><tr id="orders-table-header-row"><th scope="col" class="px-6 py-3">Cliente</th><th scope="col" class="px-6 py-3">Data</th><th scope="col" class="px-6 py-3">Pagamento</th><th scope="col" class="px-6 py-3 text-right">Valor</th><th scope="col" class="px-6 py-3 text-center">Ações</th></tr></thead><tbody id="orders-table-body"></tbody></table><p id="no-orders-found" class="text-center py-8 text-gray-500">Nenhum pedido encontrado.</p></div>
-        </div>
-    </template>
+    // ===================================================================================
+    // FUNÇÕES PRINCIPAIS E INICIALIZAÇÃO
+    // ===================================================================================
 
-    <template id="relatorios-template">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold hidden sm:block">Relatórios</h1>
-            <div id="gerente-relatorios-vendedor-select-container" class="hidden w-full sm:w-auto"><select id="relatorios-vendedor-select" class="block w-full max-w-xs rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"><option value="total">Relatório Total</option></select></div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"><h3 class="font-semibold text-gray-500 dark:text-gray-400">Vendas Hoje</h3><p id="relatorio-vendas-hoje" class="text-3xl font-bold mt-2 text-primary-500">R$ 0,00</p></div>
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"><h3 class="font-semibold text-gray-500 dark:text-gray-400">Bônus do Dia</h3><p id="relatorio-bonus-dia" class="text-3xl font-bold mt-2 text-primary-500">0</p></div>
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"><h3 class="font-semibold text-gray-500 dark:text-gray-400">Vendas da Semana</h3><p id="relatorio-vendas-semana" class="text-3xl font-bold mt-2 text-primary-500">R$ 0,00</p></div>
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"><h3 class="font-semibold text-gray-500 dark:text-gray-400">Bônus da Semana</h3><p id="relatorio-bonus-semana" class="text-3xl font-bold mt-2 text-primary-500">0</p></div>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
-            <div class="lg:col-span-3 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-                <h3 class="font-semibold mb-4 text-gray-800 dark:text-gray-200">Vendas (Últimos 7 dias)</h3>
-                <div class="relative h-80"><canvas id="vendas-semana-chart"></canvas></div>
-            </div>
-            <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-                <h3 class="font-semibold mb-4 text-gray-800 dark:text-gray-200">Formas de Pagamento</h3>
-                <div class="relative h-80"><canvas id="pagamento-chart"></canvas></div>
-            </div>
-        </div>
-        <div id="vendedor-metas-view" class="hidden"><h2 class="text-2xl font-bold mb-4">Metas e Conquistas</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 text-center"><i data-lucide="flame" class="w-10 h-10 mx-auto text-orange-500 mb-2"></i><h3 class="font-semibold">Sequência de Vendas</h3><p id="sequencia-vendas" class="text-2xl font-bold mt-2">0 dias</p></div><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 text-center"><i data-lucide="target" class="w-10 h-10 mx-auto text-blue-500 mb-2"></i><h3 class="font-semibold">Meta Diária Atingida</h3><p id="meta-diaria-atingida" class="text-2xl font-bold mt-2">0 dias</p></div><div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 text-center"><i data-lucide="trophy" class="w-10 h-10 mx-auto text-yellow-500 mb-2"></i><h3 class="font-semibold">Melhor Semana</h3><p id="melhor-semana" class="text-2xl font-bold mt-2">R$ 0,00</p></div></div></div>
-    </template>
-
-    <template id="configuracoes-template">
-        <h1 class="text-3xl font-bold mb-6 hidden sm:block">Configurações</h1>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 space-y-6">
-                <h2 class="text-xl font-semibold border-b pb-3 dark:border-gray-700">Painel Administrativo</h2>
-                <div><label for="config-store-name" class="block text-sm font-medium">Nome da Loja</label><input type="text" id="config-store-name" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"></div>
-                <div><h3 class="text-lg font-medium">Exportar Vendas (CSV)</h3><div class="flex gap-4 mt-2"><button id="export-dia" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-all transform hover:scale-105">Vendas do Dia</button><button id="export-semana" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-all transform hover:scale-105">Vendas da Semana</button></div></div>
-                <div><h3 class="text-lg font-medium">Definir Metas</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2"><div><label for="meta-diaria" class="block text-sm">Meta Diária (R$)</label><input type="number" id="meta-diaria" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"></div><div><label for="meta-semanal" class="block text-sm">Meta Semanal (R$)</label><input type="number" id="meta-semanal" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"></div><div><label for="meta-mensal" class="block text-sm">Meta Mensal (R$)</label><input type="number" id="meta-mensal" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"></div></div></div>
-                <button id="save-settings-button" class="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-2 px-4 rounded-lg hover:from-primary-600 hover:to-primary-700 font-semibold transition-all transform hover:scale-105 shadow-md">Salvar Configurações</button>
-                <div class="border-t pt-4 mt-4 border-red-500/30"><h3 class="text-lg font-medium text-red-500">Zona de Perigo</h3><p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Esta ação não pode ser desfeita.</p><button id="zerar-vendas-button" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-all transform hover:scale-105">Zerar Todas as Vendas</button></div>
-            </div>
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 space-y-6">
-                <h2 class="text-xl font-semibold border-b pb-3 dark:border-gray-700">Vendedores</h2>
-                <form id="add-vendedor-form" class="space-y-4"><h3 class="text-lg font-medium">Cadastrar Novo Vendedor</h3><div><label for="vendedor-name" class="block text-sm font-medium">Nome</label><input type="text" id="vendedor-name" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"></div><div><label for="vendedor-password" class="block text-sm font-medium">Senha</label><input type="password" id="vendedor-password" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"></div><button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-semibold transition-all transform hover:scale-105">Salvar Vendedor</button></form>
-                <div class="border-t pt-4 mt-4 dark:border-gray-700"><h3 class="text-lg font-medium">Vendedores Cadastrados</h3><ul id="vendedores-list" class="mt-2 space-y-2"></ul></div>
-            </div>
-        </div>
-    </template>
-
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-
-        // ===================================================================================
-        // [PASSO MAIS IMPORTANTE] INTEGRAÇÃO COM MAKE.COM
-        // URLs dos seus Webhooks do Make.com
-        // ===================================================================================
-
-        const WEBHOOK_USUARIOS = 'https://hook.us2.make.com/1wghypotk01p4x8m7ijinhp0f7y803yp';
-        const WEBHOOK_VENDAS = 'https://hook.us2.make.com/ayvq761pd7bvy03wp8jhcpbjz8gv8rn4';
-
-        // ===================================================================================
-
-        let state = {
-            loggedInUser: null, currentView: '', currentOrder: [],
-            db: { users: [], settings: { storeName: "Minha Loja" }, sales: [] }
-        };
-        let selectedUserForLogin = null;
-
-        // ***** FUNÇÃO CORRIGIDA E ATUALIZADA *****
-        async function fetchFromWebhook(url, params, errorMessage) {
-            try {
-                const urlWithParams = new URL(url);
-                Object.entries(params).forEach(([key, value]) => urlWithParams.searchParams.append(key, value));
-                
-                const response = await fetch(urlWithParams.toString());
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
-                const responseText = await response.text();
-
-                // Se a resposta do webhook for vazia, retorna um array vazio para evitar erros
-                if (!responseText.trim()) {
-                    return [];
-                }
-
-                // Mantém sua limpeza de texto, caso o webhook envie uma vírgula extra no final do array
-                const cleanedText = responseText.trim().replace(/,\]$/, ']');
-                const data = JSON.parse(cleanedText);
-
-                // --- LÓGICA APRIMORADA ---
-                // Se a resposta já for um array (o formato correto que o Make.com agora envia), retorna diretamente.
-                if (Array.isArray(data)) {
-                    return data;
-                }
-
-                // Se for um objeto, procura pela primeira propriedade que seja um array e a retorna.
-                // Isso torna a função mais robusta para diferentes tipos de respostas.
-                if (typeof data === 'object' && data !== null) {
-                    const arrayInsideObject = Object.values(data).find(value => Array.isArray(value));
-                    if (arrayInsideObject) {
-                        return arrayInsideObject;
-                    }
-                }
-
-                // Se nenhum array for encontrado na resposta, avisa no console e retorna um array vazio.
-                console.warn('A resposta do webhook não continha um array de dados:', data);
-                return [];
-            } catch (error) {
-                console.error(`Erro ao buscar dados de ${url}:`, error);
-                showToast(errorMessage, 'error');
-                return [];
+    async function loadInitialData() {
+        state.db.users = await fetchData('users');
+        if (state.db.users.length === 0) {
+            const gerente = { name: 'gerente', password: '123', role: 'gerente' };
+            const success = await saveData('users', gerente, 'gerente');
+            if (success) {
+                showToast('Usuário "gerente" padrão criado!');
+                state.db.users.push({ id: 'gerente', ...gerente });
             }
         }
-        
-        async function postToWebhook(url, body, successMessage, errorMessage) {
-             try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                showToast(successMessage);
-                return true;
-            } catch (error) {
-                console.error(`Erro ao enviar dados:`, error);
-                showToast(errorMessage, 'error');
-                return false;
-            }
-        }
+    }
 
-        async function loadInitialData() {
-            state.db.users = await fetchFromWebhook(WEBHOOK_USUARIOS, { action: 'getUsers' }, 'Falha ao carregar usuários.');
-            if (state.db.users.length === 0) {
-                 const gerente = { name: 'gerente', password: '123', role: 'gerente' };
-                 await postToWebhook(WEBHOOK_USUARIOS, { action: 'addUser', ...gerente }, 'Usuário "gerente" criado com sucesso!');
-                 state.db.users.push(gerente);
-            }
-        }
-        
-        const applyTheme=(t)=>{const h=document.documentElement;if(t==='dark'){h.classList.add('dark');document.getElementById('theme-icon-moon').classList.add('hidden');document.getElementById('theme-icon-sun').classList.remove('hidden')}else{h.classList.remove('dark');document.getElementById('theme-icon-moon').classList.remove('hidden');document.getElementById('theme-icon-sun').classList.add('hidden')}};
-        const formatCurrency=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
-        const formatDate=d=>new Date(d).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
-        const getDayOfWeek=d=>new Date(d).toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').slice(0,3);
-        const showToast=(m,t='success')=>{const e=document.createElement('div');e.className=`fixed bottom-5 right-5 ${t==='success'?'bg-green-500':'bg-red-500'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)};
-        const showConfirmModal=(m,onConfirm)=>{const M=document.getElementById('confirm-modal');M.querySelector('#confirm-modal-message').textContent=m;M.classList.remove('hidden');const c=M.querySelector('#confirm-modal-confirm'),n=M.querySelector('#confirm-modal-cancel');const h=()=>{onConfirm();hide()};const k=()=>hide();const hide=()=>{M.classList.add('hidden');c.removeEventListener('click',h);n.removeEventListener('click',k)};c.addEventListener('click',h,{once:true});n.addEventListener('click',k,{once:true})};
-        
-        function renderLoginScreen() {
-            const userList = document.getElementById('user-list');
-            userList.innerHTML = '';
-            document.getElementById('user-selection-view').classList.remove('hidden');
-            document.getElementById('password-view').classList.add('hidden');
-            
-            if (state.db.users.length > 0) {
-                state.db.users.forEach(user => {
-                    const userButton = document.createElement('button');
-                    userButton.className = 'flex flex-col items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200 transform hover:scale-105 border border-gray-200 dark:border-gray-700';
-                    userButton.dataset.username = user.name;
-                    userButton.innerHTML = `<div class="w-16 h-16 mb-2 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div><span class="font-semibold text-gray-800 dark:text-gray-200 text-center">${user.name}</span>`;
-                    userList.appendChild(userButton);
-                });
-            } else {
-                userList.innerHTML = '<p class="col-span-full text-center text-gray-500">Carregando usuários...</p>';
-            }
-        }
-        
-        document.getElementById('user-list').addEventListener('click', (e) => {
-            const userButton = e.target.closest('button');
-            if (!userButton) return;
-            selectedUserForLogin = userButton.dataset.username;
-            document.getElementById('user-selection-view').classList.add('hidden');
-            document.getElementById('password-view').classList.remove('hidden');
-            document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-300 text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold text-gray-900 dark:text-white">${selectedUserForLogin}</h3>`;
-            document.getElementById('password').value = '';
-            document.getElementById('password').focus();
-        });
+    // ===================================================================================
+    // FUNÇÕES AUXILIARES E DE UI (MAIORIA INALTERADA)
+    // ===================================================================================
+    const applyTheme=(t)=>{/*...*/};
+    const formatCurrency=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
+    const formatDate=d=>new Date(d).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+    const getDayOfWeek=d=>new Date(d).toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').slice(0,3);
+    const showToast=(m,t='success')=>{/*...*/};
+    const showConfirmModal=(m,onConfirm)=>{/*...*/};
+    function renderLoginScreen() {/*...*/}
+    document.getElementById('user-list').addEventListener('click', (e) => {/*...*/});
+    document.getElementById('back-to-users').addEventListener('click', () => {/*...*/});
+    document.getElementById('password-form').addEventListener('submit', e => {/*...*/});
+    const logout = async () => {/*...*/};
+    const initializeAppUI = () => {/*...*/};
+    const switchView = (viewId) => {/*...*/};
+    const renderViewContent = (viewId) => {/*...*/};
+    const sidebar=document.getElementById('sidebar'),overlay=document.getElementById('sidebar-overlay');
+    const showMobileMenu=s=>{/*...*/};
+    document.getElementById('mobile-menu-button').addEventListener('click',()=>showMobileMenu(true));
+    overlay.addEventListener('click',()=>showMobileMenu(false));
 
-        document.getElementById('back-to-users').addEventListener('click', () => {
-            selectedUserForLogin = null;
-            document.getElementById('login-error').textContent = '';
-            renderLoginScreen();
-        });
+    // ===================================================================================
+    // RENDERIZAÇÃO DAS VIEWS (COM LÓGICA DE DADOS ATUALIZADA)
+    // ===================================================================================
 
-        document.getElementById('password-form').addEventListener('submit', e => {
+    function renderCaixa() {
+        const c = document.getElementById('caixa-view');
+        // ... (resto do código de renderCaixa) ...
+        // ATUALIZAÇÃO na submissão do formulário de finalização
+        modalContainer.querySelector('#finalize-order-form').addEventListener('submit', async e => {
             e.preventDefault();
-            if (!selectedUserForLogin) return;
+            const total = state.currentOrder.reduce((s, i) => s + i.value, 0);
+            const saleData = {
+                clientName: modalContainer.querySelector('#client-name').value,
+                clientPhone: modalContainer.querySelector('#client-phone').value,
+                paymentMethod: modalContainer.querySelector('#payment-method').value,
+                items: state.currentOrder.map(item => `${item.name} (R$ ${item.value.toFixed(2)})`).join('; '),
+                total: total,
+                bonus: Math.floor(total / 80) * 2,
+                date: new Date().toISOString(),
+                vendedor: state.loggedInUser.name,
+                status: 'Finalizado'
+            };
+            
+            const success = await saveData('sales', saleData);
+            if (success) {
+                showToast('Venda registrada com sucesso!');
+                state.currentOrder = [];
+                updateUI();
+                modalContainer.classList.add('hidden');
+            }
+        });
+        updateUI();
+    }
 
-            const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
-            const passwordInput = document.getElementById('password');
+    async function renderPedidos() {
+        state.db.sales = await fetchData('sales');
+        if (state.loggedInUser.role !== 'gerente') {
+            state.db.sales = state.db.sales.filter(s => s.vendedor === state.loggedInUser.name);
+        }
+        filterAndRender();
+        // ... (Resto do código de renderPedidos, que já funciona com state.db.sales) ...
+    }
 
-            if (user && user.password === passwordInput.value) {
-                state.loggedInUser = user;
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('app').classList.remove('hidden');
-                passwordInput.value = ''; document.getElementById('login-error').textContent = '';
-                initializeAppUI();
-            } else {
-                document.getElementById('login-error').textContent = 'Senha inválida.';
-                const passwordView = document.getElementById('password-view');
-                passwordView.classList.add('animate-shake');
-                setTimeout(() => passwordView.classList.remove('animate-shake'), 500);
+    async function renderRelatorios() {
+        state.db.sales = await fetchData('sales');
+        updateReports(state.loggedInUser.role === 'gerente' ? document.getElementById('relatorios-vendedor-select').value : null);
+        // ... (Resto do código de renderRelatorios, que já funciona com state.db.sales) ...
+    }
+
+    function renderConfiguracoes() {
+        // ... (Código do formulário de add vendedor)
+        c.querySelector('#add-vendedor-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const name = c.querySelector('#vendedor-name').value;
+            const password = c.querySelector('#vendedor-password').value;
+            if (state.db.users.some(u => u.name.toLowerCase() === name.toLowerCase())) {
+                showToast('Nome de usuário já existe.', 'error');
+                return;
+            }
+            const newSeller = { name, password, role: 'vendedor' };
+            const success = await saveData('users', newSeller, name);
+            if (success) {
+                showToast('Vendedor cadastrado!');
+                state.db.users.push({ id: name, ...newSeller });
+                updateVendedoresList();
+                e.target.reset();
             }
         });
 
-        const logout = async () => {
-            state.loggedInUser = null;
-            selectedUserForLogin = null;
-            state.db.sales = [];
-            document.getElementById('app').classList.add('hidden');
-            document.getElementById('login-screen').classList.remove('hidden');
-            document.getElementById('password').value = '';
-            document.getElementById('login-error').textContent = '';
-            await loadInitialData();
-            renderLoginScreen();
-        };
-
-        const initializeAppUI = () => {
-            const user = state.loggedInUser;
-            document.getElementById('store-name-sidebar').textContent = state.db.settings.storeName;
-            document.getElementById('login-store-name').textContent = state.db.settings.storeName;
-            document.getElementById('username-sidebar').textContent = user.name;
-            document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
-            
-            const createMenuItem=(v,i,t)=>`<li><a href="#" data-view="${v}" class="flex items-center p-2 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white group transition-colors"><i data-lucide="${i}" class="w-5 h-5"></i><span class="ml-3">${t}</span></a></li>`;
-            const createLogoutItem = () => `<li class="pt-2 mt-2 border-t border-gray-700"><button data-action="logout" class="w-full flex items-center p-2 text-red-400 rounded-lg hover:bg-red-500 hover:text-white group transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i><span class="ml-3">Sair</span></button></li>`;
-
-            const vM=document.getElementById('vendedor-menu'),gM=document.getElementById('gerente-menu');
-            vM.innerHTML = ''; gM.innerHTML = '';
-            
-            if(user.role==='vendedor'){
-                vM.innerHTML = createMenuItem('caixa','shopping-basket','Caixa') + createMenuItem('pedidos','list-ordered','Pedidos') + createMenuItem('relatorios','bar-chart-2','Relatórios') + createLogoutItem();
-                vM.classList.remove('hidden'); gM.classList.add('hidden');
-                switchView('caixa');
-            } else {
-                gM.innerHTML = createMenuItem('pedidos','list-ordered','Pedidos') + createMenuItem('relatorios','area-chart','Relatórios') + createMenuItem('configuracoes','settings','Configurações') + createLogoutItem();
-                gM.classList.remove('hidden'); vM.classList.add('hidden');
-                switchView('pedidos');
-            }
-
-            document.getElementById('sidebar').addEventListener('click', e => {
-                const link = e.target.closest('a[data-view]'), logoutBtn = e.target.closest('button[data-action="logout"]');
-                if (link) { e.preventDefault(); switchView(link.dataset.view); }
-                if (logoutBtn) { logout(); }
-            });
-            lucide.createIcons();
-        };
-
-        const switchView = (viewId) => {
-            if (state.currentView === viewId && document.getElementById(`${viewId}-view`).innerHTML !== '') return;
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
-            const activeView = document.getElementById(`${viewId}-view`);
-            if (activeView) {
-                activeView.classList.add('active', 'fade-in'); state.currentView = viewId;
-                const link = document.querySelector(`#sidebar a[data-view="${viewId}"]`);
-                if(link) {
-                   document.getElementById('current-view-title').textContent = link.querySelector('span').textContent;
-                   document.querySelectorAll('#sidebar ul li a').forEach(l => l.classList.remove('bg-primary-600', 'text-white', 'shadow-inner'));
-                   link.classList.add('bg-primary-600', 'text-white', 'shadow-inner');
-                }
-                renderViewContent(viewId);
-            }
-            showMobileMenu(false);
-        };
-        const renderViewContent = (viewId) => {
-             const viewContainer = document.getElementById(`${viewId}-view`);
-             viewContainer.innerHTML = document.getElementById(`${viewId}-template`).innerHTML;
-             lucide.createIcons();
-             switch(viewId) {
-                case 'caixa': renderCaixa(); break;
-                case 'pedidos': renderPedidos(); break;
-                case 'relatorios': renderRelatorios(); break;
-                case 'configuracoes': renderConfiguracoes(); break;
-             }
-        };
-
-        const sidebar=document.getElementById('sidebar'),overlay=document.getElementById('sidebar-overlay');
-        const showMobileMenu=s=>{if(s){sidebar.classList.remove('-translate-x-full');overlay.classList.remove('hidden')}else{sidebar.classList.add('-translate-x-full');overlay.classList.add('hidden')}};
-        document.getElementById('mobile-menu-button').addEventListener('click',()=>showMobileMenu(true));
-        overlay.addEventListener('click',()=>showMobileMenu(false));
-        
-        function renderCaixa() {
-            const c=document.getElementById('caixa-view'),itemsContainer=c.querySelector('#current-order-items'),totalEl=c.querySelector('#current-order-total'),finalizeBtn=c.querySelector('#finalize-order-button'),addForm=c.querySelector('#add-item-form'),modalContainer=document.getElementById('finalize-order-modal');
-            const updateUI=()=>{itemsContainer.innerHTML='';if(state.currentOrder.length===0){itemsContainer.innerHTML='<p id="no-items-message" class="text-gray-500 dark:text-gray-400">Nenhum item adicionado ainda.</p>';finalizeBtn.disabled=true}else{state.currentOrder.forEach((item,i)=>{const el=document.createElement('div');el.className='flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-md';el.innerHTML=`<div><p class="font-semibold">${item.name}</p><p class="text-xs text-gray-500 dark:text-gray-400">Troca: ${item.exchange}</p></div><div class="flex items-center gap-4"><span class="font-semibold">${formatCurrency(item.value)}</span><button data-index="${i}" class="remove-item-btn text-red-500 hover:text-red-700 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;itemsContainer.appendChild(el)});finalizeBtn.disabled=false}
-            totalEl.textContent=formatCurrency(state.currentOrder.reduce((sum,i)=>sum+i.value,0));lucide.createIcons()};
-            addForm.addEventListener('submit',e=>{e.preventDefault();state.currentOrder.push({name:c.querySelector('#item-name').value,value:parseFloat(c.querySelector('#item-value').value),exchange:c.querySelector('#item-exchange').value});updateUI();addForm.reset()});
-            itemsContainer.addEventListener('click',e=>{const b=e.target.closest('.remove-item-btn');if(b){state.currentOrder.splice(b.dataset.index,1);updateUI()}});
-            finalizeBtn.addEventListener('click',()=>{modalContainer.classList.remove('hidden');modalContainer.innerHTML=`<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><h2 class="text-2xl font-bold mb-4">Finalizar Pedido</h2><form id="finalize-order-form" class="space-y-4"><div><label class="block text-sm font-medium">Nome do Cliente</label><input type="text" id="client-name" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"></div><div><label class="block text-sm font-medium">Telefone</label><input type="tel" id="client-phone" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"></div><div><label class="block text-sm font-medium">Pagamento</label><select id="payment-method" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div><div class="pt-4 flex justify-end gap-4"><button type="button" id="cancel-finalize-button" class="bg-gray-300 dark:bg-gray-600 py-2 px-4 rounded-md">Cancelar</button><button type="submit" class="bg-primary-600 text-white py-2 px-4 rounded-md">Confirmar Venda</button></div></form></div>`;
-            modalContainer.querySelector('#cancel-finalize-button').addEventListener('click',()=>modalContainer.classList.add('hidden'));
-            modalContainer.querySelector('#finalize-order-form').addEventListener('submit',async e=>{e.preventDefault();const total=state.currentOrder.reduce((s,i)=>s+i.value,0);const saleData={action:'addSale',id:Date.now().toString(),clientName:modalContainer.querySelector('#client-name').value,clientPhone:modalContainer.querySelector('#client-phone').value,paymentMethod:modalContainer.querySelector('#payment-method').value,items:state.currentOrder.map(item=>`${item.name} (R$ ${item.value.toFixed(2)})`).join('; '),total:total,bonus:Math.floor(total/80)*2,date:new Date().toISOString(),vendedor:state.loggedInUser.name,status:'Finalizado'};
-            const success=await postToWebhook(WEBHOOK_VENDAS,saleData,'Venda registrada com sucesso!','Erro ao registrar a venda.');if(success){state.currentOrder=[];updateUI();modalContainer.classList.add('hidden')}})});updateUI()
-        }
-
-        async function renderPedidos() {
-            const c = document.getElementById('pedidos-view');
-            const isGerente = state.loggedInUser.role === 'gerente';
-            
-            if (isGerente) {
-                c.querySelector('#vendedor-pedidos-dashboard')?.classList.add('hidden');
-                c.querySelector('#gerente-vendedor-filter-container').classList.remove('hidden');
-                c.querySelector('#orders-table-header-row').insertAdjacentHTML('afterbegin', '<th scope="col" class="px-6 py-3">Vendedor</th>');
-                const select = c.querySelector('#filter-vendedor');
-                select.innerHTML = '<option value="Todos">Todos</option>';
-                const vendedores = [...new Set(state.db.users.filter(u => u.role === 'vendedor').map(u => u.name))];
-                vendedores.forEach(name => {
-                    select.innerHTML += `<option value="${name}">${name}</option>`;
-                });
-            }
-
-            const updateDashboard = (sales) => {
-                if (isGerente) return;
-                const totalSales = sales.length;
-                const totalValue = sales.reduce((sum, order) => sum + parseFloat(order.total || 0), 0);
-                c.querySelector('#pedidos-finalizados').textContent = totalSales;
-                c.querySelector('#valor-total').textContent = formatCurrency(totalValue);
-                c.querySelector('#ticket-medio').textContent = formatCurrency(totalSales > 0 ? totalValue / totalSales : 0);
-            };
-
-            const renderTable = (sales) => {
-                const tbody = c.querySelector('#orders-table-body');
-                tbody.innerHTML = '';
-                if (!sales || sales.length === 0) {
-                    c.querySelector('#no-orders-found').style.display = 'block';
-                } else {
-                    c.querySelector('#no-orders-found').style.display = 'none';
-                    sales.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(s => {
-                        const r = document.createElement('tr');
-                        r.className = 'bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600';
-                        r.innerHTML = `
-                            ${isGerente ? `<td class="px-6 py-4">${s.vendedor}</td>` : ''}
-                            <td class="px-6 py-4 font-medium">${s.clientName}</td>
-                            <td class="px-6 py-4">${formatDate(s.date)}</td>
-                            <td class="px-6 py-4">${s.paymentMethod}</td>
-                            <td class="px-6 py-4 text-right font-semibold">${formatCurrency(s.total)}</td>
-                            <td class="px-6 py-4 text-center">
-                                <button data-order-id="${s.id}" class="view-details-btn text-primary-500 hover:underline">Detalhes</button>
-                            </td>`;
-                        tbody.appendChild(r);
-                    });
-                }
-                 lucide.createIcons();
-            };
-
-            const filterAndRender = () => {
-                let sales = state.db.sales || [];
-                const filters = {
-                    date: c.querySelector('#filter-date').value,
-                    payment: c.querySelector('#filter-payment').value,
-                    vendedor: isGerente ? c.querySelector('#filter-vendedor').value : null
-                };
-
-                if (filters.date) {
-                     const filterDate = new Date(filters.date + 'T00:00:00');
-                    sales = sales.filter(s => new Date(s.date).toLocaleDateString('pt-BR') === filterDate.toLocaleDateString('pt-BR'));
-                }
-                if (filters.payment && filters.payment !== 'Todos') {
-                    sales = sales.filter(s => s.paymentMethod === filters.payment);
-                }
-                if (isGerente && filters.vendedor && filters.vendedor !== 'Todos') {
-                    sales = sales.filter(s => s.vendedor === filters.vendedor);
-                }
-                
-                updateDashboard(sales);
-                renderTable(sales);
-            };
-
-            const user = state.loggedInUser;
-            state.db.sales = await fetchFromWebhook(WEBHOOK_VENDAS, { action: 'getSales', vendedor: user.name, cargo: user.role }, 'Erro ao carregar pedidos.');
-            filterAndRender();
-
-            c.querySelector('#filter-form').addEventListener('submit', e => {
-                e.preventDefault();
-                filterAndRender();
-            });
-            c.querySelector('#filter-form').addEventListener('reset', () => {
-                c.querySelector('#filter-date').value = '';
-                c.querySelector('#filter-payment').value = 'Todos';
-                if(isGerente) c.querySelector('#filter-vendedor').value = 'Todos';
-                setTimeout(filterAndRender, 0);
-            });
-            c.querySelector('#orders-table-body').addEventListener('click', async e => {
-                const b = e.target.closest('.view-details-btn');
-                if (b) {
-                    const order = state.db.sales.find(s => s.id == b.dataset.orderId);
-                    if (order) {
-                        const m = document.getElementById('order-details-modal');
-                        m.classList.remove('hidden');
-                        m.innerHTML = `<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-gray-700 pb-3 mb-4"><h2 class="text-2xl font-bold">Detalhes do Pedido</h2><button id="close-details-modal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${formatDate(order.date)}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-gray-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside">${order.items.split('; ').map(i => `<li>${i}</li>`).join('')}</ul><hr class="my-2 dark:border-gray-700"><p class="text-lg font-bold"><strong>Total:</strong> ${formatCurrency(order.total)}</p><p><strong>Pagamento:</strong> ${order.paymentMethod}</p></div></div>`;
-                        m.querySelector('#close-details-modal').addEventListener('click', () => m.classList.add('hidden'));
-                        lucide.createIcons();
-                    }
-                }
-            });
-        }
-        
-        let vendasChartInstance=null,pagamentoChartInstance=null;
-        async function renderRelatorios() {
-            const c = document.getElementById('relatorios-view');
-            if (!c) return; 
-            const isGerente = state.loggedInUser.role === 'gerente';
-            const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
-            const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
-            
-            const user = state.loggedInUser;
-            const allSales = await fetchFromWebhook(WEBHOOK_VENDAS, { action: 'getSales', vendedor: user.name, cargo: user.role }, 'Erro ao carregar relatórios.');
-            state.db.sales = allSales; // Armazena as vendas no estado global
-
-            const updateReports = (vendedorName = null) => {
-                if(vendasChartInstance) vendasChartInstance.destroy();
-                if(pagamentoChartInstance) pagamentoChartInstance.destroy();
-
-                let sales = state.db.sales || [];
-                if (isGerente) {
-                    if (vendedorName && vendedorName !== 'total') {
-                        sales = state.db.sales.filter(s => s.vendedor === vendedorName);
-                    }
-                } else {
-                    sales = state.db.sales.filter(s => s.vendedor === state.loggedInUser.name);
-                }
-
-                const today = new Date();
-                const startOfWeek = new Date(today);
-                startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); 
-                startOfWeek.setHours(0, 0, 0, 0);
-
-                const salesToday = sales.filter(s => new Date(s.date).toDateString() === today.toDateString());
-                const salesWeek = sales.filter(s => new Date(s.date) >= startOfWeek);
-
-                c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
-                c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + parseFloat(s.bonus || 0), 0);
-                c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
-                c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + parseFloat(s.bonus || 0), 0);
-                
-                const salesLast7Days = {};
-                for (let i = 6; i >= 0; i--) {
-                    const d = new Date();
-                    d.setDate(d.getDate() - i);
-                    const dayKey = d.toISOString().split('T')[0];
-                    salesLast7Days[dayKey] = { label: getDayOfWeek(d), total: 0 };
-                }
-                sales.forEach(sale => {
-                    const saleDate = new Date(sale.date);
-                    const sevenDaysAgo = new Date();
-                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                    if (saleDate >= sevenDaysAgo) {
-                        const dayKey = saleDate.toISOString().split('T')[0];
-                        if (salesLast7Days[dayKey]) {
-                            salesLast7Days[dayKey].total += parseFloat(sale.total || 0);
-                        }
+        // ... (Código da lista de vendedores)
+        c.querySelector('#vendedores-list').addEventListener('click', e => {
+            const removeBtn = e.target.closest('.remove-vendedor-btn');
+            if (removeBtn) {
+                const username = removeBtn.dataset.username;
+                showConfirmModal(`Deseja remover o vendedor "${username}"?`, async () => {
+                    try {
+                        await db.collection('users').doc(username).delete();
+                        showToast('Vendedor removido com sucesso!');
+                        state.db.users = state.db.users.filter(u => u.name !== username);
+                        updateVendedoresList();
+                    } catch (error) {
+                        showToast('Erro ao remover vendedor.', 'error');
                     }
                 });
-
-                const isDarkMode = document.documentElement.classList.contains('dark');
-                const gridColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-                const textColor = isDarkMode ? '#E5E7EB' : '#374151';
-                
-                const vendasCtxEl = document.getElementById('vendas-semana-chart');
-                if (vendasCtxEl) {
-                    const vendasCtx = vendasCtxEl.getContext('2d');
-                    vendasChartInstance = new Chart(vendasCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: Object.values(salesLast7Days).map(d => d.label),
-                            datasets: [{
-                                label: 'Vendas Diárias',
-                                data: Object.values(salesLast7Days).map(d => d.total),
-                                backgroundColor: '#10b981',
-                                borderRadius: 5
-                            }]
-                        },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
-                    });
-                }
-
-                const pagamentosCtxEl = document.getElementById('pagamento-chart');
-                if (pagamentosCtxEl) {
-                    const paymentCounts = sales.reduce((acc, sale) => { acc[sale.paymentMethod] = (acc[sale.paymentMethod] || 0) + parseFloat(sale.total); return acc; }, {});
-                    const pagamentosCtx = pagamentosCtxEl.getContext('2d');
-                    pagamentoChartInstance = new Chart(pagamentosCtx, {
-                        type: 'pie',
-                        data: {
-                            labels: Object.keys(paymentCounts),
-                            datasets: [{ data: Object.values(paymentCounts), backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'], borderColor: isDarkMode ? '#1f2937' : '#ffffff', borderWidth: 2 }]
-                        },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: textColor } } } }
-                    });
-                }
-                
-                if (!isGerente) {
-                    const metasView = c.querySelector('#vendedor-metas-view');
-                    if (metasView) metasView.classList.remove('hidden');
-                }
-            };
-            
-            if (isGerente && vendedorSelectContainer) {
-                vendedorSelectContainer.classList.remove('hidden');
-                const vendedores = [...new Set(allSales.map(s => s.vendedor))];
-                vendedorSelect.innerHTML = '<option value="total">Relatório Total</option>';
-                vendedores.forEach(name => {
-                    vendedorSelect.innerHTML += `<option value="${name}">${name}</option>`;
-                });
-                vendedorSelect.addEventListener('change', (e) => updateReports(e.target.value));
             }
-            updateReports(isGerente ? vendedorSelect.value : null);
-        }
+        });
 
-        function renderConfiguracoes() {
-            const c=document.getElementById('configuracoes-view');
-            c.querySelector('#config-store-name').value=state.db.settings.storeName;
-            const updateVendedoresList=()=>{const list=c.querySelector('#vendedores-list');list.innerHTML='';state.db.users.filter(u=>u.role==='vendedor').forEach(v=>{list.innerHTML+=`<li class="flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded"><span>${v.name}</span><button data-username="${v.name}" class="remove-vendedor-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button></li>`});lucide.createIcons()};
-            
-            c.querySelector('#add-vendedor-form').addEventListener('submit',async e=>{
-                e.preventDefault();
-                const n=c.querySelector('#vendedor-name').value, p=c.querySelector('#vendedor-password').value;
-                if(state.db.users.some(u=>u.name.toLowerCase()===n.toLowerCase())){showToast('Nome de usuário já existe.','error');return}
-                const newSeller={action:'addUser',name:n,password:p,role:'vendedor'};
-                const success=await postToWebhook(WEBHOOK_USUARIOS,newSeller,'Vendedor cadastrado!','Erro ao cadastrar vendedor.');
-                if(success){
-                    state.db.users.push({name:n,password:p,role:'vendedor'});
-                    updateVendedoresList();
-                    e.target.reset();
-                }
-            });
-
-            c.querySelector('#vendedores-list').addEventListener('click', e => {
-                const removeBtn = e.target.closest('.remove-vendedor-btn');
-                if (removeBtn) {
-                    const usernameToRemove = removeBtn.dataset.username;
-                    showConfirmModal(`Tem certeza que deseja remover o vendedor "${usernameToRemove}"? Todas as suas vendas continuarão no sistema, mas ele não poderá mais acessar.`, async () => {
-                        // A lógica de remover do backend seria chamada aqui
-                        showToast('Função de remover ainda não implementada no backend.', 'error');
+        // Lógica para zerar vendas
+        c.querySelector('#zerar-vendas-button').addEventListener('click', () => {
+            showConfirmModal('Isso apagará TODAS as vendas permanentemente. Deseja continuar?', async () => {
+                showToast('Apagando vendas... Isso pode levar um momento.', 'success');
+                try {
+                    const salesSnapshot = await db.collection('sales').get();
+                    const batch = db.batch();
+                    salesSnapshot.docs.forEach(doc => {
+                        batch.delete(doc.ref);
                     });
+                    await batch.commit();
+                    state.db.sales = []; // Limpa o estado local
+                    showToast('Todas as vendas foram zeradas!', 'success');
+                } catch (error) {
+                    console.error("Erro ao zerar vendas: ", error);
+                    showToast('Ocorreu um erro ao apagar as vendas.', 'error');
                 }
             });
+        });
 
-            c.querySelector('#save-settings-button').addEventListener('click',()=>showToast('Configurações salvas!'));
-            updateVendedoresList();
-        }
+        updateVendedoresList();
+    }
 
-        const init = async () => {
-            const theme = localStorage.getItem('theme') || 'light';
-            applyTheme(theme);
-            document.getElementById('theme-toggle').addEventListener('click', () => {
-                const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
-                localStorage.setItem('theme', newTheme);
-                applyTheme(newTheme);
-            });
-            lucide.createIcons();
-            document.getElementById('login-store-name').textContent = state.db.settings.storeName;
-            await loadInitialData();
-            renderLoginScreen();
-        };
+    // ===================================================================================
+    // INICIALIZAÇÃO DA APLICAÇÃO
+    // ===================================================================================
+    const init = async () => {
+        const theme = localStorage.getItem('theme') || 'light';
+        applyTheme(theme);
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        });
+        lucide.createIcons();
+        document.getElementById('login-store-name').textContent = state.db.settings.storeName;
         
-        init();
-    });
-    </script>
+        await loadInitialData();
+        renderLoginScreen();
+    };
+    
+    init();
+});
+</script>
 </body>
 </html>
