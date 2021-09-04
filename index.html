@@ -931,7 +931,8 @@
                     const vendasMes = sales.filter(s => s.date.toDate().getTime() >= monthStart.getTime()).reduce((sum, s) => sum + s.total, 0);
 
                     const salesByDay = sales.reduce((acc, s) => {
-                        const day = s.date.toDate().toISOString().split('T')[0];
+                        const saleDate = s.date.toDate();
+                        const day = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate()).toISOString().split('T')[0];
                         acc[day] = (acc[day] || 0) + s.total;
                         return acc;
                     }, {});
@@ -939,14 +940,16 @@
                     const melhorDiaValor = Math.max(0, ...Object.values(salesByDay));
 
                     const getWeekNumber = (d) => {
-                        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-                        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-                        var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-                        var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
-                        return `${d.getUTCFullYear()}-W${weekNo}`;
+                        const date = new Date(d.getTime());
+                        date.setHours(0, 0, 0, 0);
+                        date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+                        const week1 = new Date(date.getFullYear(), 0, 4);
+                        return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
                     }
+
                     const salesByWeek = sales.reduce((acc, s) => {
-                        const week = getWeekNumber(s.date.toDate());
+                        const saleDate = s.date.toDate();
+                        const week = `${saleDate.getFullYear()}-W${getWeekNumber(saleDate)}`;
                         acc[week] = (acc[week] || 0) + s.total;
                         return acc;
                     }, {});
@@ -1314,3 +1317,4 @@
 </body>
 
 </html>
+
