@@ -793,7 +793,7 @@
                 modalContainer.querySelector('#finalize-order-form').addEventListener('submit',async e=>{
                     e.preventDefault();
                     const total=state.currentOrder.reduce((s,i)=>s+i.value,0);
-                    const saleData={clientName:modalContainer.querySelector('#client-name').value,clientPhone:modalContainer.querySelector('#client-phone').value,paymentMethod:modalContainer.querySelector('#payment-method').value,items:state.currentOrder, total:total,bonus:Math.floor(total/80)*2,date: new Date(),vendedor:state.loggedInUser.name,status:'Finalizado'};
+                    const saleData={clientName:modalContainer.querySelector('#client-name').value,clientPhone:modalContainer.querySelector('#client-phone').value,paymentMethod:modalContainer.querySelector('#payment-method').value,items:state.currentOrder, total:total,bonus:Math.floor(total/80)*2,date: Timestamp.now(),vendedor:state.loggedInUser.name,status:'Finalizado'};
                     try {
                         await addDoc(collection(db, "sales"), saleData);
                         showToast('Venda registrada com sucesso!', 'success');
@@ -1314,4 +1314,3 @@
 </body>
 
 </html>
-
