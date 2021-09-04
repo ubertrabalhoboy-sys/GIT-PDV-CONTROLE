@@ -568,6 +568,7 @@
                 ];
                 
                 const formatItemsForCSV = (items) => {
+                    if (!Array.isArray(items)) return '';
                     return items.map(item => 
                         `${item.name} (Valor: ${formatCurrency(item.value)}, Troca: ${item.exchange})`
                     ).join(' | ');
@@ -919,21 +920,15 @@
 
                 const updateGoalsUI = (sales) => {
                     const now = new Date();
-                    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-                    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-                    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // adjust when day is sunday
-                    const weekStart = new Date(now.getFullYear(), now.getMonth(), diff);
-                    weekStart.setHours(0,0,0,0);
+                    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+                    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+                    const dayOfWeek = now.getDay();
+                    const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+                    const weekStart = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
                     
-                    const salesToday = sales.filter(s => s.date.toDate().getTime() >= todayStart.getTime());
-                    const vendasHoje = salesToday.reduce((sum, s) => sum + s.total, 0);
-
-                    const salesWeek = sales.filter(s => s.date.toDate().getTime() >= weekStart.getTime());
-                    const vendasSemana = salesWeek.reduce((sum, s) => sum + s.total, 0);
-
-                    const salesMonth = sales.filter(s => s.date.toDate().getTime() >= monthStart.getTime());
-                    const vendasMes = salesMonth.reduce((sum, s) => sum + s.total, 0);
+                    const vendasHoje = sales.filter(s => s.date.toDate().getTime() >= todayStart.getTime()).reduce((sum, s) => sum + s.total, 0);
+                    const vendasSemana = sales.filter(s => s.date.toDate().getTime() >= weekStart.getTime()).reduce((sum, s) => sum + s.total, 0);
+                    const vendasMes = sales.filter(s => s.date.toDate().getTime() >= monthStart.getTime()).reduce((sum, s) => sum + s.total, 0);
 
                     const salesByDay = sales.reduce((acc, s) => {
                         const day = s.date.toDate().toISOString().split('T')[0];
@@ -1199,16 +1194,15 @@
                     }
 
                     const now = new Date();
-                    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
                     const dayOfWeek = now.getDay();
                     const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-                    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff);
-                    startOfWeek.setHours(0,0,0,0);
+                    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
 
-                    const salesToday = sales.filter(s => s.date.toDate() >= startOfToday);
-                    const salesWeek = sales.filter(s => s.date.toDate() >= startOfWeek);
-                    const salesMonth = sales.filter(s => s.date.toDate() >= startOfMonth);
+                    const salesToday = sales.filter(s => s.date.toDate().getTime() >= startOfToday.getTime());
+                    const salesWeek = sales.filter(s => s.date.toDate().getTime() >= startOfWeek.getTime());
+                    const salesMonth = sales.filter(s => s.date.toDate().getTime() >= startOfMonth.getTime());
 
                     c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + s.total, 0));
                     c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
@@ -1220,14 +1214,13 @@
                     const salesLast7Days = {};
                     for (let i = 6; i >= 0; i--) {
                         const d = new Date();
+                        d.setHours(0, 0, 0, 0);
                         d.setDate(d.getDate() - i);
-                        d.setHours(0,0,0,0);
                         salesLast7Days[d.toISOString().split('T')[0]] = { label: d.toLocaleDateString('pt-BR', {weekday: 'short'}).slice(0,3), total: 0 };
                     }
                     sales.forEach(sale => {
                         const saleDate = sale.date.toDate();
-                        saleDate.setHours(0,0,0,0);
-                        const dayKey = saleDate.toISOString().split('T')[0];
+                        const dayKey = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate()).toISOString().split('T')[0];
                         if (salesLast7Days[dayKey]) {
                             salesLast7Days[dayKey].total += sale.total;
                         }
@@ -1321,3 +1314,4 @@
 </body>
 
 </html>
+
