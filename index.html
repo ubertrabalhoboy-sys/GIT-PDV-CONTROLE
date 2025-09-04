@@ -127,19 +127,37 @@
                 </button>
             </div>
             
-            <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg text-center">
+            <div id="main-login-box" class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg text-center">
                 <div class="mx-auto mb-4 inline-block p-3 bg-primary-100 dark:bg-primary-900/50 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-primary-600 dark:text-primary-400"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    <i data-lucide="shopping-basket" class="w-8 h-8 text-primary-600 dark:text-primary-400"></i>
                 </div>
-                <h1 id="login-store-name" class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Minha Loja</h1>
-                <p class="text-slate-500 dark:text-slate-400 mb-8">Quem está acessando?</p>
+                <h1 id="login-store-name" class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sistema de Vendas</h1>
 
-                <div id="user-selection-view">
-                    <div id="user-list" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <p class="col-span-full text-center text-slate-500">Carregando usuários...</p>
-                    </div>
+                <!-- First Run View -->
+                <div id="first-run-view" class="hidden text-left">
+                    <p class="text-slate-500 dark:text-slate-400 mb-6 text-center">Bem-vindo! Crie sua primeira loja para começar.</p>
+                    <form id="first-run-form" class="space-y-4">
+                         <div><label for="first-store-name" class="block text-sm font-medium">Nome da Loja</label><input type="text" id="first-store-name" required class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></div>
+                         <div><label for="first-admin-name" class="block text-sm font-medium">Seu Nome de Admin</label><input type="text" id="first-admin-name" required class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></div>
+                         <div><label for="first-admin-pass" class="block text-sm font-medium">Sua Senha</label><input type="password" id="first-admin-pass" required class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></div>
+                         <button type="submit" class="w-full text-white bg-primary-600 hover:bg-primary-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Criar e Começar</button>
+                    </form>
                 </div>
 
+                <!-- Store Selection -->
+                <div id="store-selection-view" class="hidden">
+                     <p class="text-slate-500 dark:text-slate-400 mb-8">Selecione a sua loja</p>
+                     <div id="store-list" class="space-y-2"></div>
+                </div>
+
+                <!-- User Selection -->
+                <div id="user-selection-view" class="hidden">
+                    <p class="text-slate-500 dark:text-slate-400 mb-8">Quem está acessando?</p>
+                    <div id="user-list" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+                    <button id="back-to-stores" class="mt-6 text-sm text-slate-500 hover:text-primary-600">Voltar para seleção de lojas</button>
+                </div>
+
+                <!-- Password View -->
                 <div id="password-view" class="hidden">
                     <div id="selected-user-info" class="mb-4"></div>
                     <form id="password-form">
@@ -175,14 +193,21 @@
         <div class="sm:ml-64">
             <header class="sticky top-0 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm z-20 border-b border-slate-200 dark:border-slate-800">
                 <div class="p-4 flex items-center justify-between">
-                    <button id="mobile-menu-button" class="sm:hidden text-slate-600 dark:text-slate-300">
-                        <i data-lucide="menu" class="w-6 h-6"></i>
-                    </button>
-                    <h2 id="current-view-title" class="text-xl font-bold text-slate-900 dark:text-white"></h2>
-                    <button id="theme-toggle-app" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-lg text-sm p-2.5">
-                       <i id="theme-icon-sun-app" data-lucide="sun" class="w-5 h-5 hidden"></i>
-                       <i id="theme-icon-moon-app" data-lucide="moon" class="w-5 h-5"></i>
-                    </button>
+                    <div class="flex items-center gap-4">
+                        <button id="mobile-menu-button" class="sm:hidden text-slate-600 dark:text-slate-300">
+                            <i data-lucide="menu" class="w-6 h-6"></i>
+                        </button>
+                        <h2 id="current-view-title" class="text-xl font-bold text-slate-900 dark:text-white"></h2>
+                    </div>
+                     <div class="flex items-center gap-4">
+                        <div id="store-switcher-container" class="hidden">
+                            <select id="store-switcher-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm py-1.5"></select>
+                        </div>
+                        <button id="theme-toggle-app" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-lg text-sm p-2.5">
+                           <i id="theme-icon-sun-app" data-lucide="sun" class="w-5 h-5 hidden"></i>
+                           <i id="theme-icon-moon-app" data-lucide="moon" class="w-5 h-5"></i>
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -497,48 +522,154 @@
                 currentOrder: [],
                 db: {
                     users: [],
+                    stores: [],
                     settings: { 
                         storeName: "Minha Loja",
                         goals: { daily: 150, weekly: 1000, monthly: 4000 }
                     },
                     sales: []
                 },
-                listeners: { users: null, sales: null }
+                listeners: { users: null, sales: null, stores: null },
+                selectedStore: null
             };
             let selectedUserForLogin = null;
             let vendasChartInstance = null;
             let pagamentoChartInstance = null;
 
             async function loadInitialData() {
+                // Hide all login views initially
+                document.getElementById('first-run-view').classList.add('hidden');
+                document.getElementById('store-selection-view').classList.add('hidden');
+                document.getElementById('user-selection-view').classList.add('hidden');
+                document.getElementById('password-view').classList.add('hidden');
+
                 try {
-                    const settingsRef = doc(db, "settings", "storeConfig");
-                    const settingsSnap = await getDocs(collection(db, "settings"));
-                    if (!settingsSnap.empty) {
-                        const settingsData = settingsSnap.docs[0].data();
-                        state.db.settings = { ...state.db.settings, ...settingsData };
-                    } else {
-                       await setDoc(settingsRef, state.db.settings);
-                    }
-                    document.getElementById('login-store-name').textContent = state.db.settings.storeName;
+                    const storesQuery = query(collection(db, "stores"));
+                    const storesSnapshot = await getDocs(storesQuery);
 
-                    const usersQuery = query(collection(db, "users"));
-                    const usersSnapshot = await getDocs(usersQuery);
-
-                    if (usersSnapshot.empty) {
-                        const gerente = { name: 'gerente', password: '123', role: 'gerente' };
-                        await addDoc(collection(db, "users"), gerente);
-                        showToast('Usuário "gerente" criado com sucesso!', 'success');
-                        state.db.users.push(gerente);
+                    if (storesSnapshot.empty) {
+                        document.getElementById('first-run-view').classList.remove('hidden');
                     } else {
-                        state.db.users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        state.db.stores = storesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        renderStoreSelection();
+                        document.getElementById('store-selection-view').classList.remove('hidden');
                     }
                 } catch (error) {
-                    console.error("Erro ao carregar dados iniciais:", error);
-                    showToast('Falha ao conectar com o banco de dados.', 'error');
+                    console.error("Erro ao carregar lojas:", error);
+                    showToast('Falha ao carregar lojas.', 'error');
                 }
-                renderLoginScreen();
+            }
+
+            function renderStoreSelection() {
+                const storeList = document.getElementById('store-list');
+                storeList.innerHTML = '';
+                state.db.stores.forEach(store => {
+                    const storeButton = document.createElement('button');
+                    storeButton.className = 'w-full text-left p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200 border border-slate-200 dark:border-slate-700';
+                    storeButton.dataset.storeId = store.id;
+                    storeButton.dataset.storeName = store.name;
+                    storeButton.textContent = store.name;
+                    storeList.appendChild(storeButton);
+                });
+            }
+
+            document.getElementById('store-list').addEventListener('click', async (e) => {
+                const storeButton = e.target.closest('button');
+                if (!storeButton) return;
+                
+                state.selectedStore = {
+                    id: storeButton.dataset.storeId,
+                    name: storeButton.dataset.storeName
+                };
+
+                // Fetch settings for the selected store
+                const settingsRef = doc(db, "settings", state.selectedStore.id);
+                const settingsSnap = await getDocs(query(collection(db, "settings"), where("__name__", "==", state.selectedStore.id)));
+                if (!settingsSnap.empty) {
+                    state.db.settings = { ...state.db.settings, ...settingsSnap.docs[0].data() };
+                } else {
+                    // Create default settings if they don't exist for this store
+                    await setDoc(settingsRef, {
+                        storeName: state.selectedStore.name,
+                        goals: { daily: 150, weekly: 1000, monthly: 4000 }
+                    });
+                }
+
+                loadUsersForStore(state.selectedStore.id);
+            });
+
+            async function loadUsersForStore(storeId) {
+                try {
+                    const usersRef = collection(db, "users");
+                    const q = query(usersRef, where("storeId", "==", storeId));
+                    const superAdminQ = query(usersRef, where("role", "==", "superadmin"));
+
+                    const [usersSnapshot, superAdminSnapshot] = await Promise.all([getDocs(q), getDocs(superAdminQ)]);
+                    
+                    let users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const superAdmins = superAdminSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    state.db.users = [...users, ...superAdmins];
+
+                    const userList = document.getElementById('user-list');
+                    userList.innerHTML = '';
+                    if (state.db.users.length > 0) {
+                        state.db.users.forEach(user => {
+                            const userButton = document.createElement('button');
+                            userButton.className = 'flex flex-col items-center p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200 transform hover:scale-105 border border-slate-200 dark:border-slate-700';
+                            userButton.dataset.username = user.name;
+                            userButton.innerHTML = `<div class="w-16 h-16 mb-2 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div><span class="font-semibold text-slate-800 dark:text-slate-200 text-center">${user.name}</span>`;
+                            userList.appendChild(userButton);
+                        });
+                    } else {
+                        userList.innerHTML = '<p class="col-span-full text-center text-slate-500">Nenhum usuário para esta loja.</p>';
+                    }
+                    document.getElementById('store-selection-view').classList.add('hidden');
+                    document.getElementById('user-selection-view').classList.remove('hidden');
+                } catch (error) {
+                    console.error("Erro ao carregar usuários:", error);
+                    showToast('Falha ao carregar usuários.', 'error');
+                }
             }
             
+            document.getElementById('first-run-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const storeName = document.getElementById('first-store-name').value;
+                const adminName = document.getElementById('first-admin-name').value;
+                const adminPass = document.getElementById('first-admin-pass').value;
+
+                if (!storeName || !adminName || !adminPass) {
+                    showToast('Todos os campos são obrigatórios', 'error');
+                    return;
+                }
+                try {
+                    const storeRef = await addDoc(collection(db, "stores"), { name: storeName });
+                    await addDoc(collection(db, "users"), {
+                        name: adminName,
+                        password: adminPass,
+                        role: 'superadmin'
+                        // No storeId for superadmin
+                    });
+                    await setDoc(doc(db, "settings", storeRef.id), {
+                         storeName: storeName,
+                         goals: { daily: 150, weekly: 1000, monthly: 4000 }
+                    });
+                    showToast('Loja e Admin criados com sucesso!', 'success');
+                    loadInitialData();
+                } catch(error) {
+                    console.error("Erro na configuração inicial:", error);
+                    showToast("Erro ao criar a primeira loja.", 'error');
+                }
+            });
+            
+            document.getElementById('back-to-stores').addEventListener('click', () => {
+                document.getElementById('user-selection-view').classList.add('hidden');
+                document.getElementById('store-selection-view').classList.remove('hidden');
+                state.selectedStore = null;
+                state.db.users = [];
+            });
+
+
             const applyTheme = (t) => {
                 const h = document.documentElement;
                 const isDark = t === 'dark';
@@ -599,40 +730,22 @@
                 document.body.removeChild(link);
             }
 
-            function renderLoginScreen() {
-                const userList = document.getElementById('user-list');
-                userList.innerHTML = '';
-                document.getElementById('user-selection-view').classList.remove('hidden');
-                document.getElementById('password-view').classList.add('hidden');
-
-                if (state.db.users.length > 0) {
-                    state.db.users.forEach(user => {
-                        const userButton = document.createElement('button');
-                        userButton.className = 'flex flex-col items-center p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200 transform hover:scale-105 border border-slate-200 dark:border-slate-700';
-                        userButton.dataset.username = user.name;
-                        userButton.innerHTML = `<div class="w-16 h-16 mb-2 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div><span class="font-semibold text-slate-800 dark:text-slate-200 text-center">${user.name}</span>`;
-                        userList.appendChild(userButton);
-                    });
-                } else {
-                    userList.innerHTML = '<p class="col-span-full text-center text-slate-500">Nenhum usuário encontrado.</p>';
-                }
-            }
-
-            document.getElementById('user-list').addEventListener('click', (e) => {
-                const userButton = e.target.closest('button');
-                if (!userButton) return;
-                selectedUserForLogin = userButton.dataset.username;
-                document.getElementById('user-selection-view').classList.add('hidden');
-                document.getElementById('password-view').classList.remove('hidden');
-                document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold text-slate-900 dark:text-white">${selectedUserForLogin}</h3>`;
-                document.getElementById('password').value = '';
-                document.getElementById('password').focus();
-            });
+            document.getElementById('user-selection-view').addEventListener('click', (e) => {
+                 const userButton = e.target.closest('button');
+                 if (!userButton) return;
+                 selectedUserForLogin = userButton.dataset.username;
+                 document.getElementById('user-selection-view').classList.add('hidden');
+                 document.getElementById('password-view').classList.remove('hidden');
+                 document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold text-slate-900 dark:text-white">${selectedUserForLogin}</h3>`;
+                 document.getElementById('password').value = '';
+                 document.getElementById('password').focus();
+             });
 
             document.getElementById('back-to-users').addEventListener('click', () => {
                 selectedUserForLogin = null;
+                document.getElementById('password-view').classList.add('hidden');
+                document.getElementById('user-selection-view').classList.remove('hidden');
                 document.getElementById('login-error').textContent = '';
-                renderLoginScreen();
             });
 
             document.getElementById('password-form').addEventListener('submit', e => {
@@ -642,6 +755,11 @@
 
                 if (user && user.password === passwordInput.value) {
                     state.loggedInUser = user;
+                    // For regular users, their store is defined in their user doc.
+                    // For superadmin, they logged into a specific store context.
+                    if (user.role !== 'superadmin') {
+                        state.selectedStore = state.db.stores.find(s => s.id === user.storeId);
+                    }
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('app').classList.remove('hidden');
                     passwordInput.value = ''; document.getElementById('login-error').textContent = '';
@@ -656,19 +774,47 @@
             const logout = () => {
                 if (state.listeners.users) state.listeners.users();
                 if (state.listeners.sales) state.listeners.sales();
-                state.listeners = { users: null, sales: null };
-                Object.assign(state, { loggedInUser: null, currentOrder: [], db: { ...state.db, sales: [], users: [] }});
+                state.listeners = { users: null, sales: null, stores: null };
+                Object.assign(state, { 
+                    loggedInUser: null, 
+                    selectedStore: null, 
+                    currentOrder: [], 
+                    db: { users: [], stores: [], sales: [], settings: {} }
+                });
                 selectedUserForLogin = null;
                 document.getElementById('app').classList.add('hidden');
                 document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('store-switcher-container').classList.add('hidden');
                 loadInitialData();
             };
 
             const initializeAppUI = () => {
                 const user = state.loggedInUser;
-                document.getElementById('store-name-sidebar').textContent = state.db.settings.storeName;
+                const store = state.selectedStore;
+
+                document.getElementById('store-name-sidebar').textContent = store.name;
                 document.getElementById('username-sidebar').textContent = user.name;
                 document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
+
+                // Super Admin store switcher
+                const switcherContainer = document.getElementById('store-switcher-container');
+                if (user.role === 'superadmin') {
+                    const select = document.getElementById('store-switcher-select');
+                    select.innerHTML = '';
+                    state.db.stores.forEach(s => {
+                        select.innerHTML += `<option value="${s.id}" ${s.id === store.id ? 'selected' : ''}>${s.name}</option>`;
+                    });
+                    switcherContainer.classList.remove('hidden');
+                    select.onchange = (e) => {
+                        const newStoreId = e.target.value;
+                        state.selectedStore = state.db.stores.find(s => s.id === newStoreId);
+                        // Re-render everything with the new store context
+                        initializeAppUI();
+                        switchView(state.currentView);
+                    };
+                } else {
+                    switcherContainer.classList.add('hidden');
+                }
 
                 const createMenuItem = (v, i, t) => `<li><a href="#" data-view="${v}" class="flex items-center p-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white group transition-colors"><i data-lucide="${i}" class="w-5 h-5"></i><span class="ml-3">${t}</span></a></li>`;
                 const createLogoutItem = () => `<li class="pt-2 mt-2 border-t border-slate-700"><button data-action="logout" class="w-full flex items-center p-2 text-red-400 rounded-lg hover:bg-red-500 hover:text-white group transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i><span class="ml-3">Sair</span></button></li>`;
@@ -680,7 +826,7 @@
                     vM.innerHTML = createMenuItem('caixa', 'shopping-basket', 'Caixa') + createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('metas', 'target', 'Metas') + createMenuItem('relatorios', 'bar-chart-2', 'Relatórios') + createLogoutItem();
                     vM.classList.remove('hidden'); gM.classList.add('hidden');
                     switchView('caixa');
-                } else {
+                } else { // Gerente or Superadmin
                     gM.innerHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('relatorios', 'area-chart', 'Relatórios') + createMenuItem('configuracoes', 'settings', 'Configurações') + createLogoutItem();
                     gM.classList.remove('hidden'); vM.classList.add('hidden');
                     switchView('pedidos');
@@ -697,7 +843,6 @@
             const switchView = (viewId) => {
                 if(state.listeners.sales) { state.listeners.sales(); state.listeners.sales = null; }
                 if(state.listeners.users) { state.listeners.users(); state.listeners.users = null; }
-
 
                 document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
                 const activeView = document.getElementById(`${viewId}-view`);
@@ -793,7 +938,18 @@
                 modalContainer.querySelector('#finalize-order-form').addEventListener('submit',async e=>{
                     e.preventDefault();
                     const total=state.currentOrder.reduce((s,i)=>s+i.value,0);
-                    const saleData={clientName:modalContainer.querySelector('#client-name').value,clientPhone:modalContainer.querySelector('#client-phone').value,paymentMethod:modalContainer.querySelector('#payment-method').value,items:state.currentOrder, total:total,bonus:Math.floor(total/80)*2,date: Timestamp.now(),vendedor:state.loggedInUser.name,status:'Finalizado'};
+                    const saleData={
+                        clientName:modalContainer.querySelector('#client-name').value,
+                        clientPhone:modalContainer.querySelector('#client-phone').value,
+                        paymentMethod:modalContainer.querySelector('#payment-method').value,
+                        items:state.currentOrder, 
+                        total:total,
+                        bonus:Math.floor(total/80)*2,
+                        date: Timestamp.now(), // Correct way to save date
+                        vendedor:state.loggedInUser.name,
+                        status:'Finalizado',
+                        storeId: state.selectedStore.id
+                    };
                     try {
                         await addDoc(collection(db, "sales"), saleData);
                         showToast('Venda registrada com sucesso!', 'success');
@@ -801,14 +957,14 @@
                         showWhatsAppModal(saleData);
                         state.currentOrder=[];
                         updateUI();
-                    } catch (error) { showToast('Erro ao registrar a venda.', 'error'); }
+                    } catch (error) { showToast('Erro ao registrar a venda.', 'error'); console.error(error); }
                 })});
                 updateUI();
             }
 
             function renderPedidos() {
                 const c = document.getElementById('pedidos-view');
-                const isGerente = state.loggedInUser.role === 'gerente';
+                const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
                 
                 if (isGerente) {
                     c.querySelector('#vendedor-pedidos-dashboard')?.classList.add('hidden');
@@ -818,7 +974,9 @@
                     }
                     const select = c.querySelector('#filter-vendedor');
                     select.innerHTML = '<option value="Todos">Todos</option>';
-                    const vendedores = [...new Set(state.db.users.filter(u => u.role === 'vendedor').map(u => u.name))];
+                    // Filter users for the current store
+                    const storeUsers = state.db.users.filter(u => u.storeId === state.selectedStore.id);
+                    const vendedores = [...new Set(storeUsers.filter(u => u.role === 'vendedor').map(u => u.name))];
                     vendedores.forEach(name => {
                         select.innerHTML += `<option value="${name}">${name}</option>`;
                     });
@@ -880,10 +1038,15 @@
                 };
                 
                 let q = collection(db, "sales");
-                if (!isGerente) {
-                    q = query(q, where("vendedor", "==", state.loggedInUser.name));
+                const storeId = state.loggedInUser.role === 'superadmin' ? state.selectedStore.id : state.loggedInUser.storeId;
+                
+                let conditions = [where("storeId", "==", storeId)];
+                if (state.loggedInUser.role === 'vendedor') {
+                   conditions.push(where("vendedor", "==", state.loggedInUser.name));
                 }
 
+                q = query(q, ...conditions);
+                
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
                     let allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     allSales.sort((a, b) => b.date.seconds - a.date.seconds);
@@ -892,7 +1055,7 @@
                 }, (error) => {
                     console.error("Erro ao buscar pedidos: ", error);
                     const tbody = c.querySelector('#orders-table-body');
-                    tbody.innerHTML = `<tr><td colspan="10" class="text-center p-8 text-red-500"><b>Erro:</b> Não foi possível carregar os pedidos.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="10" class="text-center p-8 text-red-500"><b>Erro:</b> Não foi possível carregar os pedidos. Verifique se o índice do Firebase foi criado.</td></tr>`;
                 });
 
                 c.querySelector('#filter-form').addEventListener('submit', e => { e.preventDefault(); filterAndRender(state.db.sales); });
@@ -916,7 +1079,8 @@
             function renderMetas(){
                 const c = document.getElementById('metas-view');
                 if (!c) return;
-                const goals = state.db.settings.goals;
+
+                const goals = state.db.settings.goals || {};
 
                 const updateGoalsUI = (sales) => {
                     const now = new Date();
@@ -940,11 +1104,11 @@
                     const melhorDiaValor = Math.max(0, ...Object.values(salesByDay));
 
                     const getWeekIdentifier = (d) => {
-                        const date = new Date(d.getTime());
-                        date.setHours(0, 0, 0, 0);
-                        date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-                        const week1 = new Date(date.getFullYear(), 0, 4);
-                        return `${date.getFullYear()}-W${1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)}`;
+                        const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+                        date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay()||7));
+                        const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+                        const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+                        return `${date.getUTCFullYear()}-W${weekNo}`;
                     }
 
                     const salesByWeek = sales.reduce((acc, s) => {
@@ -985,8 +1149,9 @@
                     document.getElementById('recorde-melhor-dia').textContent = formatCurrency(melhorDiaValor);
                     document.getElementById('recorde-melhor-semana').textContent = formatCurrency(melhorSemanaValor);
                 };
-
-                const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name));
+                
+                const storeId = state.loggedInUser.role === 'superadmin' ? state.selectedStore.id : state.loggedInUser.storeId;
+                const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), where("storeId", "==", storeId));
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
                     const mySales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     mySales.sort((a, b) => b.date.seconds - a.date.seconds);
@@ -1007,7 +1172,7 @@
                 
                 const exportVendedorSelect = c.querySelector('#export-vendedor-select');
                 exportVendedorSelect.innerHTML = '<option value="Todos">Todos os Vendedores</option>';
-                const vendedores = state.db.users.filter(u => u.role === 'vendedor').map(u => u.name);
+                const vendedores = state.db.users.filter(u => u.role === 'vendedor' && u.storeId === state.selectedStore.id).map(u => u.name);
                 vendedores.forEach(name => {
                     exportVendedorSelect.innerHTML += `<option value="${name}">${name}</option>`;
                 });
@@ -1017,6 +1182,7 @@
                     const selectedVendedor = exportVendedorSelect.value;
                     
                     let conditions = [
+                        where('storeId', '==', state.selectedStore.id),
                         where('date', '>=', startDate),
                         where('date', '<=', endDate)
                     ];
@@ -1032,7 +1198,7 @@
                         exportToCSV(salesToExport, filename);
                     } catch (error) {
                         console.error("Erro ao exportar vendas:", error);
-                        showToast('Erro ao exportar. Tente criar um índice no Firebase se o erro persistir.', 'error');
+                        showToast('Erro ao exportar. Verifique se os índices do Firebase foram criados.', 'error');
                     }
                 };
                 
@@ -1079,14 +1245,14 @@
                 const updateVendedoresList=()=>{
                     const list=c.querySelector('#vendedores-list');
                     list.innerHTML='';
-                    const users = state.db.users;
+                    const users = state.db.users.filter(u => u.storeId === state.selectedStore.id || u.role === 'superadmin');
                     if(users.length === 0){
                         list.innerHTML = '<p class="text-slate-500 text-sm text-center">Nenhum usuário cadastrado.</p>';
                         return;
                     }
                     users.forEach(v=>{
-                         const roleClass = v.role === 'gerente' 
-                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300' 
+                         const roleClass = v.role === 'gerente' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300' 
+                            : v.role === 'superadmin' ? 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-300'
                             : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
                         const roleText = v.role.charAt(0).toUpperCase() + v.role.slice(1);
 
@@ -1103,8 +1269,8 @@
                     lucide.createIcons();
                 };
 
-                if (state.listeners.users) state.listeners.users();
-                state.listeners.users = onSnapshot(query(collection(db, "users")), (snapshot) => {
+                const q = query(collection(db, "users"), where("storeId", "==", state.selectedStore.id));
+                state.listeners.users = onSnapshot(q, (snapshot) => {
                      state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                      updateVendedoresList();
                 });
@@ -1120,7 +1286,7 @@
                     if(state.db.users.some(u=>u.name.toLowerCase()===n.toLowerCase())){showToast('Nome de usuário já existe.','error');return}
                     
                     try {
-                        await addDoc(collection(db, "users"), {name:n,password:p,role:role});
+                        await addDoc(collection(db, "users"), {name:n,password:p,role:role, storeId: state.selectedStore.id});
                         showToast('Usuário cadastrado!', 'success');
                         e.target.reset();
                     } catch {
@@ -1144,10 +1310,9 @@
                 c.querySelector('#save-settings-button').addEventListener('click', async ()=> {
                     const newStoreName = c.querySelector('#config-store-name').value;
                     try {
-                        await setDoc(doc(db, "settings", "storeConfig"), { storeName: newStoreName }, { merge: true });
+                        await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName }, { merge: true });
                         state.db.settings.storeName = newStoreName;
                         document.getElementById('store-name-sidebar').textContent = newStoreName;
-                        document.getElementById('login-store-name').textContent = newStoreName;
                         showToast('Nome da loja salvo!', 'success');
                     } catch (error) { showToast('Erro ao salvar nome da loja.', 'error'); }
                 });
@@ -1159,7 +1324,7 @@
                         monthly: parseFloat(c.querySelector('#meta-mensal').value) || 0,
                     };
                     try {
-                        await setDoc(doc(db, "settings", "storeConfig"), { goals: newGoals }, { merge: true });
+                        await setDoc(doc(db, "settings", state.selectedStore.id), { goals: newGoals }, { merge: true });
                         state.db.settings.goals = newGoals;
                         showToast('Metas salvas com sucesso!', 'success');
                     } catch(error) {
@@ -1168,14 +1333,15 @@
                 });
                 
                  c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
-                    showConfirmModal('TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas registradas.', async () => {
+                    showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
                         try {
-                            const salesSnapshot = await getDocs(query(collection(db, "sales")));
+                            const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
+                            const salesSnapshot = await getDocs(q);
                             if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
                             const batch = writeBatch(db);
                             salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
                             await batch.commit();
-                            showToast('Todas as vendas foram zeradas!', 'success');
+                            showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
                         } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
                     });
                  });
@@ -1252,21 +1418,25 @@
                     }
                 };
                 
-                const isGerente = state.loggedInUser.role === 'gerente';
+                const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
                 const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
                 
                 let q = collection(db, "sales");
-                if (!isGerente) {
-                    q = query(q, where("vendedor", "==", state.loggedInUser.name));
+                const storeId = state.loggedInUser.role === 'superadmin' ? state.selectedStore.id : state.loggedInUser.storeId;
+                
+                let conditions = [where("storeId", "==", storeId)];
+                if (state.loggedInUser.role === 'vendedor') {
+                   conditions.push(where("vendedor", "==", state.loggedInUser.name));
                 }
+
+                q = query(q, ...conditions);
 
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
                     let allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     allSales.sort((a, b) => b.date.seconds - a.date.seconds);
-
                     state.db.sales = allSales;
-                    
-                    if (isGerente) {
+
+                    if (isManager) {
                         vendedorSelectContainer.classList.remove('hidden');
                         const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
                         const vendedores = [...new Set(allSales.map(s => s.vendedor))];
@@ -1316,4 +1486,3 @@
 </body>
 
 </html>
-
