@@ -440,6 +440,27 @@
                 </form>
                 <button id="save-goals-button" class="mt-4 bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors text-sm">Salvar Metas</button>
             </div>
+            
+            <div id="manage-stores-section" class="hidden bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Lojas</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t dark:border-slate-700 pt-4">
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Criar Nova Loja</h4>
+                        <form id="add-store-form" class="space-y-4">
+                            <div>
+                                <label for="new-store-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Nova Loja</label>
+                                <input type="text" id="new-store-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                            </div>
+                            <button type="submit" class="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors">Criar Loja</button>
+                        </form>
+                    </div>
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Lojas Cadastradas</h4>
+                        <ul id="stores-management-list" class="space-y-2"></ul>
+                    </div>
+                </div>
+            </div>
+
 
             <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Exportar Vendas (CSV)</h3>
@@ -473,14 +494,14 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Usuário</h3>
-                    <form id="add-vendedor-form" class="space-y-4">
+                    <form id="add-user-form" class="space-y-4">
                         <div>
-                            <label for="vendedor-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome</label>
-                            <input type="text" id="vendedor-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                            <label for="user-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome</label>
+                            <input type="text" id="user-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
                         </div>
                         <div>
-                            <label for="vendedor-password" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Senha</label>
-                            <input type="password" id="vendedor-password" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                            <label for="user-password" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Senha</label>
+                            <input type="password" id="user-password" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
                         </div>
                         <div class="flex items-center">
                             <input id="create-as-manager" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500">
@@ -491,7 +512,7 @@
                 </div>
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Usuários Cadastrados</h3>
-                    <ul id="vendedores-list" class="space-y-2"></ul>
+                    <ul id="users-list" class="space-y-2"></ul>
                 </div>
             </div>
         </div>
@@ -500,7 +521,7 @@
     <!-- Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, orderBy, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, orderBy, writeBatch, Timestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
@@ -537,7 +558,6 @@
             let pagamentoChartInstance = null;
 
             async function loadInitialData() {
-                // Hide all login views initially
                 document.getElementById('first-run-view').classList.add('hidden');
                 document.getElementById('store-selection-view').classList.add('hidden');
                 document.getElementById('user-selection-view').classList.add('hidden');
@@ -582,17 +602,17 @@
                     name: storeButton.dataset.storeName
                 };
 
-                // Fetch settings for the selected store
                 const settingsRef = doc(db, "settings", state.selectedStore.id);
-                const settingsSnap = await getDocs(query(collection(db, "settings"), where("__name__", "==", state.selectedStore.id)));
-                if (!settingsSnap.empty) {
-                    state.db.settings = { ...state.db.settings, ...settingsSnap.docs[0].data() };
+                const settingsSnap = await getDoc(settingsRef);
+                 if (settingsSnap.exists()) {
+                    state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
                 } else {
-                    // Create default settings if they don't exist for this store
-                    await setDoc(settingsRef, {
+                     await setDoc(settingsRef, {
                         storeName: state.selectedStore.name,
                         goals: { daily: 150, weekly: 1000, monthly: 4000 }
                     });
+                     state.db.settings.storeName = state.selectedStore.name;
+                     state.db.settings.goals = { daily: 150, weekly: 1000, monthly: 4000 };
                 }
 
                 loadUsersForStore(state.selectedStore.id);
@@ -648,7 +668,6 @@
                         name: adminName,
                         password: adminPass,
                         role: 'superadmin'
-                        // No storeId for superadmin
                     });
                     await setDoc(doc(db, "settings", storeRef.id), {
                          storeName: storeName,
@@ -755,9 +774,8 @@
 
                 if (user && user.password === passwordInput.value) {
                     state.loggedInUser = user;
-                    // For regular users, their store is defined in their user doc.
-                    // For superadmin, they logged into a specific store context.
-                    if (user.role !== 'superadmin') {
+                    
+                    if (user.role !== 'superadmin' && !state.selectedStore) {
                         state.selectedStore = state.db.stores.find(s => s.id === user.storeId);
                     }
                     document.getElementById('login-screen').classList.add('hidden');
@@ -774,6 +792,7 @@
             const logout = () => {
                 if (state.listeners.users) state.listeners.users();
                 if (state.listeners.sales) state.listeners.sales();
+                if (state.listeners.stores) state.listeners.stores();
                 state.listeners = { users: null, sales: null, stores: null };
                 Object.assign(state, { 
                     loggedInUser: null, 
@@ -796,20 +815,41 @@
                 document.getElementById('username-sidebar').textContent = user.name;
                 document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
 
-                // Super Admin store switcher
                 const switcherContainer = document.getElementById('store-switcher-container');
                 if (user.role === 'superadmin') {
-                    const select = document.getElementById('store-switcher-select');
-                    select.innerHTML = '';
-                    state.db.stores.forEach(s => {
-                        select.innerHTML += `<option value="${s.id}" ${s.id === store.id ? 'selected' : ''}>${s.name}</option>`;
+                    if (state.listeners.stores) state.listeners.stores(); 
+                    state.listeners.stores = onSnapshot(query(collection(db, "stores")), (snapshot) => {
+                        state.db.stores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        const select = document.getElementById('store-switcher-select');
+                        if (select) { 
+                            const currentStoreId = state.selectedStore ? state.selectedStore.id : state.db.stores[0].id;
+                            select.innerHTML = '';
+                            state.db.stores.forEach(s => {
+                                select.innerHTML += `<option value="${s.id}" ${s.id === currentStoreId ? 'selected' : ''}>${s.name}</option>`;
+                            });
+                             if (!state.db.stores.some(s => s.id === currentStoreId)) {
+                                 if (state.db.stores.length > 0) {
+                                     state.selectedStore = state.db.stores[0];
+                                     initializeAppUI(); 
+                                     switchView(state.currentView || 'pedidos');
+                                 } else {
+                                     logout(); 
+                                 }
+                             }
+                        }
                     });
+
                     switcherContainer.classList.remove('hidden');
-                    select.onchange = (e) => {
+                    const select = document.getElementById('store-switcher-select');
+                    select.onchange = async (e) => {
                         const newStoreId = e.target.value;
                         state.selectedStore = state.db.stores.find(s => s.id === newStoreId);
-                        // Re-render everything with the new store context
-                        initializeAppUI();
+                        const settingsRef = doc(db, "settings", state.selectedStore.id);
+                        const settingsSnap = await getDoc(settingsRef);
+                        if (settingsSnap.exists()) {
+                            state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
+                        }
+                        document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
                         switchView(state.currentView);
                     };
                 } else {
@@ -826,7 +866,7 @@
                     vM.innerHTML = createMenuItem('caixa', 'shopping-basket', 'Caixa') + createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('metas', 'target', 'Metas') + createMenuItem('relatorios', 'bar-chart-2', 'Relatórios') + createLogoutItem();
                     vM.classList.remove('hidden'); gM.classList.add('hidden');
                     switchView('caixa');
-                } else { // Gerente or Superadmin
+                } else { 
                     gM.innerHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('relatorios', 'area-chart', 'Relatórios') + createMenuItem('configuracoes', 'settings', 'Configurações') + createLogoutItem();
                     gM.classList.remove('hidden'); vM.classList.add('hidden');
                     switchView('pedidos');
@@ -1242,17 +1282,19 @@
                     handleExport(Timestamp.fromDate(startDate), Timestamp.fromDate(endDate), filename);
                 });
 
-                const updateVendedoresList=()=>{
-                    const list=c.querySelector('#vendedores-list');
+                const updateUsersList=()=>{
+                    const list=c.querySelector('#users-list');
                     list.innerHTML='';
-                    const users = state.db.users.filter(u => u.storeId === state.selectedStore.id || u.role === 'superadmin');
-                    if(users.length === 0){
-                        list.innerHTML = '<p class="text-slate-500 text-sm text-center">Nenhum usuário cadastrado.</p>';
+                    const usersInStore = state.db.users.filter(u => u.storeId === state.selectedStore.id);
+                    
+                    if(usersInStore.length === 0){
+                        list.innerHTML = '<p class="text-slate-500 text-sm text-center">Nenhum usuário cadastrado para esta loja.</p>';
                         return;
                     }
-                    users.forEach(v=>{
-                         const roleClass = v.role === 'gerente' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300' 
-                            : v.role === 'superadmin' ? 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-300'
+
+                    usersInStore.forEach(v=>{
+                         const roleClass = v.role === 'gerente' 
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300' 
                             : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
                         const roleText = v.role.charAt(0).toUpperCase() + v.role.slice(1);
 
@@ -1261,7 +1303,7 @@
                                 <span>${v.name}</span>
                                 <span class="text-xs ml-2 px-2 py-0.5 rounded-full font-medium ${roleClass}">${roleText}</span>
                             </div>
-                            <button data-userid="${v.id}" data-username="${v.name}" class="remove-vendedor-btn text-red-500 hover:text-red-700 ${v.name === state.loggedInUser.name ? 'hidden' : ''}">
+                            <button data-userid="${v.id}" data-username="${v.name}" class="remove-user-btn text-red-500 hover:text-red-700 ${v.name === state.loggedInUser.name ? 'hidden' : ''}">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </li>`;
@@ -1269,16 +1311,16 @@
                     lucide.createIcons();
                 };
 
-                const q = query(collection(db, "users"), where("storeId", "==", state.selectedStore.id));
-                state.listeners.users = onSnapshot(q, (snapshot) => {
+                const qUsers = query(collection(db, "users")); // Listen to all users to update the list
+                state.listeners.users = onSnapshot(qUsers, (snapshot) => {
                      state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                     updateVendedoresList();
+                     updateUsersList();
                 });
                 
-                c.querySelector('#add-vendedor-form').addEventListener('submit',async e=>{
+                c.querySelector('#add-user-form').addEventListener('submit',async e=>{
                     e.preventDefault();
-                    const n=c.querySelector('#vendedor-name').value.trim(), 
-                          p=c.querySelector('#vendedor-password').value;
+                    const n=c.querySelector('#user-name').value.trim(), 
+                          p=c.querySelector('#user-password').value;
                     const isManager = c.querySelector('#create-as-manager').checked;
                     const role = isManager ? 'gerente' : 'vendedor';
 
@@ -1294,8 +1336,8 @@
                     }
                 });
 
-                c.querySelector('#vendedores-list').addEventListener('click', e => {
-                    const removeBtn = e.target.closest('.remove-vendedor-btn');
+                c.querySelector('#users-list').addEventListener('click', e => {
+                    const removeBtn = e.target.closest('.remove-user-btn');
                     if (removeBtn) {
                         const { userid, username } = removeBtn.dataset;
                         showConfirmModal(`Tem certeza que deseja remover o usuário "${username}"?`, async () => {
@@ -1311,7 +1353,9 @@
                     const newStoreName = c.querySelector('#config-store-name').value;
                     try {
                         await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName }, { merge: true });
+                        await setDoc(doc(db, "stores", state.selectedStore.id), { name: newStoreName }, { merge: true });
                         state.db.settings.storeName = newStoreName;
+                        state.selectedStore.name = newStoreName;
                         document.getElementById('store-name-sidebar').textContent = newStoreName;
                         showToast('Nome da loja salvo!', 'success');
                     } catch (error) { showToast('Erro ao salvar nome da loja.', 'error'); }
@@ -1345,6 +1389,77 @@
                         } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
                     });
                  });
+                
+                // Super Admin: Manage Stores
+                const manageStoresSection = c.querySelector('#manage-stores-section');
+                if (state.loggedInUser.role === 'superadmin') {
+                    manageStoresSection.classList.remove('hidden');
+
+                    const addStoreForm = c.querySelector('#add-store-form');
+                    const storesListEl = c.querySelector('#stores-management-list');
+
+                    addStoreForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const newStoreNameInput = c.querySelector('#new-store-name');
+                        const newStoreName = newStoreNameInput.value.trim();
+                        if (!newStoreName) { return showToast('O nome da loja não pode ser vazio.', 'error'); }
+                        if (state.db.stores.some(store => store.name.toLowerCase() === newStoreName.toLowerCase())) {
+                            return showToast('Uma loja com este nome já existe.', 'error');
+                        }
+                        try {
+                            const storeRef = await addDoc(collection(db, "stores"), { name: newStoreName });
+                            await setDoc(doc(db, "settings", storeRef.id), {
+                                storeName: newStoreName,
+                                goals: { daily: 150, weekly: 1000, monthly: 4000 }
+                            });
+                            showToast(`Loja "${newStoreName}" criada!`, 'success');
+                            newStoreNameInput.value = '';
+                        } catch (error) { console.error("Erro ao criar loja:", error); showToast('Não foi possível criar a loja.', 'error'); }
+                    });
+                    
+                    const renderStoresList = () => {
+                        storesListEl.innerHTML = '';
+                        state.db.stores.forEach(store => {
+                            const li = document.createElement('li');
+                            li.className = 'flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md';
+                            li.innerHTML = `<span>${store.name}</span>
+                                <button data-store-id="${store.id}" data-store-name="${store.name}" class="remove-store-btn text-red-500 hover:text-red-700">
+                                    <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
+                                </button>`;
+                            storesListEl.appendChild(li);
+                        });
+                        lucide.createIcons();
+                    };
+
+                    if (state.listeners.stores) state.listeners.stores(); // Reuse global listener data
+                    renderStoresList(); // Initial render
+
+                    storesListEl.addEventListener('click', (e) => {
+                        const removeBtn = e.target.closest('.remove-store-btn');
+                        if (removeBtn) {
+                            if (state.db.stores.length <= 1) { return showToast('Não é possível excluir a última loja.', 'error'); }
+                            const { storeId, storeName } = removeBtn.dataset;
+                            showConfirmModal(`Apagar a loja "${storeName}"? TODOS os dados (vendas, usuários) desta loja serão PERDIDOS.`, async () => {
+                                try {
+                                    const batch = writeBatch(db);
+                                    const salesQuery = query(collection(db, "sales"), where("storeId", "==", storeId));
+                                    const usersQuery = query(collection(db, "users"), where("storeId", "==", storeId));
+                                    const [salesSnapshot, usersSnapshot] = await Promise.all([getDocs(salesQuery), getDocs(usersQuery)]);
+                                    
+                                    salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+                                    usersSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+                                    batch.delete(doc(db, "settings", storeId));
+                                    batch.delete(doc(db, "stores", storeId));
+                                    
+                                    await batch.commit();
+                                    showToast(`Loja "${storeName}" excluída.`, 'success');
+                                } catch (error) { console.error("Erro ao deletar loja:", error); showToast('Erro ao deletar a loja.', 'error'); }
+                            });
+                        }
+                    });
+                } else {
+                    manageStoresSection.classList.add('hidden');
+                }
             }
 
             function renderRelatorios() {
@@ -1434,8 +1549,9 @@
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
                     let allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     allSales.sort((a, b) => b.date.seconds - a.date.seconds);
-                    state.db.sales = allSales;
 
+                    state.db.sales = allSales;
+                    
                     if (isManager) {
                         vendedorSelectContainer.classList.remove('hidden');
                         const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
