@@ -75,6 +75,18 @@
                 transform: translate3d(4px, 0, 0);
             }
         }
+         .blinking-cursor {
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            from, to {
+                border-right-color: transparent;
+            }
+            50% {
+                border-right-color: currentColor;
+            }
+        }
     </style>
     <script>
         tailwind.config = {
@@ -379,12 +391,40 @@
              </div>
              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Vendas Hoje</p><p id="relatorio-vendas-hoje" class="text-2xl font-bold text-primary-600">R$ 0,00</p></div>
-                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus Hoje</p><p id="relatorio-bonus-dia" class="text-2xl font-bold text-primary-600">0</p></div>
+                 <div id="bonus-hoje-card" class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus Hoje</p><p id="relatorio-bonus-dia" class="text-2xl font-bold text-primary-600">0</p></div>
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Vendas na Semana</p><p id="relatorio-vendas-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
-                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus na Semana</p><p id="relatorio-bonus-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
+                 <div id="bonus-semana-card" class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus na Semana</p><p id="relatorio-bonus-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Vendas no Mês</p><p id="relatorio-vendas-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
-                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus no Mês</p><p id="relatorio-bonus-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
+                 <div id="bonus-mes-card" class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus no Mês</p><p id="relatorio-bonus-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
              </div>
+
+             <div id="ranking-section" class="hidden bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                 <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Ranking de Vendedores</h3>
+                    <div class="flex space-x-1 bg-slate-100 dark:bg-slate-700 p-1 rounded-md">
+                        <button data-period="day" class="ranking-period-btn bg-white dark:bg-slate-900 text-primary-600 rounded shadow px-3 py-1 text-sm font-medium">Dia</button>
+                        <button data-period="week" class="ranking-period-btn text-slate-500 dark:text-slate-400 px-3 py-1 text-sm font-medium">Semana</button>
+                        <button data-period="month" class="ranking-period-btn text-slate-500 dark:text-slate-400 px-3 py-1 text-sm font-medium">Mês</button>
+                    </div>
+                 </div>
+                 <ul id="ranking-list" class="space-y-2"></ul>
+             </div>
+
+             <div id="ai-analysis-section" class="hidden bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">Análise de Desempenho com IA <span class="text-xs bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300 px-2 py-0.5 rounded-full">NOVO</span></h3>
+                </div>
+                 <div class="border-t dark:border-slate-700 pt-4">
+                    <button id="generate-ai-analysis-btn" class="w-full sm:w-auto bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        Gerar Análise com IA
+                    </button>
+                    <div id="ai-analysis-result-container" class="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-2 prose dark:prose-invert max-w-none">
+                        <p class="text-slate-500 dark:text-slate-400">Clique no botão para gerar uma análise inteligente dos dados de vendas do período selecionado.</p>
+                    </div>
+                </div>
+            </div>
+
              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                  <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
                      <h3 class="font-bold mb-4 text-slate-900 dark:text-white">Vendas nos últimos 7 dias</h3>
@@ -418,22 +458,34 @@
             </div>
 
             <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Definir Metas</h3>
-                <form id="goals-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label for="meta-diaria" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Diária (R$)</label>
-                        <input type="number" id="meta-diaria" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Definir Metas e Bônus</h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="meta-diaria" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Diária (R$)</label>
+                            <input type="number" id="meta-diaria" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                        </div>
+                        <div>
+                            <label for="meta-semanal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Semanal (R$)</label>
+                            <input type="number" id="meta-semanal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                        </div>
+                         <div>
+                            <label for="meta-mensal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Mensal (R$)</label>
+                            <input type="number" id="meta-mensal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                        </div>
                     </div>
-                    <div>
-                        <label for="meta-semanal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Semanal (R$)</label>
-                        <input type="number" id="meta-semanal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                    <div class="border-t dark:border-slate-700 pt-4 space-y-2">
+                        <div class="flex items-center">
+                            <input id="enable-bonus" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500">
+                            <label for="enable-bonus" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar sistema de bônus</label>
+                        </div>
+                        <div id="bonus-value-container" class="hidden">
+                             <label for="bonus-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Ganha 2 pontos de bônus a cada (R$)</label>
+                            <input type="number" id="bonus-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                        </div>
                     </div>
-                     <div>
-                        <label for="meta-mensal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Mensal (R$)</label>
-                        <input type="number" id="meta-mensal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
-                    </div>
-                </form>
-                <button id="save-goals-button" class="mt-4 bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors text-sm">Salvar Metas</button>
+                     <button id="save-goals-button" class="mt-4 bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors text-sm">Salvar</button>
+                </div>
             </div>
             
             <div id="manage-stores-section" class="hidden bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
@@ -541,7 +593,8 @@
                     stores: [],
                     settings: { 
                         storeName: "Minha Loja",
-                        goals: { daily: 150, weekly: 1000, monthly: 4000 }
+                        goals: { daily: 150, weekly: 1000, monthly: 4000 },
+                        bonusSystem: { enabled: true, value: 80 }
                     },
                     sales: []
                 },
@@ -551,6 +604,7 @@
             let selectedUserForLogin = null;
             let vendasChartInstance = null;
             let pagamentoChartInstance = null;
+            let currentRankingPeriod = 'day';
 
             async function loadInitialData() {
                 document.getElementById('first-run-view').classList.add('hidden');
@@ -578,7 +632,8 @@
                         });
                         await setDoc(doc(db, "settings", storeRef.id), {
                              storeName: storeName,
-                             goals: { daily: 150, weekly: 1000, monthly: 4000 }
+                             goals: { daily: 150, weekly: 1000, monthly: 4000 },
+                             bonusSystem: { enabled: true, value: 80 }
                         });
                         showToast('Sistema pronto! Faça login como superadmin (senha: admin123).', 'success');
                         await loadInitialData(); 
@@ -623,10 +678,12 @@
                 } else {
                      await setDoc(settingsRef, {
                         storeName: state.selectedStore.name,
-                        goals: { daily: 150, weekly: 1000, monthly: 4000 }
+                        goals: { daily: 150, weekly: 1000, monthly: 4000 },
+                        bonusSystem: { enabled: true, value: 80 }
                     });
                      state.db.settings.storeName = state.selectedStore.name;
                      state.db.settings.goals = { daily: 150, weekly: 1000, monthly: 4000 };
+                     state.db.settings.bonusSystem = { enabled: true, value: 80 };
                 }
 
                 loadUsersForStore(state.selectedStore.id);
@@ -963,14 +1020,19 @@
                 modalContainer.querySelector('#finalize-order-form').addEventListener('submit',async e=>{
                     e.preventDefault();
                     const total=state.currentOrder.reduce((s,i)=>s+i.value,0);
+                    let bonus = 0;
+                    const bonusConfig = state.db.settings.bonusSystem;
+                    if(bonusConfig && bonusConfig.enabled && bonusConfig.value > 0) {
+                        bonus = Math.floor(total / bonusConfig.value) * 2;
+                    }
                     const saleData={
                         clientName:modalContainer.querySelector('#client-name').value,
                         clientPhone:modalContainer.querySelector('#client-phone').value,
                         paymentMethod:modalContainer.querySelector('#payment-method').value,
                         items:state.currentOrder, 
                         total:total,
-                        bonus:Math.floor(total/80)*2,
-                        date: Timestamp.now(), // Correct way to save date
+                        bonus: bonus,
+                        date: Timestamp.now(), 
                         vendedor:state.loggedInUser.name,
                         status:'Finalizado',
                         storeId: state.selectedStore.id
@@ -1195,6 +1257,22 @@
                 c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
                 c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
                 
+                const enableBonusCheckbox = c.querySelector('#enable-bonus');
+                const bonusValueContainer = c.querySelector('#bonus-value-container');
+                const bonusValueInput = c.querySelector('#bonus-value');
+
+                enableBonusCheckbox.checked = state.db.settings.bonusSystem?.enabled ?? true;
+                bonusValueInput.value = state.db.settings.bonusSystem?.value ?? 80;
+
+                if (enableBonusCheckbox.checked) {
+                    bonusValueContainer.classList.remove('hidden');
+                } else {
+                    bonusValueContainer.classList.add('hidden');
+                }
+                enableBonusCheckbox.addEventListener('change', () => {
+                    bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
+                });
+                
                 const exportVendedorSelect = c.querySelector('#export-vendedor-select');
                 exportVendedorSelect.innerHTML = '<option value="Todos">Todos os Vendedores</option>';
                 const vendedores = state.db.users.filter(u => u.role === 'vendedor' && u.storeId === state.selectedStore.id).map(u => u.name);
@@ -1203,27 +1281,25 @@
                 });
                 
                 const handleExport = async (startDate, endDate, filename) => {
-                    let salesQuery = collection(db, "sales");
                     const selectedVendedor = exportVendedorSelect.value;
-                    
-                    let conditions = [
-                        where('storeId', '==', state.selectedStore.id),
-                        where('date', '>=', startDate),
-                        where('date', '<=', endDate)
-                    ];
-
-                    if (selectedVendedor !== 'Todos') {
-                        conditions.push(where('vendedor', '==', selectedVendedor));
-                    }
-                    
                     try {
-                        const q = query(salesQuery, ...conditions);
+                        const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
                         const salesSnapshot = await getDocs(q);
-                        const salesToExport = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        let salesData = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                        let salesToExport = salesData.filter(sale => {
+                            const saleDate = sale.date.toDate();
+                            return saleDate >= startDate && saleDate <= endDate;
+                        });
+
+                        if (selectedVendedor !== 'Todos') {
+                            salesToExport = salesToExport.filter(sale => sale.vendedor === selectedVendedor);
+                        }
+
                         exportToCSV(salesToExport, filename);
                     } catch (error) {
                         console.error("Erro ao exportar vendas:", error);
-                        showToast('Erro ao exportar. Verifique se os índices do Firebase foram criados.', 'error');
+                        showToast('Erro ao buscar dados para exportação.', 'error');
                     }
                 };
                 
@@ -1231,7 +1307,7 @@
                     const todayStart = new Date(new Date().setHours(0,0,0,0));
                     const todayEnd = new Date(new Date().setHours(23,59,59,999));
                     const filename = `vendas_dia_${new Date().toISOString().split('T')[0]}_${exportVendedorSelect.value}`;
-                    handleExport(Timestamp.fromDate(todayStart), Timestamp.fromDate(todayEnd), filename);
+                    handleExport(todayStart, todayEnd, filename);
                 });
 
                 c.querySelector('#export-week-btn').addEventListener('click', () => {
@@ -1242,7 +1318,7 @@
                     const weekEnd = new Date(new Date(weekStart).setDate(weekStart.getDate() + 6));
                     weekEnd.setHours(23,59,59,999);
                     const filename = `vendas_semana_${new Date().toISOString().split('T')[0]}_${exportVendedorSelect.value}`;
-                    handleExport(Timestamp.fromDate(weekStart), Timestamp.fromDate(weekEnd), filename);
+                    handleExport(weekStart, weekEnd, filename);
                 });
 
                 c.querySelector('#export-month-btn').addEventListener('click', () => {
@@ -1251,7 +1327,7 @@
                     const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
                     monthEnd.setHours(23,59,59,999);
                     const filename = `vendas_mes_${today.getFullYear()}_${today.getMonth() + 1}_${exportVendedorSelect.value}`;
-                    handleExport(Timestamp.fromDate(monthStart), Timestamp.fromDate(monthEnd), filename);
+                    handleExport(monthStart, monthEnd, filename);
                 });
 
                 c.querySelector('#export-range-btn').addEventListener('click', () => {
@@ -1264,7 +1340,7 @@
                     const startDate = new Date(startDateInput + 'T00:00:00');
                     const endDate = new Date(endDateInput + 'T23:59:59');
                     const filename = `vendas_de_${startDateInput}_a_${endDateInput}_${exportVendedorSelect.value}`;
-                    handleExport(Timestamp.fromDate(startDate), Timestamp.fromDate(endDate), filename);
+                    handleExport(startDate, endDate, filename);
                 });
 
                 const updateUsersList=()=>{
@@ -1352,12 +1428,21 @@
                         weekly: parseFloat(c.querySelector('#meta-semanal').value) || 0,
                         monthly: parseFloat(c.querySelector('#meta-mensal').value) || 0,
                     };
+                     const newBonusSystem = {
+                        enabled: c.querySelector('#enable-bonus').checked,
+                        value: parseFloat(c.querySelector('#bonus-value').value) || 80,
+                    };
+
                     try {
-                        await setDoc(doc(db, "settings", state.selectedStore.id), { goals: newGoals }, { merge: true });
+                        await setDoc(doc(db, "settings", state.selectedStore.id), { 
+                            goals: newGoals,
+                            bonusSystem: newBonusSystem
+                        }, { merge: true });
                         state.db.settings.goals = newGoals;
-                        showToast('Metas salvas com sucesso!', 'success');
+                        state.db.settings.bonusSystem = newBonusSystem;
+                        showToast('Configurações salvas com sucesso!', 'success');
                     } catch(error) {
-                        showToast('Erro ao salvar metas.', 'error');
+                        showToast('Erro ao salvar configurações.', 'error');
                     }
                 });
                 
@@ -1395,7 +1480,8 @@
                             const storeRef = await addDoc(collection(db, "stores"), { name: newStoreName });
                             await setDoc(doc(db, "settings", storeRef.id), {
                                 storeName: newStoreName,
-                                goals: { daily: 150, weekly: 1000, monthly: 4000 }
+                                goals: { daily: 150, weekly: 1000, monthly: 4000 },
+                                bonusSystem: { enabled: true, value: 80 }
                             });
                             showToast(`Loja "${newStoreName}" criada!`, 'success');
                             newStoreNameInput.value = '';
@@ -1416,8 +1502,8 @@
                         lucide.createIcons();
                     };
 
-                    if (state.listeners.stores) state.listeners.stores(); 
-                    renderStoresList(); 
+                    if (state.listeners.stores) state.listeners.stores(); // Reuse global listener data
+                    renderStoresList(); // Initial render
 
                     storesListEl.addEventListener('click', (e) => {
                         const removeBtn = e.target.closest('.remove-store-btn');
@@ -1451,6 +1537,12 @@
                 const c = document.getElementById('relatorios-view');
                 if(!c) return;
                 
+                 if(!state.db.settings.bonusSystem?.enabled){
+                    c.querySelector('#bonus-hoje-card')?.classList.add('hidden');
+                    c.querySelector('#bonus-semana-card')?.classList.add('hidden');
+                    c.querySelector('#bonus-mes-card')?.classList.add('hidden');
+                }
+
                 const updateReports = (sales) => {
                     if(vendasChartInstance) {
                         vendasChartInstance.destroy();
@@ -1473,11 +1565,14 @@
                     const salesMonth = sales.filter(s => s.date.toDate().getTime() >= startOfMonth.getTime());
 
                     c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + s.total, 0));
-                    c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
                     c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + s.total, 0));
-                    c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
                     c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
-                    c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
+                    
+                    if(state.db.settings.bonusSystem?.enabled){
+                        c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
+                        c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
+                        c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
+                    }
                     
                     const salesLast7Days = {};
                     for (let i = 6; i >= 0; i--) {
