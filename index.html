@@ -75,7 +75,7 @@
                 transform: translate3d(4px, 0, 0);
             }
         }
-         .blinking-cursor {
+        .blinking-cursor {
             animation: blink 1s step-end infinite;
         }
 
@@ -284,27 +284,27 @@
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-green-100 dark:bg-green-900/50 p-3 rounded-full"><i data-lucide="dollar-sign" class="w-6 h-6 text-green-600 dark:text-green-300"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Valor Total</p><p id="valor-total" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
                  <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-yellow-100 dark:bg-yellow-900/50 p-3 rounded-full"><i data-lucide="receipt-text" class="w-6 h-6 text-yellow-600 dark:text-yellow-300"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Ticket Médio</p><p id="ticket-medio" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
             </div>
-             
+            
             <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
                  <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end pb-4 border-b border-slate-200 dark:border-slate-700">
-                     <div class="lg:col-span-2">
-                        <label for="filter-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Data</label>
-                        <input type="date" id="filter-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
-                     </div>
-                     <div>
-                        <label for="filter-payment" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Pagamento</label>
-                        <select id="filter-payment" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
-                             <option>Todos</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option>
-                        </select>
-                     </div>
-                     <div id="gerente-vendedor-filter-container" class="hidden">
-                         <label for="filter-vendedor" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Vendedor</label>
-                         <select id="filter-vendedor" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></select>
-                     </div>
-                     <div class="flex gap-2">
-                         <button type="submit" class="w-full bg-primary-600 text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="search" class="w-4 h-4"></i>Buscar</button>
-                         <button type="reset" class="w-full bg-slate-500 hover:bg-slate-600 text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Limpar</button>
-                     </div>
+                      <div class="lg:col-span-2">
+                          <label for="filter-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Data</label>
+                          <input type="date" id="filter-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                      </div>
+                      <div>
+                          <label for="filter-payment" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Pagamento</label>
+                          <select id="filter-payment" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                               <option>Todos</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option>
+                          </select>
+                      </div>
+                      <div id="gerente-vendedor-filter-container" class="hidden">
+                           <label for="filter-vendedor" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Vendedor</label>
+                           <select id="filter-vendedor" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></select>
+                      </div>
+                      <div class="flex gap-2">
+                           <button type="submit" class="w-full bg-primary-600 text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="search" class="w-4 h-4"></i>Buscar</button>
+                           <button type="reset" class="w-full bg-slate-500 hover:bg-slate-600 text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Limpar</button>
+                      </div>
                  </form>
                 <div class="relative overflow-x-auto pt-4">
                      <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
@@ -320,7 +320,7 @@
                          <tbody id="orders-table-body"></tbody>
                      </table>
                      <div id="no-orders-found" class="text-center p-8 text-slate-500 hidden">Nenhum pedido encontrado.</div>
-                 </div>
+                </div>
             </div>
         </div>
     </script>
@@ -411,19 +411,19 @@
              </div>
 
              <div id="ai-analysis-section" class="hidden bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                <div class="flex justify-between items-center mb-4">
+                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">Análise de Desempenho com IA <span class="text-xs bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300 px-2 py-0.5 rounded-full">NOVO</span></h3>
-                </div>
-                 <div class="border-t dark:border-slate-700 pt-4">
-                    <button id="generate-ai-analysis-btn" class="w-full sm:w-auto bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors flex items-center justify-center gap-2">
-                        <i data-lucide="sparkles" class="w-4 h-4"></i>
-                        Gerar Análise com IA
-                    </button>
-                    <div id="ai-analysis-result-container" class="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-2 prose dark:prose-invert max-w-none">
-                        <p class="text-slate-500 dark:text-slate-400">Clique no botão para gerar uma análise inteligente dos dados de vendas do período selecionado.</p>
-                    </div>
-                </div>
-            </div>
+                 </div>
+                  <div class="border-t dark:border-slate-700 pt-4">
+                     <button id="generate-ai-analysis-btn" class="w-full sm:w-auto bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors flex items-center justify-center gap-2">
+                         <i data-lucide="sparkles" class="w-4 h-4"></i>
+                         Gerar Análise com IA
+                     </button>
+                     <div id="ai-analysis-result-container" class="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-2 prose dark:prose-invert max-w-none">
+                         <p class="text-slate-500 dark:text-slate-400">Clique no botão para gerar uma análise inteligente dos dados de vendas do período selecionado.</p>
+                     </div>
+                 </div>
+             </div>
 
              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                  <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
@@ -570,6 +570,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, orderBy, writeBatch, Timestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+        // Mantenha suas credenciais do Firebase aqui
         const firebaseConfig = {
             apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
             authDomain: "pdv-vendas-8a65a.firebaseapp.com",
@@ -617,8 +618,8 @@
                     const storesSnapshot = await getDocs(storesQuery);
 
                     if (storesSnapshot.empty) {
-                         document.getElementById('first-run-view').classList.remove('hidden');
-                         document.getElementById('first-run-view').innerHTML = '<p class="text-slate-500 dark:text-slate-400 mb-6 text-center">Configurando o sistema pela primeira vez, por favor aguarde...</p><div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary-500 mx-auto"></div>';
+                        document.getElementById('first-run-view').classList.remove('hidden');
+                        document.getElementById('first-run-view').innerHTML = '<p class="text-slate-500 dark:text-slate-400 mb-6 text-center">Configurando o sistema pela primeira vez, por favor aguarde...</p><div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary-500 mx-auto"></div>';
 
                         const storeName = "Loja Principal";
                         const adminName = "superadmin";
@@ -674,12 +675,12 @@
                 const settingsRef = doc(db, "settings", state.selectedStore.id);
                 const settingsSnap = await getDoc(settingsRef);
                  if (settingsSnap.exists()) {
-                    state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
+                     state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
                 } else {
                      await setDoc(settingsRef, {
-                        storeName: state.selectedStore.name,
-                        goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                        bonusSystem: { enabled: true, value: 80 }
+                         storeName: state.selectedStore.name,
+                         goals: { daily: 150, weekly: 1000, monthly: 4000 },
+                         bonusSystem: { enabled: true, value: 80 }
                     });
                      state.db.settings.storeName = state.selectedStore.name;
                      state.db.settings.goals = { daily: 150, weekly: 1000, monthly: 4000 };
@@ -800,7 +801,7 @@
                  document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold text-slate-900 dark:text-white">${selectedUserForLogin}</h3>`;
                  document.getElementById('password').value = '';
                  document.getElementById('password').focus();
-             });
+               });
 
             document.getElementById('back-to-users').addEventListener('click', () => {
                 selectedUserForLogin = null;
@@ -857,6 +858,19 @@
                 document.getElementById('username-sidebar').textContent = user.name;
                 document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
 
+                // CORREÇÃO DE ARQUITETURA: Limpa listeners antigos e inicia um listener global para usuários
+                if (state.listeners.users) state.listeners.users();
+                state.listeners.users = onSnapshot(query(collection(db, "users")), (snapshot) => {
+                    state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // Se uma view que depende da lista de usuários estiver ativa, atualize-a
+                    if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes')) {
+                        const activeView = document.getElementById(`${state.currentView}-view`);
+                        if (activeView && activeView.classList.contains('active')) {
+                            renderViewContent(state.currentView);
+                        }
+                    }
+                });
+
                 const switcherContainer = document.getElementById('store-switcher-container');
                 if (user.role === 'superadmin') {
                     if (state.listeners.stores) state.listeners.stores(); 
@@ -874,9 +888,9 @@
                                      state.selectedStore = state.db.stores[0];
                                      initializeAppUI(); 
                                      switchView(state.currentView || 'pedidos');
-                                 } else {
+                                } else {
                                      logout(); 
-                                 }
+                                }
                              }
                         }
                     });
@@ -923,8 +937,9 @@
             };
 
             const switchView = (viewId) => {
-                if(state.listeners.sales) { state.listeners.sales(); state.listeners.sales = null; }
-                if(state.listeners.users) { state.listeners.users(); state.listeners.users = null; }
+                // CORREÇÃO DE ARQUITETURA: Os listeners de sales e users não são mais limpos aqui.
+                // O listener de 'sales' é gerenciado pela view 'pedidos'.
+                // O listener de 'users' é global para a sessão e limpo apenas no logout.
 
                 document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
                 const activeView = document.getElementById(`${viewId}-view`);
@@ -1052,7 +1067,8 @@
             function renderPedidos() {
                 const c = document.getElementById('pedidos-view');
                 const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
-                
+
+                // Setup da UI (filtros, etc.)
                 if (isGerente) {
                     c.querySelector('#vendedor-pedidos-dashboard')?.classList.add('hidden');
                     c.querySelector('#gerente-vendedor-filter-container').classList.remove('hidden');
@@ -1061,9 +1077,8 @@
                     }
                     const select = c.querySelector('#filter-vendedor');
                     select.innerHTML = '<option value="Todos">Todos</option>';
-                    // Filter users for the current store
-                    const storeUsers = state.db.users.filter(u => u.storeId === state.selectedStore.id);
-                    const vendedores = [...new Set(storeUsers.filter(u => u.role === 'vendedor').map(u => u.name))];
+                    const storeUsers = state.db.users.filter(u => u.storeId === state.selectedStore.id && u.role === 'vendedor');
+                    const vendedores = [...new Set(storeUsers.map(u => u.name))];
                     vendedores.forEach(name => {
                         select.innerHTML += `<option value="${name}">${name}</option>`;
                     });
@@ -1091,62 +1106,70 @@
                             r.className = 'bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600';
                             r.innerHTML = 
                                 `${isGerente ? `<td class="px-6 py-4">${s.vendedor}</td>` : ''}
-                                <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
-                                <td class="px-6 py-4">${new Date(s.date.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                                <td class="px-6 py-4">${s.paymentMethod}</td>
-                                <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
-                                <td class="px-6 py-4 text-center">
-                                    <button data-order-id="${s.id}" class="view-details-btn text-primary-600 hover:underline">Detalhes</button>
-                                </td>`;
+                                 <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
+                                 <td class="px-6 py-4">${new Date(s.date.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                                 <td class="px-6 py-4">${s.paymentMethod}</td>
+                                 <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
+                                 <td class="px-6 py-4 text-center">
+                                     <button data-order-id="${s.id}" class="view-details-btn text-primary-600 hover:underline">Detalhes</button>
+                                 </td>`;
                             tbody.appendChild(r);
                         });
                     }
                 };
+                
+                // OTIMIZAÇÃO: Nova função para buscar dados com filtros no servidor
+                const applyFiltersAndFetchSales = () => {
+                    if (state.listeners.sales) state.listeners.sales(); // Limpa listener antigo
 
-                const filterAndRender = (allSales) => {
-                    let sales = allSales || [];
-                    const filters = {
-                        date: c.querySelector('#filter-date').value,
-                        payment: c.querySelector('#filter-payment').value,
-                        vendedor: isGerente ? c.querySelector('#filter-vendedor').value : null
-                    };
-                    if (filters.date) {
-                         const filterDate = new Date(filters.date + 'T00:00:00');
-                         sales = sales.filter(s => s.date.toDate().toLocaleDateString('pt-BR') === filterDate.toLocaleDateString('pt-BR'));
+                    const dateFilter = c.querySelector('#filter-date').value;
+                    const paymentFilter = c.querySelector('#filter-payment').value;
+                    const vendedorFilter = isGerente ? c.querySelector('#filter-vendedor').value : null;
+
+                    let conditions = [where("storeId", "==", state.selectedStore.id)];
+
+                    if (isGerente) {
+                        if (vendedorFilter && vendedorFilter !== 'Todos') {
+                            conditions.push(where("vendedor", "==", vendedorFilter));
+                        }
+                    } else {
+                        conditions.push(where("vendedor", "==", state.loggedInUser.name));
                     }
-                    if (filters.payment && filters.payment !== 'Todos') {
-                        sales = sales.filter(s => s.paymentMethod === filters.payment);
+                    
+                    if (paymentFilter && paymentFilter !== 'Todos') {
+                        conditions.push(where("paymentMethod", "==", paymentFilter));
                     }
-                    if (isGerente && filters.vendedor && filters.vendedor !== 'Todos') {
-                        sales = sales.filter(s => s.vendedor === filters.vendedor);
+
+                    if (dateFilter) {
+                        const startDate = Timestamp.fromDate(new Date(dateFilter + 'T00:00:00'));
+                        const endDate = Timestamp.fromDate(new Date(dateFilter + 'T23:59:59'));
+                        conditions.push(where("date", ">=", startDate));
+                        conditions.push(where("date", "<=", endDate));
                     }
-                    updateDashboard(sales);
-                    renderTable(sales);
+                    
+                    const finalQuery = query(collection(db, "sales"), ...conditions);
+
+                    state.listeners.sales = onSnapshot(finalQuery, (snapshot) => {
+                        let sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        sales.sort((a, b) => b.date.seconds - a.date.seconds);
+                        state.db.sales = sales;
+                        renderTable(sales);
+                        if (!isGerente) {
+                            updateDashboard(sales);
+                        }
+                    }, (error) => {
+                        console.error("Erro ao buscar pedidos: ", error);
+                        const tbody = c.querySelector('#orders-table-body');
+                        tbody.innerHTML = `<tr><td colspan="10" class="text-center p-8 text-red-500"><b>Erro ao carregar pedidos.</b><br><span class="text-xs">Pode ser necessário criar um índice no Firestore. Verifique o console de depuração para um link de criação.</span></td></tr>`;
+                    });
                 };
-                
-                let q = collection(db, "sales");
-                const storeId = state.loggedInUser.role === 'superadmin' ? state.selectedStore.id : state.loggedInUser.storeId;
-                
-                let conditions = [where("storeId", "==", storeId)];
-                if (state.loggedInUser.role === 'vendedor') {
-                   conditions.push(where("vendedor", "==", state.loggedInUser.name));
-                }
 
-                q = query(q, ...conditions);
+                // Listeners para os novos filtros e carga inicial
+                c.querySelector('#filter-form').addEventListener('submit', e => { e.preventDefault(); applyFiltersAndFetchSales(); });
+                c.querySelector('#filter-form').addEventListener('reset', () => { setTimeout(applyFiltersAndFetchSales, 0); });
                 
-                state.listeners.sales = onSnapshot(q, (snapshot) => {
-                    let allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    allSales.sort((a, b) => b.date.seconds - a.date.seconds);
-                    state.db.sales = allSales;
-                    filterAndRender(allSales);
-                }, (error) => {
-                    console.error("Erro ao buscar pedidos: ", error);
-                    const tbody = c.querySelector('#orders-table-body');
-                    tbody.innerHTML = `<tr><td colspan="10" class="text-center p-8 text-red-500"><b>Erro:</b> Não foi possível carregar os pedidos. Verifique se o índice do Firebase foi criado.</td></tr>`;
-                });
+                applyFiltersAndFetchSales(); // Carga inicial dos dados
 
-                c.querySelector('#filter-form').addEventListener('submit', e => { e.preventDefault(); filterAndRender(state.db.sales); });
-                c.querySelector('#filter-form').addEventListener('reset', () => { setTimeout(() => filterAndRender(state.db.sales), 0); });
                 c.querySelector('#orders-table-body').addEventListener('click', e => {
                     const b = e.target.closest('.view-details-btn');
                     if (b) {
@@ -1205,16 +1228,19 @@
                     }, {});
                     const melhorSemanaValor = Math.max(0, ...Object.values(salesByWeek));
                     
+                    // CORREÇÃO DE LÓGICA: Cálculo correto da sequência de metas batidas
                     let streak = 0;
-                    const sortedDays = Object.keys(salesByDay).sort((a,b) => new Date(b) - new Date(a));
                     let currentDay = new Date(new Date().setHours(0,0,0,0));
                     for(let i = 0; i < 365; i++){
                         const dayKey = currentDay.toISOString().split('T')[0];
                         const daySales = salesByDay[dayKey] || 0;
-                        if(daySales >= (goals.daily || 0.01)){
+                        if (daySales >= (goals.daily || 0.01)) {
                             streak++;
                         } else {
-                             if (!sortedDays.includes(dayKey) && currentDay.getTime() < todayStart.getTime()) { break; }
+                            // Se a meta não foi batida em um dia que já passou, a sequência quebra.
+                            if (currentDay.getTime() < todayStart.getTime()) {
+                                break;
+                            }
                         }
                         currentDay.setDate(currentDay.getDate() - 1);
                     }
@@ -1237,7 +1263,7 @@
                     document.getElementById('recorde-melhor-semana').textContent = formatCurrency(melhorSemanaValor);
                 };
                 
-                const storeId = state.loggedInUser.role === 'superadmin' ? state.selectedStore.id : state.loggedInUser.storeId;
+                const storeId = state.selectedStore.id;
                 const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), where("storeId", "==", storeId));
                 state.listeners.sales = onSnapshot(q, (snapshot) => {
                     const mySales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1346,7 +1372,7 @@
                 const updateUsersList=()=>{
                     const list=c.querySelector('#users-list');
                     list.innerHTML='';
-                    const usersInStore = state.db.users.filter(u => u.storeId === state.selectedStore.id);
+                    const usersInStore = state.db.users.filter(u => u.storeId === state.selectedStore.id || u.role === 'superadmin');
                     
                     if(usersInStore.length === 0){
                         list.innerHTML = '<p class="text-slate-500 text-sm text-center">Nenhum usuário cadastrado para esta loja.</p>';
@@ -1354,7 +1380,9 @@
                     }
 
                     usersInStore.forEach(v=>{
-                         const roleClass = v.role === 'gerente' 
+                         const roleClass = v.role === 'superadmin' 
+                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
+                            : v.role === 'gerente' 
                             ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300' 
                             : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
                         const roleText = v.role.charAt(0).toUpperCase() + v.role.slice(1);
@@ -1364,20 +1392,18 @@
                                 <span>${v.name}</span>
                                 <span class="text-xs ml-2 px-2 py-0.5 rounded-full font-medium ${roleClass}">${roleText}</span>
                             </div>
-                            <button data-userid="${v.id}" data-username="${v.name}" class="remove-user-btn text-red-500 hover:text-red-700 ${v.name === state.loggedInUser.name ? 'hidden' : ''}">
+                            <button data-userid="${v.id}" data-username="${v.name}" class="remove-user-btn text-red-500 hover:text-red-700 ${v.name === state.loggedInUser.name || v.role === 'superadmin' ? 'hidden' : ''}">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </li>`;
                     });
                     lucide.createIcons();
                 };
-
-                const qUsers = query(collection(db, "users")); // Listen to all users to update the list
-                state.listeners.users = onSnapshot(qUsers, (snapshot) => {
-                     state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                     updateUsersList();
-                });
                 
+                // CORREÇÃO DE ARQUITETURA: A lista de usuários é atualizada pelo listener global.
+                // Apenas chamamos a função para renderizar a lista com os dados já presentes no `state`.
+                updateUsersList();
+
                 c.querySelector('#add-user-form').addEventListener('submit',async e=>{
                     e.preventDefault();
                     const n=c.querySelector('#user-name').value.trim(), 
@@ -1447,8 +1473,8 @@
                 });
                 
                  c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
-                    showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
-                        try {
+                     showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
+                         try {
                             const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
                             const salesSnapshot = await getDocs(q);
                             if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
@@ -1456,8 +1482,8 @@
                             salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
                             await batch.commit();
                             showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
-                        } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
-                    });
+                         } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
+                     });
                  });
                 
                 // Super Admin: Manage Stores
@@ -1502,8 +1528,7 @@
                         lucide.createIcons();
                     };
 
-                    if (state.listeners.stores) state.listeners.stores(); // Reuse global listener data
-                    renderStoresList(); // Initial render
+                    renderStoresList(); // A lista de lojas é atualizada pelo listener global em `initializeAppUI`
 
                     storesListEl.addEventListener('click', (e) => {
                         const removeBtn = e.target.closest('.remove-store-btn');
@@ -1538,10 +1563,10 @@
                 if(!c) return;
                 
                  if(!state.db.settings.bonusSystem?.enabled){
-                    c.querySelector('#bonus-hoje-card')?.classList.add('hidden');
-                    c.querySelector('#bonus-semana-card')?.classList.add('hidden');
-                    c.querySelector('#bonus-mes-card')?.classList.add('hidden');
-                }
+                     c.querySelector('#bonus-hoje-card')?.classList.add('hidden');
+                     c.querySelector('#bonus-semana-card')?.classList.add('hidden');
+                     c.querySelector('#bonus-mes-card')?.classList.add('hidden');
+                 }
 
                 const updateReports = (sales) => {
                     if(vendasChartInstance) {
@@ -1569,9 +1594,9 @@
                     c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
                     
                     if(state.db.settings.bonusSystem?.enabled){
-                        c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
-                        c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
-                        c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
+                         c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
+                         c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
+                         c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
                     }
                     
                     const salesLast7Days = {};
@@ -1617,7 +1642,7 @@
                 const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
                 
                 let q = collection(db, "sales");
-                const storeId = state.loggedInUser.role === 'superadmin' ? state.selectedStore.id : state.loggedInUser.storeId;
+                const storeId = state.selectedStore.id;
                 
                 let conditions = [where("storeId", "==", storeId)];
                 if (state.loggedInUser.role === 'vendedor') {
