@@ -207,9 +207,9 @@
                         <h2 id="current-view-title" class="text-xl font-bold text-slate-900 dark:text-white"></h2>
                     </div>
                      <div class="flex items-center gap-4">
-                        <div id="store-switcher-container" class="hidden">
-                            <select id="store-switcher-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm py-1.5"></select>
-                        </div>
+                         <div id="store-switcher-container" class="hidden">
+                             <select id="store-switcher-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm py-1.5"></select>
+                         </div>
                         <button id="theme-toggle-app" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-lg text-sm p-2.5">
                            <i id="theme-icon-sun-app" data-lucide="sun" class="w-5 h-5 hidden"></i>
                            <i id="theme-icon-moon-app" data-lucide="moon" class="w-5 h-5"></i>
@@ -570,12 +570,17 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, orderBy, writeBatch, Timestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // Mantenha suas credenciais do Firebase aqui
+        // 🚨 ALERTA DE SEGURANÇA CRÍTICO 🚨
+        // As credenciais abaixo estão expostas no lado do cliente.
+        // Isso permite que qualquer pessoa com conhecimento técnico acesse e manipule seu banco de dados,
+        // resultando em possíveis vazamentos de dados e custos inesperados.
+        // A SOLUÇÃO CORRETA é implementar o Firebase Authentication e as Firestore Security Rules
+        // para proteger seus dados no servidor. NÃO USE ESTE CÓDIGO EM PRODUÇÃO SEM ISSO.
         const firebaseConfig = {
             apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
             authDomain: "pdv-vendas-8a65a.firebaseapp.com",
             projectId: "pdv-vendas-8a65a",
-            storageBucket: "pdv-vendas-8a65a.firebasestorage.app",
+            storageBucket: "pdv-vendas-8a65a.appspot.com",
             messagingSenderId: "37533259212",
             appId: "1:37533259212:web:9e79fecb52aa2b4765b969",
             measurementId: "G-7PYWX52SEG"
@@ -858,11 +863,9 @@
                 document.getElementById('username-sidebar').textContent = user.name;
                 document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
 
-                // CORREÇÃO DE ARQUITETURA: Limpa listeners antigos e inicia um listener global para usuários
                 if (state.listeners.users) state.listeners.users();
                 state.listeners.users = onSnapshot(query(collection(db, "users")), (snapshot) => {
                     state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    // Se uma view que depende da lista de usuários estiver ativa, atualize-a
                     if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes')) {
                         const activeView = document.getElementById(`${state.currentView}-view`);
                         if (activeView && activeView.classList.contains('active')) {
@@ -937,10 +940,6 @@
             };
 
             const switchView = (viewId) => {
-                // CORREÇÃO DE ARQUITETURA: Os listeners de sales e users não são mais limpos aqui.
-                // O listener de 'sales' é gerenciado pela view 'pedidos'.
-                // O listener de 'users' é global para a sessão e limpo apenas no logout.
-
                 document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
                 const activeView = document.getElementById(`${viewId}-view`);
                 if (activeView) {
@@ -1023,44 +1022,114 @@
                 }
             }
 
-
+            // CORREÇÃO DE QUALIDADE DE CÓDIGO: Função refatorada para melhor leitura
             function renderCaixa() {
-                const c=document.getElementById('caixa-view'),itemsContainer=c.querySelector('#current-order-items'),totalEl=c.querySelector('#current-order-total'),finalizeBtn=c.querySelector('#finalize-order-button'),addForm=c.querySelector('#add-item-form'),modalContainer=document.getElementById('finalize-order-modal');
-                const updateUI=()=>{itemsContainer.innerHTML='';if(state.currentOrder.length===0){itemsContainer.innerHTML='<p id="no-items-message" class="text-slate-500 dark:text-slate-400 text-center py-4">Nenhum item adicionado.</p>';finalizeBtn.disabled=true}else{state.currentOrder.forEach((item,i)=>{const el=document.createElement('div');el.className='flex justify-between items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-md';el.innerHTML=`<div><p class="font-semibold text-slate-800 dark:text-slate-200">${item.name}</p><p class="text-xs text-slate-500 dark:text-slate-400">Troca: ${item.exchange || 'N/A'}</p></div><div class="flex items-center gap-4"><span class="font-semibold text-slate-800 dark:text-slate-200">${formatCurrency(item.value)}</span><button data-index="${i}" class="remove-item-btn text-red-500 hover:text-red-700 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>`;itemsContainer.appendChild(el)});finalizeBtn.disabled=false}
-                totalEl.textContent=formatCurrency(state.currentOrder.reduce((sum,i)=>sum+i.value,0));lucide.createIcons()};
-                addForm.addEventListener('submit',e=>{e.preventDefault();state.currentOrder.push({name:c.querySelector('#item-name').value,value:parseFloat(c.querySelector('#item-value').value),exchange:c.querySelector('#item-exchange').value});updateUI();addForm.reset(); c.querySelector('#item-name').focus()});
-                itemsContainer.addEventListener('click',e=>{const b=e.target.closest('.remove-item-btn');if(b){state.currentOrder.splice(b.dataset.index,1);updateUI()}});
-                finalizeBtn.addEventListener('click',()=>{modalContainer.classList.remove('hidden');modalContainer.innerHTML=`<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><h2 class="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Finalizar Pedido</h2><form id="finalize-order-form" class="space-y-4"><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></div><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700" placeholder="Ex: 11987654321"></div><div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Forma de Pagamento</label><select id="payment-method" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div><div class="pt-4 flex justify-end gap-4"><button type="button" id="cancel-finalize-button" class="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 py-2 px-4 rounded-md">Cancelar</button><button type="submit" class="bg-primary-600 text-white py-2 px-4 rounded-md">Confirmar Venda</button></div></form></div>`;
-                modalContainer.querySelector('#cancel-finalize-button').addEventListener('click',()=>modalContainer.classList.add('hidden'));
-                modalContainer.querySelector('#finalize-order-form').addEventListener('submit',async e=>{
-                    e.preventDefault();
-                    const total=state.currentOrder.reduce((s,i)=>s+i.value,0);
-                    let bonus = 0;
-                    const bonusConfig = state.db.settings.bonusSystem;
-                    if(bonusConfig && bonusConfig.enabled && bonusConfig.value > 0) {
-                        bonus = Math.floor(total / bonusConfig.value) * 2;
+                const view = document.getElementById('caixa-view');
+                const itemsContainer = view.querySelector('#current-order-items');
+                const totalEl = view.querySelector('#current-order-total');
+                const finalizeBtn = view.querySelector('#finalize-order-button');
+                const addForm = view.querySelector('#add-item-form');
+                const modalContainer = document.getElementById('finalize-order-modal');
+
+                const updateUI = () => {
+                    itemsContainer.innerHTML = '';
+                    if (state.currentOrder.length === 0) {
+                        itemsContainer.innerHTML = '<p id="no-items-message" class="text-slate-500 dark:text-slate-400 text-center py-4">Nenhum item adicionado.</p>';
+                        finalizeBtn.disabled = true;
+                    } else {
+                        state.currentOrder.forEach((item, i) => {
+                            const el = document.createElement('div');
+                            el.className = 'flex justify-between items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-md';
+                            el.innerHTML = `
+                                <div>
+                                    <p class="font-semibold text-slate-800 dark:text-slate-200">${item.name}</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Troca: ${item.exchange || 'N/A'}</p>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <span class="font-semibold text-slate-800 dark:text-slate-200">${formatCurrency(item.value)}</span>
+                                    <button data-index="${i}" class="remove-item-btn text-red-500 hover:text-red-700 transition-colors">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>`;
+                            itemsContainer.appendChild(el);
+                        });
+                        finalizeBtn.disabled = false;
                     }
-                    const saleData={
-                        clientName:modalContainer.querySelector('#client-name').value,
-                        clientPhone:modalContainer.querySelector('#client-phone').value,
-                        paymentMethod:modalContainer.querySelector('#payment-method').value,
-                        items:state.currentOrder, 
-                        total:total,
-                        bonus: bonus,
-                        date: Timestamp.now(), 
-                        vendedor:state.loggedInUser.name,
-                        status:'Finalizado',
-                        storeId: state.selectedStore.id
-                    };
-                    try {
-                        await addDoc(collection(db, "sales"), saleData);
-                        showToast('Venda registrada com sucesso!', 'success');
-                        modalContainer.classList.add('hidden');
-                        showWhatsAppModal(saleData);
-                        state.currentOrder=[];
+                    totalEl.textContent = formatCurrency(state.currentOrder.reduce((sum, i) => sum + i.value, 0));
+                    lucide.createIcons();
+                };
+
+                addForm.addEventListener('submit', e => {
+                    e.preventDefault();
+                    state.currentOrder.push({
+                        name: view.querySelector('#item-name').value,
+                        value: parseFloat(view.querySelector('#item-value').value),
+                        exchange: view.querySelector('#item-exchange').value
+                    });
+                    updateUI();
+                    addForm.reset();
+                    view.querySelector('#item-name').focus();
+                });
+
+                itemsContainer.addEventListener('click', e => {
+                    const b = e.target.closest('.remove-item-btn');
+                    if (b) {
+                        state.currentOrder.splice(b.dataset.index, 1);
                         updateUI();
-                    } catch (error) { showToast('Erro ao registrar a venda.', 'error'); console.error(error); }
-                })});
+                    }
+                });
+
+                finalizeBtn.addEventListener('click', () => {
+                    modalContainer.classList.remove('hidden');
+                    modalContainer.innerHTML = `
+                        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in">
+                            <h2 class="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Finalizar Pedido</h2>
+                            <form id="finalize-order-form" class="space-y-4">
+                                <div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></div>
+                                <div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700" placeholder="Ex: 11987654321"></div>
+                                <div><label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Forma de Pagamento</label><select id="payment-method" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div>
+                                <div class="pt-4 flex justify-end gap-4">
+                                    <button type="button" id="cancel-finalize-button" class="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 py-2 px-4 rounded-md">Cancelar</button>
+                                    <button type="submit" class="bg-primary-600 text-white py-2 px-4 rounded-md">Confirmar Venda</button>
+                                </div>
+                            </form>
+                        </div>`;
+                    
+                    modalContainer.querySelector('#cancel-finalize-button').addEventListener('click', () => modalContainer.classList.add('hidden'));
+                    
+                    modalContainer.querySelector('#finalize-order-form').addEventListener('submit', async e => {
+                        e.preventDefault();
+                        const total = state.currentOrder.reduce((s, i) => s + i.value, 0);
+                        let bonus = 0;
+                        const bonusConfig = state.db.settings.bonusSystem;
+                        if (bonusConfig && bonusConfig.enabled && bonusConfig.value > 0) {
+                            bonus = Math.floor(total / bonusConfig.value) * 2;
+                        }
+                        const saleData = {
+                            clientName: modalContainer.querySelector('#client-name').value,
+                            clientPhone: modalContainer.querySelector('#client-phone').value,
+                            paymentMethod: modalContainer.querySelector('#payment-method').value,
+                            items: state.currentOrder,
+                            total: total,
+                            bonus: bonus,
+                            date: Timestamp.now(),
+                            vendedor: state.loggedInUser.name,
+                            status: 'Finalizado',
+                            storeId: state.selectedStore.id
+                        };
+                        try {
+                            await addDoc(collection(db, "sales"), saleData);
+                            showToast('Venda registrada com sucesso!', 'success');
+                            modalContainer.classList.add('hidden');
+                            showWhatsAppModal(saleData);
+                            state.currentOrder = [];
+                            updateUI();
+                        } catch (error) {
+                            showToast('Erro ao registrar a venda.', 'error');
+                            console.error(error);
+                        }
+                    });
+                });
                 updateUI();
             }
 
@@ -1068,7 +1137,6 @@
                 const c = document.getElementById('pedidos-view');
                 const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
 
-                // Setup da UI (filtros, etc.)
                 if (isGerente) {
                     c.querySelector('#vendedor-pedidos-dashboard')?.classList.add('hidden');
                     c.querySelector('#gerente-vendedor-filter-container').classList.remove('hidden');
@@ -1097,10 +1165,8 @@
                     const tbody = c.querySelector('#orders-table-body');
                     tbody.innerHTML = '';
                     if (!sales || sales.length === 0) {
-                        c.querySelector('#no-orders-found').style.display = 'table-row';
                         tbody.innerHTML = '<tr><td colspan="10" class="text-center p-8 text-slate-500">Nenhum pedido encontrado.</td></tr>';
                     } else {
-                        c.querySelector('#no-orders-found').style.display = 'none';
                         sales.forEach(s => {
                             const r = document.createElement('tr');
                             r.className = 'bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600';
@@ -1118,9 +1184,8 @@
                     }
                 };
                 
-                // OTIMIZAÇÃO: Nova função para buscar dados com filtros no servidor
                 const applyFiltersAndFetchSales = () => {
-                    if (state.listeners.sales) state.listeners.sales(); // Limpa listener antigo
+                    if (state.listeners.sales) state.listeners.sales(); 
 
                     const dateFilter = c.querySelector('#filter-date').value;
                     const paymentFilter = c.querySelector('#filter-payment').value;
@@ -1159,16 +1224,14 @@
                         }
                     }, (error) => {
                         console.error("Erro ao buscar pedidos: ", error);
-                        const tbody = c.querySelector('#orders-table-body');
-                        tbody.innerHTML = `<tr><td colspan="10" class="text-center p-8 text-red-500"><b>Erro ao carregar pedidos.</b><br><span class="text-xs">Pode ser necessário criar um índice no Firestore. Verifique o console de depuração para um link de criação.</span></td></tr>`;
+                        c.querySelector('#orders-table-body').innerHTML = `<tr><td colspan="10" class="text-center p-8 text-red-500"><b>Erro ao carregar pedidos.</b><br><span class="text-xs">Pode ser necessário criar um índice no Firestore. Verifique o console de depuração para um link de criação.</span></td></tr>`;
                     });
                 };
 
-                // Listeners para os novos filtros e carga inicial
                 c.querySelector('#filter-form').addEventListener('submit', e => { e.preventDefault(); applyFiltersAndFetchSales(); });
                 c.querySelector('#filter-form').addEventListener('reset', () => { setTimeout(applyFiltersAndFetchSales, 0); });
                 
-                applyFiltersAndFetchSales(); // Carga inicial dos dados
+                applyFiltersAndFetchSales();
 
                 c.querySelector('#orders-table-body').addEventListener('click', e => {
                     const b = e.target.closest('.view-details-btn');
@@ -1309,18 +1372,19 @@
                 const handleExport = async (startDate, endDate, filename) => {
                     const selectedVendedor = exportVendedorSelect.value;
                     try {
-                        const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-                        const salesSnapshot = await getDocs(q);
-                        let salesData = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                        let salesToExport = salesData.filter(sale => {
-                            const saleDate = sale.date.toDate();
-                            return saleDate >= startDate && saleDate <= endDate;
-                        });
+                        let conditions = [
+                            where("storeId", "==", state.selectedStore.id),
+                            where("date", ">=", startDate),
+                            where("date", "<=", endDate)
+                        ];
 
                         if (selectedVendedor !== 'Todos') {
-                            salesToExport = salesToExport.filter(sale => sale.vendedor === selectedVendedor);
+                            conditions.push(where("vendedor", "==", selectedVendedor));
                         }
+                        
+                        const finalQuery = query(collection(db, "sales"), ...conditions);
+                        const salesSnapshot = await getDocs(finalQuery);
+                        const salesToExport = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
                         exportToCSV(salesToExport, filename);
                     } catch (error) {
@@ -1400,8 +1464,6 @@
                     lucide.createIcons();
                 };
                 
-                // CORREÇÃO DE ARQUITETURA: A lista de usuários é atualizada pelo listener global.
-                // Apenas chamamos a função para renderizar a lista com os dados já presentes no `state`.
                 updateUsersList();
 
                 c.querySelector('#add-user-form').addEventListener('submit',async e=>{
@@ -1528,7 +1590,7 @@
                         lucide.createIcons();
                     };
 
-                    renderStoresList(); // A lista de lojas é atualizada pelo listener global em `initializeAppUI`
+                    renderStoresList();
 
                     storesListEl.addEventListener('click', (e) => {
                         const removeBtn = e.target.closest('.remove-store-btn');
@@ -1707,3 +1769,4 @@
 </body>
 
 </html>
+
