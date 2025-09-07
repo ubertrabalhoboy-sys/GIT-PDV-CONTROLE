@@ -9,7 +9,6 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -174,7 +173,6 @@
 
 <body class="text-slate-800 dark:text-slate-200">
 
-    <!-- Tela de Login -->
     <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-sm mx-auto">
               <div class="absolute top-5 right-5">
@@ -190,26 +188,22 @@
                 </div>
                 <h1 id="login-store-name" class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sistema de Vendas</h1>
 
-                <!-- First Run View -->
                 <div id="first-run-view" class="hidden text-left">
                      <p class="text-slate-600 dark:text-slate-400 mb-6 text-center">Configurando o sistema pela primeira vez...</p>
                      <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary mx-auto"></div>
                 </div>
 
-                <!-- Store Selection -->
                 <div id="store-selection-view" class="hidden">
                      <p class="text-slate-600 dark:text-slate-400 mb-8">Selecione a sua loja</p>
                      <div id="store-list" class="space-y-2"></div>
                 </div>
 
-                <!-- User Selection -->
                 <div id="user-selection-view" class="hidden">
                     <p class="text-slate-600 dark:text-slate-400 mb-8">Quem está acessando?</p>
                     <div id="user-list" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
                     <button id="back-to-stores" class="mt-6 text-sm text-slate-500 hover:text-brand-primary">Voltar para seleção de lojas</button>
                 </div>
 
-                <!-- Password View -->
                 <div id="password-view" class="hidden">
                     <div id="selected-user-info" class="mb-4"></div>
                     <form id="password-form">
@@ -226,7 +220,6 @@
     </div>
 
 
-    <!-- App Principal -->
     <div id="app" class="hidden">
         <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-dark-card border-r border-slate-800">
             <div class="h-full px-3 py-4 overflow-y-auto">
@@ -253,7 +246,7 @@
                     </div>
                      <div class="flex items-center gap-4">
                          <div id="store-switcher-container" class="hidden">
-                             <select id="store-switcher-select" class="block w-full rounded-md border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 text-sm py-1.5"></select>
+                              <select id="store-switcher-select" class="block w-full rounded-md border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 text-sm py-1.5"></select>
                          </div>
                         <button id="theme-toggle-app" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 focus:outline-none rounded-lg text-sm p-2.5">
                            <i id="theme-icon-sun-app" data-lucide="sun" class="w-5 h-5 hidden"></i>
@@ -266,7 +259,7 @@
             <main class="p-4 md:p-6">
                 <div id="caixa-view" class="view"></div>
                 <div id="pedidos-view" class="view"></div>
-                <div id="clientes-view" class="view"></div>
+                <div id="produtos-view" class="view"></div>
                 <div id="metas-view" class="view"></div>
                 <div id="ranking-view" class="view"></div>
                 <div id="relatorios-view" class="view"></div>
@@ -275,13 +268,11 @@
         </div>
     </div>
     
-    <!-- Modals -->
     <div id="finalize-order-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="order-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="whatsapp-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="bonus-wheel-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="prize-won-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
-    <div id="client-history-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Confirmação</h3>
@@ -293,12 +284,16 @@
         </div>
     </div>
 
-    <!-- Templates -->
     <script type="text/html" id="caixa-template">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="custom-card p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Registar Item</h3>
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Registrar Item</h3>
                 <form id="add-item-form" class="space-y-4">
+                    <div class="relative">
+                        <label for="product-search" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Procurar Produto</label>
+                        <input type="text" id="product-search" autocomplete="off" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary" placeholder="Digite para buscar no estoque...">
+                        <div id="product-search-results" class="absolute z-10 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                    </div>
                     <div><label for="item-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Item</label><input type="text" id="item-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary"></div>
                     <div><label for="item-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor (R$)</label><input type="number" id="item-value" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary"></div>
                     <div>
@@ -327,6 +322,54 @@
         </div>
     </script>
 
+    <script type="text/html" id="produtos-template">
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Produto</h3>
+                        <form id="add-product-form" class="space-y-4">
+                            <div>
+                                <label for="product-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Produto</label>
+                                <input type="text" id="product-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                            </div>
+                            <div>
+                                <label for="product-price" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Preço (R$)</label>
+                                <input type="number" id="product-price" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                            </div>
+                            <div>
+                                <label for="product-quantity" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Quantidade em Estoque</label>
+                                <input type="number" id="product-quantity" step="1" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                            </div>
+                            <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="plus-circle" class="w-5 h-5"></i>Adicionar Produto
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="lg:col-span-2">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Produtos Cadastrados</h3>
+                        <div class="relative overflow-x-auto">
+                            <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                                <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">Produto</th>
+                                        <th scope="col" class="px-6 py-3 text-center">Estoque</th>
+                                        <th scope="col" class="px-6 py-3 text-right">Preço</th>
+                                        <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table-body">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </script>
+    
     <script type="text/html" id="pedidos-template">
          <div class="space-y-6">
             <div id="vendedor-pedidos-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -344,7 +387,7 @@
                       <div>
                           <label for="filter-payment" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Pagamento</label>
                           <select id="filter-payment" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                              <option>Todos</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option>
+                               <option>Todos</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option>
                           </select>
                       </div>
                       <div id="gerente-vendedor-filter-container" class="hidden">
@@ -375,52 +418,11 @@
         </div>
     </script>
     
-    <!-- NOVO: Template para a página de Clientes -->
-    <script type="text/html" id="clientes-template">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-1">
-                <div class="custom-card p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Cliente</h3>
-                    <form id="add-client-form" class="space-y-4">
-                        <div>
-                            <label for="client-name-input" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome Completo</label>
-                            <input type="text" id="client-name-input" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
-                        </div>
-                        <div>
-                            <label for="client-phone-input" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label>
-                            <input type="tel" id="client-phone-input" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
-                        </div>
-                        <div>
-                            <label for="client-email-input" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Email</label>
-                            <input type="email" id="client-email-input" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
-                        </div>
-                        <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                            <i data-lucide="user-plus" class="w-5 h-5"></i>Adicionar Cliente
-                        </button>
-                    </form>
-                </div>
-            </div>
-            <div class="lg:col-span-2">
-                <div class="custom-card p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Clientes Registados</h3>
-                     <div class="mb-4">
-                         <label for="search-client-input" class="sr-only">Procurar Cliente</label>
-                         <input type="search" id="search-client-input" placeholder="Procurar por nome ou telefone..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
-                    </div>
-                    <div id="clients-list-container" class="space-y-2 max-h-96 overflow-y-auto">
-                        <!-- A lista de clientes será renderizada aqui -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </script>
-    
     <script type="text/html" id="metas-template">
         <div class="space-y-6">
             <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Meu Progresso</h3>
                 <div class="space-y-4">
-                    <!-- Meta Diária -->
                     <div>
                         <div class="flex justify-between mb-1">
                             <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Diária</span>
@@ -430,7 +432,6 @@
                             <div id="progresso-diario-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
                         </div>
                     </div>
-                    <!-- Meta Semanal -->
                     <div>
                         <div class="flex justify-between mb-1">
                             <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Semanal</span>
@@ -440,7 +441,6 @@
                             <div id="progresso-semanal-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
                         </div>
                     </div>
-                    <!-- Meta Mensal -->
                     <div>
                         <div class="flex justify-between mb-1">
                             <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Mensal</span>
@@ -484,13 +484,11 @@
             </div>
     
             <div id="ranking-podium-container" class="min-h-[350px]">
-                <!-- O pódio será renderizado aqui -->
-            </div>
+                </div>
     
             <div class="custom-card p-4 rounded-lg shadow-md">
                 <div id="ranking-list-container">
-                    <!-- A lista de outros vendedores será renderizada aqui -->
-                </div>
+                    </div>
             </div>
         </div>
     </script>
@@ -511,18 +509,18 @@
              </div>
 
              <div id="ai-analysis-section" class="hidden custom-card p-6 rounded-lg shadow-md">
-                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">Análise de Desempenho com IA <span class="text-xs bg-brand-primary/20 text-brand-primary dark:bg-brand-primary/20 dark:text-blue-300 px-2 py-0.5 rounded-full">NOVO</span></h3>
-                 </div>
-                 <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
-                    <button id="generate-ai-analysis-btn" class="w-full sm:w-auto bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                         <i data-lucide="sparkles" class="w-4 h-4"></i>
-                         Gerar Análise com IA
-                    </button>
-                    <div id="ai-analysis-result-container" class="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-2 prose dark:prose-invert max-w-none">
-                         <p class="text-slate-500 dark:text-slate-400">Clique no botão para gerar uma análise inteligente dos dados de vendas do período selecionado.</p>
-                    </div>
-                 </div>
+                  <div class="flex justify-between items-center mb-4">
+                      <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">Análise de Desempenho com IA <span class="text-xs bg-brand-primary/20 text-brand-primary dark:bg-brand-primary/20 dark:text-blue-300 px-2 py-0.5 rounded-full">NOVO</span></h3>
+                  </div>
+                  <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
+                      <button id="generate-ai-analysis-btn" class="w-full sm:w-auto bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                           <i data-lucide="sparkles" class="w-4 h-4"></i>
+                           Gerar Análise com IA
+                      </button>
+                      <div id="ai-analysis-result-container" class="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-2 prose dark:prose-invert max-w-none">
+                           <p class="text-slate-500 dark:text-slate-400">Clique no botão para gerar uma análise inteligente dos dados de vendas do período selecionado.</p>
+                      </div>
+                  </div>
              </div>
 
              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -543,16 +541,16 @@
             <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Painel Administrativo</h3>
                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
-                     <div>
-                         <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Configurações da Loja</h4>
-                         <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Loja</label>
-                         <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                         <button id="save-settings-button" class="mt-2 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Nome</button>
-                     </div>
                       <div>
-                         <h4 class="text-md font-semibold text-red-600 dark:text-red-500 mb-2">Zona de Perigo</h4>
-                         <p class="text-xs text-slate-500 mb-2">Esta ação não pode ser desfeita e removerá permanentemente todas as vendas do sistema.</p>
-                         <button id="delete-all-sales-button" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm">Zerar Todas as Vendas</button>
+                          <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Configurações da Loja</h4>
+                          <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Loja</label>
+                          <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                          <button id="save-settings-button" class="mt-2 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Nome</button>
+                      </div>
+                      <div>
+                          <h4 class="text-md font-semibold text-red-600 dark:text-red-500 mb-2">Zona de Perigo</h4>
+                          <p class="text-xs text-slate-500 mb-2">Esta ação não pode ser desfeita e removerá permanentemente todas as vendas do sistema.</p>
+                          <button id="delete-all-sales-button" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm">Zerar Todas as Vendas</button>
                       </div>
                  </div>
             </div>
@@ -584,50 +582,50 @@
                             <input type="number" id="bonus-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                         </div>
                     </div>
-                     <button id="save-goals-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Metas e Bônus</button>
+                    <button id="save-goals-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Metas e Bônus</button>
                 </div>
             </div>
 
              <div class="custom-card p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Configurar Roleta de Prêmios</h3>
-                <div class="space-y-4">
-                     <div class="flex items-center">
-                         <input id="enable-bonus-wheel" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
-                         <label for="enable-bonus-wheel" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar roleta de prêmios após a venda</label>
-                    </div>
+                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Configurar Roleta de Prêmios</h3>
+                 <div class="space-y-4">
+                      <div class="flex items-center">
+                          <input id="enable-bonus-wheel" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
+                          <label for="enable-bonus-wheel" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar roleta de prêmios após a venda</label>
+                      </div>
 
-                    <div id="bonus-wheel-config-container" class="hidden">
-                        <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
-                            <div>
-                                <label for="bonus-wheel-min-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor Mínimo da Compra para Girar (R$)</label>
-                                <input type="number" id="bonus-wheel-min-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4 mt-4">
-                            <div>
-                                <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Adicionar Prêmio</h4>
-                                <form id="add-prize-form" class="space-y-4">
-                                    <div>
-                                        <label for="prize-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Prêmio</label>
-                                        <input type="text" id="prize-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                                    </div>
-                                    <div>
-                                        <label for="prize-probability" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Chance de Sair (%)</label>
-                                        <input type="number" id="prize-probability" min="1" max="100" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                                    </div>
-                                    <button type="submit" class="w-full bg-brand-secondary text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">Adicionar Prêmio</button>
-                                </form>
-                            </div>
-                             <div>
-                                <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Prêmios Atuais</h4>
-                                <p class="text-xs text-slate-500 mb-2">Probabilidade Total: <span id="total-probability">0%</span></p>
-                                <ul id="prizes-list" class="space-y-2 max-h-48 overflow-y-auto"></ul>
-                            </div>
-                        </div>
-                         <button id="save-wheel-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Configurações da Roleta</button>
-                    </div>
-                </div>
-            </div>
+                      <div id="bonus-wheel-config-container" class="hidden">
+                          <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
+                              <div>
+                                  <label for="bonus-wheel-min-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor Mínimo da Compra para Girar (R$)</label>
+                                  <input type="number" id="bonus-wheel-min-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                              </div>
+                          </div>
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4 mt-4">
+                              <div>
+                                  <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Adicionar Prêmio</h4>
+                                  <form id="add-prize-form" class="space-y-4">
+                                      <div>
+                                          <label for="prize-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Prêmio</label>
+                                          <input type="text" id="prize-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                      </div>
+                                      <div>
+                                          <label for="prize-probability" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Chance de Sair (%)</label>
+                                          <input type="number" id="prize-probability" min="1" max="100" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                      </div>
+                                      <button type="submit" class="w-full bg-brand-secondary text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">Adicionar Prêmio</button>
+                                  </form>
+                              </div>
+                               <div>
+                                  <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Prêmios Atuais</h4>
+                                  <p class="text-xs text-slate-500 mb-2">Probabilidade Total: <span id="total-probability">0%</span></p>
+                                  <ul id="prizes-list" class="space-y-2 max-h-48 overflow-y-auto"></ul>
+                              </div>
+                          </div>
+                           <button id="save-wheel-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Configurações da Roleta</button>
+                      </div>
+                 </div>
+             </div>
             
             <div id="manage-stores-section" class="hidden custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Lojas</h3>
@@ -705,9 +703,8 @@
             </div>
         </div>
     </script>
-    
-    <!-- Lógica da Aplicação -->
-    <!-- O script é carregado como um módulo, o que também adia sua execução (similar ao 'defer'). As importações do Firebase são tratadas dentro do próprio script. -->
-    <script src="script.js" type="module"></script>
+
+    <script type="module" src="script.js"></script>
+
 </body>
 </html>
