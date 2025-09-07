@@ -327,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const initializeAppUI = () => {
         const user = state.loggedInUser;
         const store = state.selectedStore;
- console.log("Usuário logado para montar UI:", state.loggedInUser);
+        console.log("Usuário logado para montar UI:", state.loggedInUser);
         if (!user || !user.role) {
             console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida. Fazendo logout forçado.");
             showToast("Erro de autenticação, por favor faça login novamente.", "error");
@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-        
+
         if (state.listeners.products) state.listeners.products();
         const productsQuery = query(collection(db, "products"), where("storeId", "==", store.id));
         state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
@@ -417,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 // NOVO: Recarrega clientes ao trocar de loja
                 if (state.listeners.clients) state.listeners.clients();
-                 state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
+                state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 });
                 switchView(state.currentView);
@@ -438,14 +438,14 @@ document.addEventListener('DOMContentLoaded', () => {
             switchView('caixa');
         } else {
             // CORREÇÃO: Adicionada a opção "Produtos" de volta ao menu de Gerente/Super Admin
-            const managerMenuHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
-                                  createMenuItem('clientes', 'users', 'Clientes') + 
-                                  createMenuItem('produtos', 'package', 'Produtos') + 
-                                  createMenuItem('ranking', 'trophy', 'Ranking') + 
-                                  createMenuItem('relatorios', 'area-chart', 'Relatórios') + 
-                                  createMenuItem('configuracoes', 'settings', 'Configurações') + 
-                                  createLogoutItem();
-            
+            const managerMenuHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') +
+                createMenuItem('clientes', 'users', 'Clientes') +
+                createMenuItem('produtos', 'package', 'Produtos') +
+                createMenuItem('ranking', 'trophy', 'Ranking') +
+                createMenuItem('relatorios', 'area-chart', 'Relatórios') +
+                createMenuItem('configuracoes', 'settings', 'Configurações') +
+                createLogoutItem();
+
             gM.innerHTML = managerMenuHTML;
             gM.classList.remove('hidden'); vM.classList.add('hidden');
             switchView('pedidos');
@@ -574,14 +574,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const spinBtn = modal.querySelector('#spin-wheel-btn');
         const wheel = modal.querySelector('.wheel');
         let isSpinning = false;
-        
+
         spinBtn.addEventListener('click', async () => {
             if (isSpinning) return;
             isSpinning = true;
             spinBtn.disabled = true;
             spinBtn.textContent = 'GIRANDO...';
 
-            await window.Tone.start(); 
+            await window.Tone.start();
             const synth = new window.Tone.Synth().toDestination();
             const notes = ["C4", "D4", "E4", "G4", "A4", "G4", "E4", "D4"];
             let noteIndex = 0;
@@ -707,15 +707,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // ALTERADO: Função `renderCaixa` atualizada para o sistema híbrido
     function renderCaixa() {
         const view = document.getElementById('caixa-view');
-        const itemsContainer = view.querySelector('#current-order-items');
+        let itemsContainer = view.querySelector('#current-order-items');
         const totalEl = view.querySelector('#current-order-total');
-        const finalizeBtn = view.querySelector('#finalize-order-button');
-        const addForm = view.querySelector('#add-item-form');
+        let finalizeBtn = view.querySelector('#finalize-order-button');
+        let addForm = view.querySelector('#add-item-form');
         const modalContainer = document.getElementById('finalize-order-modal');
-        
+
         // NOVO: Seletores e estado para a busca de produtos
-        const productSearchInput = view.querySelector('#product-search');
-        const searchResultsContainer = view.querySelector('#product-search-results');
+        let productSearchInput = view.querySelector('#product-search');
+        let searchResultsContainer = view.querySelector('#product-search-results');
         let selectedProduct = null;
 
         const updateUI = () => {
@@ -727,24 +727,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.currentOrder.forEach((item, i) => {
                     const el = document.createElement('div');
                     el.className = 'flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-3 rounded-md';
-                    
+
                     // NOVO: Ícone para indicar se o item é do estoque
                     const stockIcon = item.productId ? `<i data-lucide="package" class="w-4 h-4 text-slate-500 mr-2" title="Item do Estoque"></i>` : '';
 
                     el.innerHTML = `
-                        <div class="flex items-center">
-                            ${stockIcon}
-                            <div>
-                                <p class="font-semibold text-slate-800 dark:text-slate-200">${item.name}</p>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Troca: ${item.exchange || 'N/A'}</p>
+                            <div class="flex items-center">
+                                ${stockIcon}
+                                <div>
+                                    <p class="font-semibold text-slate-800 dark:text-slate-200">${item.name}</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Troca: ${item.exchange || 'N/A'}</p>
+                                </div>
                             </div>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="font-semibold text-slate-800 dark:text-slate-200">${formatCurrency(item.value)}</span>
-                            <button data-index="${i}" class="remove-item-btn text-red-500 hover:text-red-700 transition-colors">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </div>`;
+                            <div class="flex items-center gap-4">
+                                <span class="font-semibold text-slate-800 dark:text-slate-200">${formatCurrency(item.value)}</span>
+                                <button data-index="${i}" class="remove-item-btn text-red-500 hover:text-red-700 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>`;
                     itemsContainer.appendChild(el);
                 });
                 finalizeBtn.disabled = false;
@@ -753,15 +753,28 @@ document.addEventListener('DOMContentLoaded', () => {
             window.lucide.createIcons();
         };
 
+        // ****** INÍCIO DA CORREÇÃO 1: Limpeza de Eventos ******
+        const cleanAndClone = (el) => {
+            const newEl = el.cloneNode(true);
+            el.parentNode.replaceChild(newEl, el);
+            return newEl;
+        };
+        addForm = cleanAndClone(addForm);
+        itemsContainer = cleanAndClone(itemsContainer);
+        productSearchInput = cleanAndClone(productSearchInput);
+        searchResultsContainer = cleanAndClone(searchResultsContainer);
+        finalizeBtn = cleanAndClone(finalizeBtn);
+        // ****** FIM DA CORREÇÃO 1 ******
+
         addForm.addEventListener('submit', e => {
             e.preventDefault();
-            
+
             const newItem = {
                 name: view.querySelector('#item-name').value,
                 value: parseFloat(view.querySelector('#item-value').value),
                 exchange: view.querySelector('#item-exchange').value
             };
-            
+
             // NOVO: Associa o ID do produto ao item do pedido se ele foi selecionado da busca
             if (selectedProduct) {
                 newItem.productId = selectedProduct.id;
@@ -782,7 +795,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateUI();
             }
         });
-        
+
         // NOVO: Lógica de busca de produtos
         productSearchInput.addEventListener('input', () => {
             const searchTerm = productSearchInput.value.toLowerCase();
@@ -792,7 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const results = state.db.products.filter(p => 
+            const results = state.db.products.filter(p =>
                 p.name.toLowerCase().includes(searchTerm) && p.quantity > 0
             );
 
@@ -840,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="relative">
                             <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Buscar Cliente</label>
                             <input type="text" id="sale-client-search" autocomplete="off" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Digite nome ou telefone...">
-                             <div id="sale-client-search-results" class="absolute z-20 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md mt-1 shadow-lg max-h-40 overflow-y-auto hidden"></div>
+                                <div id="sale-client-search-results" class="absolute z-20 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md mt-1 shadow-lg max-h-40 overflow-y-auto hidden"></div>
                         </div>
                         <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente (para a venda)</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></div>
                         <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Ex: 11987654321"></div>
@@ -876,13 +889,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </form>
                 </div>`;
-            
+
             let selectedClient = null; // Estado para o cliente selecionado na venda
             const clientSearchInput = modalContainer.querySelector('#sale-client-search');
             const clientSearchResults = modalContainer.querySelector('#sale-client-search-results');
             const clientNameInput = modalContainer.querySelector('#client-name');
             const clientPhoneInput = modalContainer.querySelector('#client-phone');
-            
+
             clientSearchInput.addEventListener('input', () => {
                 const term = clientSearchInput.value.toLowerCase();
                 if (term.length < 2) {
@@ -890,13 +903,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 const results = state.db.clients.filter(c => c.name.toLowerCase().includes(term) || (c.phone && c.phone.includes(term)));
-                if(results.length > 0) {
+                if (results.length > 0) {
                     clientSearchResults.innerHTML = results.map(c => `
-                        <div class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer" data-client-id="${c.id}">
-                            <p class="text-sm font-medium">${c.name}</p>
-                            <p class="text-xs text-slate-500">${c.phone || 'Sem telefone'}</p>
-                        </div>
-                    `).join('');
+                            <div class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer" data-client-id="${c.id}">
+                                <p class="text-sm font-medium">${c.name}</p>
+                                <p class="text-xs text-slate-500">${c.phone || 'Sem telefone'}</p>
+                            </div>
+                        `).join('');
                     clientSearchResults.classList.remove('hidden');
                 } else {
                     clientSearchResults.classList.add('hidden');
@@ -905,9 +918,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             clientSearchResults.addEventListener('click', e => {
                 const clientDiv = e.target.closest('[data-client-id]');
-                if(clientDiv) {
+                if (clientDiv) {
                     selectedClient = state.db.clients.find(c => c.id === clientDiv.dataset.clientId);
-                    if(selectedClient){
+                    if (selectedClient) {
                         clientNameInput.value = selectedClient.name;
                         clientPhoneInput.value = selectedClient.phone || '';
                     }
@@ -1007,19 +1020,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     // ALTERADO: Uso do `writeBatch` para garantir atomicidade (venda + baixa de estoque)
                     const batch = writeBatch(db);
                     const itemsToDecrement = state.currentOrder.filter(item => item.productId);
-                    
+
                     itemsToDecrement.forEach(item => {
                         const productRef = doc(db, "products", item.productId);
                         batch.update(productRef, { quantity: increment(-1) });
                     });
-                    
+
                     const newSaleRef = doc(collection(db, "sales"));
                     batch.set(newSaleRef, saleData);
-                    
+
                     await batch.commit();
 
                     saleData.id = newSaleRef.id;
-                    
+
                     showToast('Venda registrada e estoque atualizado!', 'success');
                     modalContainer.classList.add('hidden');
 
@@ -1040,13 +1053,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         updateUI();
     }
-    
+
     // NOVO: Função inteira para renderizar a tela de Clientes
     function renderClientes() {
         const view = document.getElementById('clientes-view');
-        const form = view.querySelector('#add-client-form');
-        const tableBody = view.querySelector('#clients-table-body');
-        const searchInput = view.querySelector('#client-search');
+        let form = view.querySelector('#add-client-form');
+        let tableBody = view.querySelector('#clients-table-body');
+        let searchInput = view.querySelector('#client-search');
         let currentEditingId = null;
 
         const resetForm = () => {
@@ -1085,10 +1098,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             window.lucide.createIcons();
         };
+        
+        // ****** INÍCIO DA CORREÇÃO 2: Limpeza de Eventos ******
+        const cleanAndClone = (el) => {
+            const newEl = el.cloneNode(true);
+            el.parentNode.replaceChild(newEl, el);
+            return newEl;
+        };
+        form = cleanAndClone(form);
+        tableBody = cleanAndClone(tableBody);
+        searchInput = cleanAndClone(searchInput);
+        // ****** FIM DA CORREÇÃO 2 ******
 
         searchInput.addEventListener('input', () => {
             const term = searchInput.value.toLowerCase();
-            const filteredClients = state.db.clients.filter(c => 
+            const filteredClients = state.db.clients.filter(c =>
                 c.name.toLowerCase().includes(term) || (c.phone && c.phone.includes(term))
             );
             renderClientsTable(filteredClients);
@@ -1118,13 +1142,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Erro ao salvar cliente.', 'error');
             }
         });
-        
+
         form.addEventListener('reset', () => setTimeout(resetForm, 0));
 
         tableBody.addEventListener('click', async (e) => {
             const btn = e.target.closest('button');
             if (!btn) return;
-            
+
             const clientId = btn.dataset.clientId;
 
             if (btn.classList.contains('remove-client-btn')) {
@@ -1136,7 +1160,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             } else if (btn.classList.contains('edit-client-btn')) {
                 const client = state.db.clients.find(c => c.id === clientId);
-                if(client) {
+                if (client) {
                     currentEditingId = client.id;
                     view.querySelector('#client-form-id').value = client.id;
                     view.querySelector('#client-form-name').value = client.name;
@@ -1149,32 +1173,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     view.querySelector('#client-form-name').focus();
                 }
             } else if (btn.classList.contains('view-client-btn')) {
-                 const client = state.db.clients.find(c => c.id === clientId);
-                 const salesQuery = query(collection(db, "sales"), where("clientId", "==", clientId));
-                 const salesSnapshot = await getDocs(salesQuery);
-                 const clientSales = salesSnapshot.docs.map(doc => doc.data());
+                const client = state.db.clients.find(c => c.id === clientId);
+                const salesQuery = query(collection(db, "sales"), where("clientId", "==", clientId));
+                const salesSnapshot = await getDocs(salesQuery);
+                const clientSales = salesSnapshot.docs.map(doc => doc.data());
 
-                 const modal = document.getElementById('client-details-modal');
-                 modal.classList.remove('hidden');
+                const modal = document.getElementById('client-details-modal');
+                modal.classList.remove('hidden');
 
-                 const totalSpent = clientSales.reduce((acc, sale) => acc + sale.total, 0);
+                const totalSpent = clientSales.reduce((acc, sale) => acc + sale.total, 0);
 
-                 let salesHTML = '<p class="text-sm text-slate-500">Nenhuma compra registrada.</p>';
-                 if (clientSales.length > 0) {
-                     salesHTML = `<ul class="space-y-2 text-sm max-h-60 overflow-y-auto pr-2">` + clientSales.sort((a,b) => b.date.seconds - a.date.seconds).map(sale => `
-                        <li class="p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-md">
-                            <div class="flex justify-between font-semibold">
-                                <span>${formatDate(sale.date)}</span>
-                                <span>${formatCurrency(sale.total)}</span>
-                            </div>
-                            <ul class="list-disc list-inside text-xs text-slate-600 dark:text-slate-400">
-                                ${sale.items.map(item => `<li>${item.name}</li>`).join('')}
-                            </ul>
-                        </li>
-                     `).join('') + `</ul>`;
-                 }
+                let salesHTML = '<p class="text-sm text-slate-500">Nenhuma compra registrada.</p>';
+                if (clientSales.length > 0) {
+                    salesHTML = `<ul class="space-y-2 text-sm max-h-60 overflow-y-auto pr-2">` + clientSales.sort((a, b) => b.date.seconds - a.date.seconds).map(sale => `
+                            <li class="p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-md">
+                                <div class="flex justify-between font-semibold">
+                                    <span>${formatDate(sale.date)}</span>
+                                    <span>${formatCurrency(sale.total)}</span>
+                                </div>
+                                <ul class="list-disc list-inside text-xs text-slate-600 dark:text-slate-400">
+                                    ${sale.items.map(item => `<li>${item.name}</li>`).join('')}
+                                </ul>
+                            </li>
+                        `).join('') + `</ul>`;
+                }
 
-                 modal.innerHTML = `
+                modal.innerHTML = `
                     <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
                         <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
                             <h2 class="text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
@@ -1196,12 +1220,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
                     </div>
-                 `;
-                 window.lucide.createIcons();
-                 modal.querySelector('#close-client-details-modal').addEventListener('click', () => modal.classList.add('hidden'));
+                `;
+                window.lucide.createIcons();
+                modal.querySelector('#close-client-details-modal').addEventListener('click', () => modal.classList.add('hidden'));
             }
         });
-        
+
         renderClientsTable();
     }
 
@@ -1263,10 +1287,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Erro ao adicionar produto.', 'error');
             }
         });
-        
+
         tableBody.addEventListener('click', (e) => {
             const removeBtn = e.target.closest('.remove-product-btn');
-            if(removeBtn){
+            if (removeBtn) {
                 const productId = removeBtn.dataset.productId;
                 showConfirmModal('Tem certeza que deseja remover este produto? A ação não pode ser desfeita.', async () => {
                     try {
@@ -1282,7 +1306,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderProductsTable();
     }
-    
+
     function renderPedidos() {
         const c = document.getElementById('pedidos-view');
         const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
@@ -1320,7 +1344,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sales.forEach(s => {
                     const r = document.createElement('tr');
                     r.className = 'bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50';
-                    
+
                     const paymentDisplay = Array.isArray(s.paymentMethods)
                         ? s.paymentMethods.map(p => {
                             let paymentString = p.method;
@@ -1333,18 +1357,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     r.innerHTML =
                         `${isGerente ? `<td class="px-6 py-4">${s.vendedor}</td>` : ''}
-                            <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
-                            <td class="px-6 py-4">${new Date(s.date.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                            <td class="px-6 py-4">${paymentDisplay}</td>
-                            <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
-                            <td class="px-6 py-4 text-center">
-                                <button data-order-id="${s.id}" class="view-details-btn text-brand-primary hover:underline">Detalhes</button>
-                            </td>`;
+                                <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
+                                <td class="px-6 py-4">${new Date(s.date.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                                <td class="px-6 py-4">${paymentDisplay}</td>
+                                <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <button data-order-id="${s.id}" class="view-details-btn text-brand-primary hover:underline">Detalhes</button>
+                                </td>`;
                     tbody.appendChild(r);
                 });
             }
         };
-        
+
         const applyFiltersAndFetchSales = () => {
             if (state.listeners.sales) state.listeners.sales();
 
@@ -1361,7 +1385,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 conditions.push(where("vendedor", "==", state.loggedInUser.name));
             }
-            
+
             if (paymentFilter && paymentFilter !== 'Todos') {
                 conditions.push(where("paymentMethod", "==", paymentFilter));
             }
@@ -1372,7 +1396,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 conditions.push(where("date", ">=", startDate));
                 conditions.push(where("date", "<=", endDate));
             }
-            
+
             const finalQuery = query(collection(db, "sales"), ...conditions);
 
             state.listeners.sales = onSnapshot(finalQuery, (snapshot) => {
@@ -1391,7 +1415,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         c.querySelector('#filter-form').addEventListener('submit', e => { e.preventDefault(); applyFiltersAndFetchSales(); });
         c.querySelector('#filter-form').addEventListener('reset', () => { setTimeout(applyFiltersAndFetchSales, 0); });
-        
+
         applyFiltersAndFetchSales();
 
         c.querySelector('#orders-table-body').addEventListener('click', e => {
@@ -1402,22 +1426,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     const m = document.getElementById('order-details-modal');
                     m.classList.remove('hidden');
                     const itemsList = order.items.map(i => `<li>${i.productId ? '<i class="inline-block" data-lucide="package"></i> ' : ''}${i.name} (${formatCurrency(i.value)})</li>`).join('');
-                    
+
                     const paymentDetails = Array.isArray(order.paymentMethods)
                         ? order.paymentMethods.map(p => {
                             let paymentString = `<li>${p.method}: ${formatCurrency(p.amount)}`;
-                            if(p.installments) {
+                            if (p.installments) {
                                 paymentString += ` (em ${p.installments})`;
                             }
                             paymentString += `</li>`;
                             return paymentString;
                         }).join('')
                         : `<li>${order.paymentMethod}: ${formatCurrency(order.total)}</li>`;
-                    
-                             let prizeDetails = '';
-                             if(order.prizeWon){
-                                  prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
-                             }
+
+                    let prizeDetails = '';
+                    if (order.prizeWon) {
+                        prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
+                    }
 
                     m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p>${prizeDetails}</div></div>`;
                     m.querySelector('#close-details-modal').addEventListener('click', () => m.classList.add('hidden'));
@@ -1427,7 +1451,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderMetas(){
+    function renderMetas() {
         const c = document.getElementById('metas-view');
         if (!c) return;
 
@@ -1440,7 +1464,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const dayOfWeek = now.getDay();
             const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
             const weekStart = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
-            
+
             const vendasHoje = sales.filter(s => s.date.toDate().getTime() >= todayStart.getTime()).reduce((sum, s) => sum + s.total, 0);
             const vendasSemana = sales.filter(s => s.date.toDate().getTime() >= weekStart.getTime()).reduce((sum, s) => sum + s.total, 0);
             const vendasMes = sales.filter(s => s.date.toDate().getTime() >= monthStart.getTime()).reduce((sum, s) => sum + s.total, 0);
@@ -1456,8 +1480,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const getWeekIdentifier = (d) => {
                 const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-                date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay()||7));
-                const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+                date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+                const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
                 const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
                 return `${date.getUTCFullYear()}-W${weekNo}`;
             }
@@ -1468,10 +1492,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return acc;
             }, {});
             const melhorSemanaValor = Math.max(0, ...Object.values(salesByWeek));
-            
+
             let streak = 0;
-            let currentDay = new Date(new Date().setHours(0,0,0,0));
-            for(let i = 0; i < 365; i++){
+            let currentDay = new Date(new Date().setHours(0, 0, 0, 0));
+            for (let i = 0; i < 365; i++) {
                 const dayKey = currentDay.toISOString().split('T')[0];
                 const daySales = salesByDay[dayKey] || 0;
                 if (daySales >= (goals.daily || 0.01)) {
@@ -1487,13 +1511,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const updateProgressBar = (barId, textId, current, goal) => {
                 const bar = document.getElementById(barId);
                 const text = document.getElementById(textId);
-                if(bar && text) {
+                if (bar && text) {
                     const percentage = Math.min(100, (current / (goal || 1)) * 100);
                     bar.style.width = `${percentage}%`;
                     text.textContent = `${formatCurrency(current)} / ${formatCurrency(goal)}`;
                 }
             }
-            
+
             updateProgressBar('progresso-diario-barra', 'progresso-diario-texto', vendasHoje, goals.daily);
             updateProgressBar('progresso-semanal-barra', 'progresso-semanal-texto', vendasSemana, goals.weekly);
             updateProgressBar('progresso-mensal-barra', 'progresso-mensal-texto', vendasMes, goals.monthly);
@@ -1501,7 +1525,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('recorde-melhor-dia').textContent = formatCurrency(melhorDiaValor);
             document.getElementById('recorde-melhor-semana').textContent = formatCurrency(melhorSemanaValor);
         };
-        
+
         const storeId = state.selectedStore.id;
         const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), where("storeId", "==", storeId));
         state.listeners.sales = onSnapshot(q, (snapshot) => {
@@ -1517,7 +1541,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderRanking() {
         if (state.listeners.sales) state.listeners.sales();
-        
+
         const view = document.getElementById('ranking-view');
         const podiumContainer = view.querySelector('#ranking-podium-container');
         const listContainer = view.querySelector('#ranking-list-container');
@@ -1544,12 +1568,12 @@ document.addEventListener('DOMContentLoaded', () => {
             startDate.setHours(0, 0, 0, 0);
 
             const filteredSales = sales.filter(s => s.date.toDate() >= startDate);
-            
+
             const salesBySeller = filteredSales.reduce((acc, sale) => {
                 acc[sale.vendedor] = (acc[sale.vendedor] || 0) + sale.total;
                 return acc;
             }, {});
-            
+
             const sellersFromUsers = state.db.users.filter(u => u.role === 'vendedor' && u.storeId === state.selectedStore.id);
             sellersFromUsers.forEach(seller => {
                 if (!salesBySeller[seller.name]) {
@@ -1568,27 +1592,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 podiumContainer.innerHTML = '<p class="text-center text-slate-500 dark:text-slate-400 col-span-full mt-12">Nenhum vendedor para classificar.</p>';
                 return;
             }
-            
+
             const top3 = rankedSellers.slice(0, 3);
             const others = rankedSellers.slice(3);
-            
+
             const podiumOrder = [1, 0, 2];
             const podiumHTML = `
                 <div class="flex justify-center items-end gap-4">
                     ${podiumOrder.map(index => {
-                        const seller = top3[index];
-                        if (!seller) return '<div class="w-1/3"></div>';
-                        
-                        const heightClasses = ['h-48', 'h-32', 'h-24'];
-                        const place = index + 1;
-                        const barHeight = place === 1 ? heightClasses[0] : (place === 2 ? heightClasses[1] : heightClasses[2]);
-                        const colorClasses = [
-                            'bg-amber-400 dark:bg-amber-500',
-                            'bg-slate-300 dark:bg-slate-400',
-                            'bg-yellow-600 dark:bg-yellow-700'
-                        ];
+                const seller = top3[index];
+                if (!seller) return '<div class="w-1/3"></div>';
 
-                        return `
+                const heightClasses = ['h-48', 'h-32', 'h-24'];
+                const place = index + 1;
+                const barHeight = place === 1 ? heightClasses[0] : (place === 2 ? heightClasses[1] : heightClasses[2]);
+                const colorClasses = [
+                    'bg-amber-400 dark:bg-amber-500',
+                    'bg-slate-300 dark:bg-slate-400',
+                    'bg-yellow-600 dark:bg-yellow-700'
+                ];
+
+                return `
                         <div class="w-1/3 text-center flex flex-col items-center">
                             <div class="relative mb-2">
                                 <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-3xl sm:text-4xl font-bold border-4 ${place === 1 ? 'border-amber-400' : 'border-slate-400 dark:border-slate-500'}">
@@ -1603,12 +1627,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
                         `;
-                    }).join('')}
+            }).join('')}
                 </div>
             `;
             podiumContainer.innerHTML = podiumHTML;
 
-            if(others.length > 0) {
+            if (others.length > 0) {
                 const listHTML = `
                     <ul class="space-y-2">
                         ${others.map((seller, index) => `
@@ -1627,18 +1651,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 listContainer.innerHTML = listHTML;
             } else if (rankedSellers.length > 3) {
-                 listContainer.innerHTML = '<p class="text-center text-sm text-slate-500 p-4">...</p>';
+                listContainer.innerHTML = '<p class="text-center text-sm text-slate-500 p-4">...</p>';
             }
             window.lucide.createIcons();
         };
-        
+
         const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
         state.listeners.sales = onSnapshot(q, (snapshot) => {
             const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             updateRankingUI(allSales, currentPeriod);
         }, (error) => {
-             console.error("Erro ao carregar ranking:", error);
-             podiumContainer.innerHTML = '<p class="text-center text-red-500">Erro ao carregar dados do ranking.</p>';
+            console.error("Erro ao carregar ranking:", error);
+            podiumContainer.innerHTML = '<p class="text-center text-red-500">Erro ao carregar dados do ranking.</p>';
         });
 
         view.querySelectorAll('.ranking-period-btn').forEach(btn => {
@@ -1646,23 +1670,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentPeriod = e.target.dataset.period;
                 view.querySelectorAll('.ranking-period-btn').forEach(b => b.classList.remove('bg-white', 'dark:bg-slate-900', 'text-brand-primary', 'shadow'));
                 e.target.classList.add('bg-white', 'dark:bg-slate-900', 'text-brand-primary', 'shadow');
-                
+
                 const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
                 getDocs(q).then(snapshot => {
-                     const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                     updateRankingUI(allSales, currentPeriod);
+                    const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    updateRankingUI(allSales, currentPeriod);
                 });
             });
         });
     }
 
     function renderConfiguracoes() {
-        const c=document.getElementById('configuracoes-view');
+        const c = document.getElementById('configuracoes-view');
         c.querySelector('#config-store-name').value = state.db.settings.storeName;
         c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
         c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
         c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
-        
+
         const enableBonusCheckbox = c.querySelector('#enable-bonus');
         const bonusValueContainer = c.querySelector('#bonus-value-container');
         const bonusValueInput = c.querySelector('#bonus-value');
@@ -1678,14 +1702,14 @@ document.addEventListener('DOMContentLoaded', () => {
         enableBonusCheckbox.addEventListener('change', () => {
             bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
         });
-        
+
         const exportVendedorSelect = c.querySelector('#export-vendedor-select');
         exportVendedorSelect.innerHTML = '<option value="Todos">Todos os Vendedores</option>';
         const vendedores = state.db.users.filter(u => u.role === 'vendedor' && u.storeId === state.selectedStore.id).map(u => u.name);
         vendedores.forEach(name => {
             exportVendedorSelect.innerHTML += `<option value="${name}">${name}</option>`;
         });
-        
+
         const handleExport = async (startDate, endDate, filename) => {
             const selectedVendedor = exportVendedorSelect.value;
             try {
@@ -1709,10 +1733,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Erro ao buscar dados para exportação.', 'error');
             }
         };
-        
+
         c.querySelector('#export-today-btn').addEventListener('click', () => {
-            const todayStart = new Date(new Date().setHours(0,0,0,0));
-            const todayEnd = new Date(new Date().setHours(23,59,59,999));
+            const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
+            const todayEnd = new Date(new Date().setHours(23, 59, 59, 999));
             const filename = `vendas_dia_${new Date().toISOString().split('T')[0]}_${exportVendedorSelect.value}`;
             handleExport(todayStart, todayEnd, filename);
         });
@@ -1723,7 +1747,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
             const weekStart = new Date(new Date(today.setDate(diff)).setHours(0, 0, 0, 0));
             const weekEnd = new Date(new Date(weekStart).setDate(weekStart.getDate() + 6));
-            weekEnd.setHours(23,59,59,999);
+            weekEnd.setHours(23, 59, 59, 999);
             const filename = `vendas_semana_${new Date().toISOString().split('T')[0]}_${exportVendedorSelect.value}`;
             handleExport(weekStart, weekEnd, filename);
         });
@@ -1732,7 +1756,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const today = new Date();
             const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
             const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-            monthEnd.setHours(23,59,59,999);
+            monthEnd.setHours(23, 59, 59, 999);
             const filename = `vendas_mes_${today.getFullYear()}_${today.getMonth() + 1}_${exportVendedorSelect.value}`;
             handleExport(monthStart, monthEnd, filename);
         });
@@ -1750,37 +1774,37 @@ document.addEventListener('DOMContentLoaded', () => {
             handleExport(startDate, endDate, filename);
         });
 
-        const updateUsersList=()=>{
-            const list=c.querySelector('#users-list');
-            list.innerHTML='';
+        const updateUsersList = () => {
+            const list = c.querySelector('#users-list');
+            list.innerHTML = '';
             const usersInStore = state.db.users.filter(u => u.storeId === state.selectedStore.id || u.role === 'superadmin');
-            
-            if(usersInStore.length === 0){
+
+            if (usersInStore.length === 0) {
                 list.innerHTML = '<p class="text-slate-500 text-sm text-center">Nenhum usuário cadastrado para esta loja.</p>';
                 return;
             }
 
-            usersInStore.forEach(v=>{
-                 const roleClass = v.role === 'superadmin'
+            usersInStore.forEach(v => {
+                const roleClass = v.role === 'superadmin'
                     ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
                     : v.role === 'gerente'
-                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
-                    : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
+                        : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
                 const roleText = v.role.charAt(0).toUpperCase() + v.role.slice(1);
 
-                list.innerHTML+=`<li class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md">
-                    <div>
-                        <span>${v.name}</span>
-                        <span class="text-xs ml-2 px-2 py-0.5 rounded-full font-medium ${roleClass}">${roleText}</span>
-                    </div>
-                    <button data-userid="${v.id}" data-username="${v.name}" class="remove-user-btn text-red-500 hover:text-red-700 ${v.name === state.loggedInUser.name || v.role === 'superadmin' ? 'hidden' : ''}">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                </li>`;
+                list.innerHTML += `<li class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md">
+                        <div>
+                            <span>${v.name}</span>
+                            <span class="text-xs ml-2 px-2 py-0.5 rounded-full font-medium ${roleClass}">${roleText}</span>
+                        </div>
+                        <button data-userid="${v.id}" data-username="${v.name}" class="remove-user-btn text-red-500 hover:text-red-700 ${v.name === state.loggedInUser.name || v.role === 'superadmin' ? 'hidden' : ''}">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </li>`;
             });
             window.lucide.createIcons();
         };
-        
+
         updateUsersList();
 
         c.querySelector('#add-user-form').addEventListener('submit', async e => {
@@ -1830,15 +1854,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (removeBtn) {
                 const { userid, username } = removeBtn.dataset;
                 showConfirmModal(`Tem certeza que deseja remover o usuário "${username}"?`, async () => {
-                   try {
-                       await deleteDoc(doc(db, "users", userid));
-                       showToast(`Usuário "${username}" removido.`, 'success');
-                   } catch (error) { showToast('Erro ao remover usuário.', 'error'); }
+                    try {
+                        await deleteDoc(doc(db, "users", userid));
+                        showToast(`Usuário "${username}" removido.`, 'success');
+                    } catch (error) { showToast('Erro ao remover usuário.', 'error'); }
                 });
             }
         });
 
-        c.querySelector('#save-settings-button').addEventListener('click', async ()=> {
+        c.querySelector('#save-settings-button').addEventListener('click', async () => {
             const newStoreName = c.querySelector('#config-store-name').value;
             try {
                 await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName }, { merge: true });
@@ -1856,9 +1880,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 weekly: parseFloat(c.querySelector('#meta-semanal').value) || 0,
                 monthly: parseFloat(c.querySelector('#meta-mensal').value) || 0,
             };
-             const newBonusSystem = {
-                 enabled: c.querySelector('#enable-bonus').checked,
-                 value: parseFloat(c.querySelector('#bonus-value').value) || 80,
+            const newBonusSystem = {
+                enabled: c.querySelector('#enable-bonus').checked,
+                value: parseFloat(c.querySelector('#bonus-value').value) || 80,
             };
 
             try {
@@ -1869,25 +1893,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.db.settings.goals = newGoals;
                 state.db.settings.bonusSystem = newBonusSystem;
                 showToast('Metas e bônus salvos com sucesso!', 'success');
-            } catch(error) {
+            } catch (error) {
                 showToast('Erro ao salvar metas e bônus.', 'error');
             }
         });
-        
-         c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
-               showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
-                   try {
-                       const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-                       const salesSnapshot = await getDocs(q);
-                       if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
-                       const batch = writeBatch(db);
-                       salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-                       await batch.commit();
-                       showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
-                   } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
-               });
-          });
-        
+
+        c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
+            showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
+                try {
+                    const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
+                    const salesSnapshot = await getDocs(q);
+                    if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
+                    const batch = writeBatch(db);
+                    salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                    showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
+                } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
+            });
+        });
+
         const manageStoresSection = c.querySelector('#manage-stores-section');
         if (state.loggedInUser.role === 'superadmin') {
             manageStoresSection.classList.remove('hidden');
@@ -1914,16 +1938,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     newStoreNameInput.value = '';
                 } catch (error) { console.error("Erro ao criar loja:", error); showToast('Não foi possível criar a loja.', 'error'); }
             });
-            
+
             const renderStoresList = () => {
                 storesListEl.innerHTML = '';
                 state.db.stores.forEach(store => {
                     const li = document.createElement('li');
                     li.className = 'flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md';
                     li.innerHTML = `<span>${store.name}</span>
-                        <button data-store-id="${store.id}" data-store-name="${store.name}" class="remove-store-btn text-red-500 hover:text-red-700">
-                            <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
-                        </button>`;
+                            <button data-store-id="${store.id}" data-store-name="${store.name}" class="remove-store-btn text-red-500 hover:text-red-700">
+                                <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
+                            </button>`;
                     storesListEl.appendChild(li);
                 });
                 window.lucide.createIcons();
@@ -1942,12 +1966,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             const salesQuery = query(collection(db, "sales"), where("storeId", "==", storeId));
                             const usersQuery = query(collection(db, "users"), where("storeId", "==", storeId));
                             const [salesSnapshot, usersSnapshot] = await Promise.all([getDocs(salesQuery), getDocs(usersQuery)]);
-                            
+
                             salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
                             usersSnapshot.docs.forEach(doc => batch.delete(doc.ref));
                             batch.delete(doc(db, "settings", storeId));
                             batch.delete(doc(db, "stores", storeId));
-                            
+
                             await batch.commit();
                             showToast(`Loja "${storeName}" excluída.`, 'success');
                         } catch (error) { console.error("Erro ao deletar loja:", error); showToast('Erro ao deletar a loja.', 'error'); }
@@ -1961,7 +1985,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const wheelConfigContainer = c.querySelector('#bonus-wheel-config-container');
         const enableWheelCheckbox = c.querySelector('#enable-bonus-wheel');
         let prizes = state.db.settings.bonusWheel?.prizes ? [...state.db.settings.bonusWheel.prizes] : [];
-        
+
         enableWheelCheckbox.checked = state.db.settings.bonusWheel?.enabled ?? false;
         wheelConfigContainer.classList.toggle('hidden', !enableWheelCheckbox.checked);
 
@@ -2018,7 +2042,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (prizes.length > 0 && totalProb !== 100) {
                 return showToast('A soma das probabilidades dos prêmios deve ser exatamente 100%.', 'error');
             }
-            
+
             const newWheelSettings = {
                 enabled: enableWheelCheckbox.checked,
                 prizes: prizes,
@@ -2040,20 +2064,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderRelatorios() {
         const c = document.getElementById('relatorios-view');
-        if(!c) return;
-        
-         if(!state.db.settings.bonusSystem?.enabled){
-              c.querySelector('#bonus-hoje-card')?.classList.add('hidden');
-              c.querySelector('#bonus-semana-card')?.classList.add('hidden');
-              c.querySelector('#bonus-mes-card')?.classList.add('hidden');
-         }
+        if (!c) return;
+
+        if (!state.db.settings.bonusSystem?.enabled) {
+            c.querySelector('#bonus-hoje-card')?.classList.add('hidden');
+            c.querySelector('#bonus-semana-card')?.classList.add('hidden');
+            c.querySelector('#bonus-mes-card')?.classList.add('hidden');
+        }
 
         const updateReports = (sales) => {
-            if(vendasChartInstance) {
+            if (vendasChartInstance) {
                 vendasChartInstance.destroy();
                 vendasChartInstance = null;
             }
-            if(pagamentoChartInstance) {
+            if (pagamentoChartInstance) {
                 pagamentoChartInstance.destroy();
                 pagamentoChartInstance = null;
             }
@@ -2072,19 +2096,19 @@ document.addEventListener('DOMContentLoaded', () => {
             c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + s.total, 0));
             c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + s.total, 0));
             c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
-            
-            if(state.db.settings.bonusSystem?.enabled){
-                 c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
-                 c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
-                 c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
+
+            if (state.db.settings.bonusSystem?.enabled) {
+                c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
+                c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
+                c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
             }
-            
+
             const salesLast7Days = {};
             for (let i = 6; i >= 0; i--) {
                 const d = new Date();
                 d.setHours(0, 0, 0, 0);
                 d.setDate(d.getDate() - i);
-                salesLast7Days[d.toISOString().split('T')[0]] = { label: d.toLocaleDateString('pt-BR', {weekday: 'short'}).slice(0,3), total: 0 };
+                salesLast7Days[d.toISOString().split('T')[0]] = { label: d.toLocaleDateString('pt-BR', { weekday: 'short' }).slice(0, 3), total: 0 };
             }
             sales.forEach(sale => {
                 const saleDate = sale.date.toDate();
@@ -2097,20 +2121,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const isDarkMode = document.documentElement.classList.contains('dark');
             const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
             const textColor = isDarkMode ? '#cbd5e1' : '#475569';
-            
+
             const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
-            if(vendasCtx) {
+            if (vendasCtx) {
                 const gradient = vendasCtx.createLinearGradient(0, 0, 0, vendasCtx.canvas.height);
                 gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
                 gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
-                
+
                 vendasChartInstance = new window.Chart(vendasCtx, {
                     type: 'line',
-                    data: { 
-                        labels: Object.values(salesLast7Days).map(d => d.label), 
-                        datasets: [{ 
-                            label: 'Vendas Diárias', 
-                            data: Object.values(salesLast7Days).map(d => d.total), 
+                    data: {
+                        labels: Object.values(salesLast7Days).map(d => d.label),
+                        datasets: [{
+                            label: 'Vendas Diárias',
+                            data: Object.values(salesLast7Days).map(d => d.total),
                             backgroundColor: gradient,
                             borderColor: '#3b82f6',
                             borderWidth: 2,
@@ -2118,46 +2142,46 @@ document.addEventListener('DOMContentLoaded', () => {
                             pointRadius: 4,
                             fill: true,
                             tension: 0.4
-                        }] 
+                        }]
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
                 });
             }
 
             const paymentData = sales.reduce((acc, sale) => {
-                (sale.paymentMethods || [{method: sale.paymentMethod, amount: sale.total}]).forEach(p => {
+                (sale.paymentMethods || [{ method: sale.paymentMethod, amount: sale.total }]).forEach(p => {
                     acc[p.method] = (acc[p.method] || 0) + p.amount;
                 });
                 return acc;
             }, {});
 
             const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
-            if(pagamentosCtx) {
+            if (pagamentosCtx) {
                 pagamentoChartInstance = new window.Chart(pagamentosCtx, {
                     type: 'doughnut',
-                    data: { 
-                        labels: Object.keys(paymentData), 
-                        datasets: [{ 
-                            data: Object.values(paymentData), 
-                            backgroundColor: ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b'], 
-                            borderColor: isDarkMode ? '#0f172a' : '#f1f5f9', 
-                            borderWidth: 4 
-                        }] 
+                    data: {
+                        labels: Object.keys(paymentData),
+                        datasets: [{
+                            data: Object.values(paymentData),
+                            backgroundColor: ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b'],
+                            borderColor: isDarkMode ? '#0f172a' : '#f1f5f9',
+                            borderWidth: 4
+                        }]
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
                 });
             }
         };
-        
+
         const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
         const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
-        
+
         let q = collection(db, "sales");
         const storeId = state.selectedStore.id;
-        
+
         let conditions = [where("storeId", "==", storeId)];
         if (state.loggedInUser.role === 'vendedor') {
-           conditions.push(where("vendedor", "==", state.loggedInUser.name));
+            conditions.push(where("vendedor", "==", state.loggedInUser.name));
         }
 
         q = query(q, ...conditions);
@@ -2167,22 +2191,22 @@ document.addEventListener('DOMContentLoaded', () => {
             allSales.sort((a, b) => b.date.seconds - a.date.seconds);
 
             state.db.sales = allSales;
-            
+
             if (isManager) {
                 vendedorSelectContainer.classList.remove('hidden');
                 const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
                 const vendedores = [...new Set(allSales.map(s => s.vendedor))];
                 vendedorSelect.innerHTML = '<option value="total">Relatório Total</option>';
                 vendedores.forEach(name => { vendedorSelect.innerHTML += `<option value="${name}">${name}</option>`; });
-                
+
                 const newSelect = vendedorSelect.cloneNode(true);
                 vendedorSelect.parentNode.replaceChild(newSelect, vendedorSelect);
-                
+
                 newSelect.addEventListener('change', (e) => {
                     const salesToReport = e.target.value === 'total' ? allSales : allSales.filter(s => s.vendedor === e.target.value);
                     updateReports(salesToReport);
                 });
-                
+
                 updateReports(allSales);
             } else {
                 updateReports(allSales);
