@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="light">
+<html lang="pt-BR" class="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -13,79 +13,45 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc; /* bg-slate-50 */
+            background-color: #f1f5f9; /* bg-slate-100 */
         }
         html.dark body {
-            background-color: #0f172a; /* bg-slate-900 */
+            background-color: #020617; /* bg-slate-950 */
+            background-image: radial-gradient(circle at 1px 1px, #1e293b 1px, transparent 0);
+            background-size: 20px 20px;
         }
 
         /* Animações */
-        .fade-in {
-            animation: fadeIn 0.3s ease-in-out forwards;
-        }
-
-        .animate-shake {
-            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
-        }
-
-        .view {
-            display: none;
-        }
-
-        .view.active {
-            display: block;
-        }
+        .fade-in { animation: fadeIn 0.5s ease-in-out forwards; }
+        .animate-shake { animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both; }
+        .view { display: none; }
+        .view.active { display: block; }
+        .progress-bar { transition: width 0.5s ease-in-out; }
         
-        .progress-bar {
-            transition: width 0.5s ease-in-out;
+        /* Estilos customizados para o novo design */
+        .custom-card {
+             background-color: rgba(255, 255, 255, 0.6);
+             border: 1px solid rgba(255, 255, 255, 0.1);
+             backdrop-filter: blur(10px);
         }
+        html.dark .custom-card {
+            background-color: rgba(15, 23, 42, 0.6); /* bg-slate-900/60 */
+            border: 1px solid rgba(51, 65, 85, 0.5); /* border-slate-700/50 */
+        }
+        .kpi-card-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+        .kpi-card-green { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
+        .kpi-card-pink { box-shadow: 0 0 20px rgba(219, 39, 119, 0.3); }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes shake {
-
-            10%,
-            90% {
-                transform: translate3d(-1px, 0, 0);
-            }
-
-            20%,
-            80% {
-                transform: translate3d(2px, 0, 0);
-            }
-
-            30%,
-            50%,
-            70% {
-                transform: translate3d(-4px, 0, 0);
-            }
-
-            40%,
-            60% {
-                transform: translate3d(4px, 0, 0);
-            }
-        }
-        .blinking-cursor {
-            animation: blink 1s step-end infinite;
-        }
-
-        @keyframes blink {
-            from, to {
-                border-right-color: transparent;
-            }
-            50% {
-                border-right-color: currentColor;
-            }
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
         }
     </style>
     <script>
@@ -94,32 +60,12 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            200: '#bbf7d0',
-                            300: '#86efac',
-                            400: '#4ade80',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d',
-                            800: '#166534',
-                            900: '#14532d',
-                            950: '#052e16'
-                        },
-                        slate: {
-                           50: '#f8fafc',
-                           100: '#f1f5f9',
-                           200: '#e2e8f0',
-                           300: '#cbd5e1',
-                           400: '#94a3b8',
-                           500: '#64748b',
-                           600: '#475569',
-                           700: '#334155',
-                           800: '#1e293b',
-                           900: '#0f172a',
-                           950: '#020617'
-                        }
+                        // Paleta inspirada na imagem de referência
+                        'brand-primary': '#3b82f6', // Azul
+                        'brand-secondary': '#22c55e', // Verde
+                        'brand-tertiary': '#ec4899', // Rosa/Magenta
+                        'dark-bg': '#020617',
+                        'dark-card': '#0f172a'
                     }
                 }
             }
@@ -127,52 +73,52 @@
     </script>
 </head>
 
-<body class="text-slate-700 dark:text-slate-300">
+<body class="text-slate-800 dark:text-slate-200">
 
     <!-- Tela de Login -->
-    <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-900">
+    <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-sm mx-auto">
              <div class="absolute top-5 right-5">
-                <button id="theme-toggle" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-lg text-sm p-2.5">
+                <button id="theme-toggle" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 focus:outline-none rounded-lg text-sm p-2.5">
                     <i id="theme-icon-sun" data-lucide="sun" class="w-5 h-5 hidden"></i>
                     <i id="theme-icon-moon" data-lucide="moon" class="w-5 h-5"></i>
                 </button>
             </div>
             
-            <div id="main-login-box" class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg text-center">
-                <div class="mx-auto mb-4 inline-block p-3 bg-primary-100 dark:bg-primary-900/50 rounded-full">
-                    <i data-lucide="shopping-basket" class="w-8 h-8 text-primary-600 dark:text-primary-400"></i>
+            <div id="main-login-box" class="custom-card p-8 rounded-2xl shadow-lg text-center">
+                <div class="mx-auto mb-4 inline-block p-3 bg-brand-primary/20 rounded-full">
+                    <i data-lucide="shopping-basket" class="w-8 h-8 text-brand-primary"></i>
                 </div>
                 <h1 id="login-store-name" class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sistema de Vendas</h1>
 
                 <!-- First Run View -->
                 <div id="first-run-view" class="hidden text-left">
-                     <p class="text-slate-500 dark:text-slate-400 mb-6 text-center">Configurando o sistema pela primeira vez, por favor aguarde...</p>
-                     <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary-500 mx-auto"></div>
+                     <p class="text-slate-600 dark:text-slate-400 mb-6 text-center">Configurando o sistema pela primeira vez...</p>
+                     <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary mx-auto"></div>
                 </div>
 
                 <!-- Store Selection -->
                 <div id="store-selection-view" class="hidden">
-                     <p class="text-slate-500 dark:text-slate-400 mb-8">Selecione a sua loja</p>
+                     <p class="text-slate-600 dark:text-slate-400 mb-8">Selecione a sua loja</p>
                      <div id="store-list" class="space-y-2"></div>
                 </div>
 
                 <!-- User Selection -->
                 <div id="user-selection-view" class="hidden">
-                    <p class="text-slate-500 dark:text-slate-400 mb-8">Quem está acessando?</p>
+                    <p class="text-slate-600 dark:text-slate-400 mb-8">Quem está acessando?</p>
                     <div id="user-list" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
-                    <button id="back-to-stores" class="mt-6 text-sm text-slate-500 hover:text-primary-600">Voltar para seleção de lojas</button>
+                    <button id="back-to-stores" class="mt-6 text-sm text-slate-500 hover:text-brand-primary">Voltar para seleção de lojas</button>
                 </div>
 
                 <!-- Password View -->
                 <div id="password-view" class="hidden">
                     <div id="selected-user-info" class="mb-4"></div>
                     <form id="password-form">
-                        <input type="password" id="password" class="w-full px-4 py-2 text-center text-lg bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-primary-500 focus:border-primary-500" placeholder="Digite sua senha" required>
+                        <input type="password" id="password" class="w-full px-4 py-2 text-center text-lg bg-slate-100/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-brand-primary focus:border-brand-primary" placeholder="Digite sua senha" required>
                         <p id="login-error" class="text-red-500 text-sm mt-2 h-5"></p>
                         <div class="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
-                            <button type="button" id="back-to-users" class="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600">Voltar</button>
-                            <button type="submit" class="w-full sm:w-auto text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Entrar</button>
+                            <button type="button" id="back-to-users" class="w-full sm:w-auto px-5 py-2.5 text-sm font-medium focus:outline-none bg-slate-200/50 dark:bg-slate-700/50 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700">Voltar</button>
+                            <button type="submit" class="w-full sm:w-auto text-white bg-brand-primary hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Entrar</button>
                         </div>
                     </form>
                 </div>
@@ -183,10 +129,10 @@
 
     <!-- App Principal -->
     <div id="app" class="hidden">
-        <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-slate-800">
+        <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-dark-card border-r border-slate-800">
             <div class="h-full px-3 py-4 overflow-y-auto">
                 <div class="flex flex-col items-center mb-6 pb-4 border-b border-slate-700">
-                    <div id="user-icon" class="w-16 h-16 mb-2 rounded-full bg-primary-600 flex items-center justify-center text-white text-3xl font-bold"></div>
+                    <div id="user-icon" class="w-16 h-16 mb-2 rounded-full bg-brand-primary flex items-center justify-center text-white text-3xl font-bold"></div>
                     <h5 id="username-sidebar" class="text-xl font-semibold text-white"></h5>
                     <span id="store-name-sidebar" class="text-sm text-slate-400"></span>
                 </div>
@@ -198,7 +144,7 @@
         <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 sm:hidden"></div>
 
         <div class="sm:ml-64">
-            <header class="sticky top-0 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm z-20 border-b border-slate-200 dark:border-slate-800">
+            <header class="sticky top-0 bg-slate-100/80 dark:bg-dark-bg/80 backdrop-blur-sm z-20 border-b border-slate-200 dark:border-slate-800">
                 <div class="p-4 flex items-center justify-between">
                     <div class="flex items-center gap-4">
                         <button id="mobile-menu-button" class="sm:hidden text-slate-600 dark:text-slate-300">
@@ -208,9 +154,9 @@
                     </div>
                      <div class="flex items-center gap-4">
                          <div id="store-switcher-container" class="hidden">
-                             <select id="store-switcher-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm py-1.5"></select>
+                             <select id="store-switcher-select" class="block w-full rounded-md border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 text-sm py-1.5"></select>
                          </div>
-                        <button id="theme-toggle-app" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-lg text-sm p-2.5">
+                        <button id="theme-toggle-app" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 focus:outline-none rounded-lg text-sm p-2.5">
                            <i id="theme-icon-sun-app" data-lucide="sun" class="w-5 h-5 hidden"></i>
                            <i id="theme-icon-moon-app" data-lucide="moon" class="w-5 h-5"></i>
                         </button>
@@ -246,14 +192,14 @@
     <!-- Templates -->
     <script type="text/html" id="caixa-template">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Registrar Item</h3>
                 <form id="add-item-form" class="space-y-4">
-                    <div><label for="item-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Item</label><input type="text" id="item-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:border-primary-500 focus:ring-primary-500"></div>
-                    <div><label for="item-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor (R$)</label><input type="number" id="item-value" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:border-primary-500 focus:ring-primary-500"></div>
+                    <div><label for="item-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Item</label><input type="text" id="item-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary"></div>
+                    <div><label for="item-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor (R$)</label><input type="number" id="item-value" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary"></div>
                     <div>
                         <label for="item-exchange" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Prazo de Troca</label>
-                        <select id="item-exchange" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:border-primary-500 focus:ring-primary-500">
+                        <select id="item-exchange" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
                             <option>Sem Troca</option>
                             <option>7 dias</option>
                             <option>15 dias</option>
@@ -262,17 +208,17 @@
                             <option>60 dias</option>
                         </select>
                     </div>
-                    <button type="submit" class="w-full bg-primary-600 text-white py-2.5 px-4 rounded-md hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"><i data-lucide="plus-circle" class="w-5 h-5"></i>Adicionar Item</button>
+                    <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"><i data-lucide="plus-circle" class="w-5 h-5"></i>Adicionar Item</button>
                 </form>
             </div>
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Pedido Atual</h3>
                 <div id="current-order-items" class="space-y-2 mb-4 min-h-[120px]"></div>
-                <div class="border-t dark:border-slate-700 pt-4 flex justify-between items-center">
+                <div class="border-t border-slate-300 dark:border-slate-700 pt-4 flex justify-between items-center">
                     <span class="text-xl font-bold text-slate-800 dark:text-slate-100">Total:</span>
-                    <span id="current-order-total" class="text-2xl font-bold text-primary-600 dark:text-primary-400">R$ 0,00</span>
+                    <span id="current-order-total" class="text-2xl font-bold text-brand-primary dark:text-brand-primary">R$ 0,00</span>
                 </div>
-                <button id="finalize-order-button" class="w-full mt-6 bg-primary-600 text-white py-3 px-4 rounded-md hover:bg-primary-700 transition-colors disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"><i data-lucide="check-circle" class="w-6 h-6"></i>Finalizar Pedido</button>
+                <button id="finalize-order-button" class="w-full mt-6 bg-brand-primary text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"><i data-lucide="check-circle" class="w-6 h-6"></i>Finalizar Pedido</button>
             </div>
         </div>
     </script>
@@ -280,35 +226,35 @@
     <script type="text/html" id="pedidos-template">
          <div class="space-y-6">
             <div id="vendedor-pedidos-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full"><i data-lucide="shopping-cart" class="w-6 h-6 text-blue-600 dark:text-blue-300"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Pedidos Finalizados</p><p id="pedidos-finalizados" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div></div>
-                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-green-100 dark:bg-green-900/50 p-3 rounded-full"><i data-lucide="dollar-sign" class="w-6 h-6 text-green-600 dark:text-green-300"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Valor Total</p><p id="valor-total" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
-                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-yellow-100 dark:bg-yellow-900/50 p-3 rounded-full"><i data-lucide="receipt-text" class="w-6 h-6 text-yellow-600 dark:text-yellow-300"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Ticket Médio</p><p id="ticket-medio" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
+                 <div class="custom-card kpi-card-blue p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-blue-500/20 p-3 rounded-full"><i data-lucide="shopping-cart" class="w-6 h-6 text-blue-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Pedidos Finalizados</p><p id="pedidos-finalizados" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div></div>
+                 <div class="custom-card kpi-card-green p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-green-500/20 p-3 rounded-full"><i data-lucide="dollar-sign" class="w-6 h-6 text-green-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Valor Total</p><p id="valor-total" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
+                 <div class="custom-card kpi-card-pink p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-pink-500/20 p-3 rounded-full"><i data-lucide="receipt-text" class="w-6 h-6 text-pink-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Ticket Médio</p><p id="ticket-medio" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
             </div>
             
-            <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
-                 <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end pb-4 border-b border-slate-200 dark:border-slate-700">
+            <div class="custom-card p-4 rounded-lg shadow-md">
+                 <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end pb-4 border-b border-slate-300 dark:border-slate-700">
                       <div class="lg:col-span-2">
                           <label for="filter-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Data</label>
-                          <input type="date" id="filter-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                          <input type="date" id="filter-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                       </div>
                       <div>
                           <label for="filter-payment" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Pagamento</label>
-                          <select id="filter-payment" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                          <select id="filter-payment" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                                <option>Todos</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option>
                           </select>
                       </div>
                       <div id="gerente-vendedor-filter-container" class="hidden">
                            <label for="filter-vendedor" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Vendedor</label>
-                           <select id="filter-vendedor" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></select>
+                           <select id="filter-vendedor" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></select>
                       </div>
                       <div class="flex gap-2">
-                           <button type="submit" class="w-full bg-primary-600 text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="search" class="w-4 h-4"></i>Buscar</button>
+                           <button type="submit" class="w-full bg-brand-primary text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="search" class="w-4 h-4"></i>Buscar</button>
                            <button type="reset" class="w-full bg-slate-500 hover:bg-slate-600 text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Limpar</button>
                       </div>
                  </form>
                 <div class="relative overflow-x-auto pt-4">
                      <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
-                         <thead class="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
+                         <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50">
                              <tr id="orders-table-header-row">
                                  <th scope="col" class="px-6 py-3">Cliente</th>
                                  <th scope="col" class="px-6 py-3">Data</th>
@@ -327,7 +273,7 @@
     
     <script type="text/html" id="metas-template">
         <div class="space-y-6">
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Meu Progresso</h3>
                 <div class="space-y-4">
                     <!-- Meta Diária -->
@@ -337,7 +283,7 @@
                             <span id="progresso-diario-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
                         </div>
                         <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
-                            <div id="progresso-diario-barra" class="bg-primary-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                            <div id="progresso-diario-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
                         </div>
                     </div>
                     <!-- Meta Semanal -->
@@ -347,7 +293,7 @@
                             <span id="progresso-semanal-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
                         </div>
                         <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
-                            <div id="progresso-semanal-barra" class="bg-primary-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                            <div id="progresso-semanal-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
                         </div>
                     </div>
                     <!-- Meta Mensal -->
@@ -357,24 +303,24 @@
                             <span id="progresso-mensal-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
                         </div>
                         <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
-                            <div id="progresso-mensal-barra" class="bg-primary-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                            <div id="progresso-mensal-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md text-center">
+                <div class="custom-card p-4 rounded-lg shadow-md text-center">
                     <i data-lucide="flame" class="w-8 h-8 mx-auto mb-2 text-red-500"></i>
                     <p class="text-sm text-slate-500">Meta Batida (Dias seguidos)</p>
                     <p id="recorde-dias-consecutivos" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p>
                 </div>
-                <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md text-center">
+                <div class="custom-card p-4 rounded-lg shadow-md text-center">
                     <i data-lucide="award" class="w-8 h-8 mx-auto mb-2 text-amber-500"></i>
                     <p class="text-sm text-slate-500">Melhor Dia</p>
                     <p id="recorde-melhor-dia" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p>
                 </div>
-                <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md text-center">
+                <div class="custom-card p-4 rounded-lg shadow-md text-center">
                     <i data-lucide="trophy" class="w-8 h-8 mx-auto mb-2 text-sky-500"></i>
                     <p class="text-sm text-slate-500">Melhor Semana</p>
                     <p id="recorde-melhor-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p>
@@ -385,24 +331,24 @@
 
     <script type="text/html" id="relatorios-template">
         <div class="space-y-6">
-             <div id="gerente-relatorios-vendedor-select-container" class="hidden bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
+             <div id="gerente-relatorios-vendedor-select-container" class="hidden custom-card p-4 rounded-lg shadow-md">
                 <label for="relatorios-vendedor-select" class="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Visualizar Relatório de:</label>
-                <select id="relatorios-vendedor-select" class="w-full md:w-1/3 block rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></select>
+                <select id="relatorios-vendedor-select" class="w-full md:w-1/3 block rounded-md border-slate-300 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-800/50"></select>
              </div>
              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Vendas Hoje</p><p id="relatorio-vendas-hoje" class="text-2xl font-bold text-primary-600">R$ 0,00</p></div>
-                 <div id="bonus-hoje-card" class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus Hoje</p><p id="relatorio-bonus-dia" class="text-2xl font-bold text-primary-600">0</p></div>
-                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Vendas na Semana</p><p id="relatorio-vendas-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
-                 <div id="bonus-semana-card" class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus na Semana</p><p id="relatorio-bonus-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
-                 <div class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Vendas no Mês</p><p id="relatorio-vendas-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
-                 <div id="bonus-mes-card" class="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500">Bônus no Mês</p><p id="relatorio-bonus-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
+                 <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas Hoje</p><p id="relatorio-vendas-hoje" class="text-2xl font-bold text-brand-primary">R$ 0,00</p></div>
+                 <div id="bonus-hoje-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus Hoje</p><p id="relatorio-bonus-dia" class="text-2xl font-bold text-brand-primary">0</p></div>
+                 <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas na Semana</p><p id="relatorio-vendas-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
+                 <div id="bonus-semana-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus na Semana</p><p id="relatorio-bonus-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
+                 <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas no Mês</p><p id="relatorio-vendas-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
+                 <div id="bonus-mes-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus no Mês</p><p id="relatorio-bonus-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
              </div>
 
-             <div id="ranking-section" class="hidden bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+             <div id="ranking-section" class="hidden custom-card p-6 rounded-lg shadow-md">
                  <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-bold text-slate-900 dark:text-white">Ranking de Vendedores</h3>
-                    <div class="flex space-x-1 bg-slate-100 dark:bg-slate-700 p-1 rounded-md">
-                        <button data-period="day" class="ranking-period-btn bg-white dark:bg-slate-900 text-primary-600 rounded shadow px-3 py-1 text-sm font-medium">Dia</button>
+                    <div class="flex space-x-1 bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-md">
+                        <button data-period="day" class="ranking-period-btn bg-white dark:bg-slate-900 text-brand-primary rounded shadow px-3 py-1 text-sm font-medium">Dia</button>
                         <button data-period="week" class="ranking-period-btn text-slate-500 dark:text-slate-400 px-3 py-1 text-sm font-medium">Semana</button>
                         <button data-period="month" class="ranking-period-btn text-slate-500 dark:text-slate-400 px-3 py-1 text-sm font-medium">Mês</button>
                     </div>
@@ -410,12 +356,12 @@
                  <ul id="ranking-list" class="space-y-2"></ul>
              </div>
 
-             <div id="ai-analysis-section" class="hidden bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+             <div id="ai-analysis-section" class="hidden custom-card p-6 rounded-lg shadow-md">
                  <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">Análise de Desempenho com IA <span class="text-xs bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300 px-2 py-0.5 rounded-full">NOVO</span></h3>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">Análise de Desempenho com IA <span class="text-xs bg-brand-primary/20 text-brand-primary dark:bg-brand-primary/20 dark:text-blue-300 px-2 py-0.5 rounded-full">NOVO</span></h3>
                  </div>
-                 <div class="border-t dark:border-slate-700 pt-4">
-                    <button id="generate-ai-analysis-btn" class="w-full sm:w-auto bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors flex items-center justify-center gap-2">
+                 <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
+                    <button id="generate-ai-analysis-btn" class="w-full sm:w-auto bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
                          <i data-lucide="sparkles" class="w-4 h-4"></i>
                          Gerar Análise com IA
                     </button>
@@ -426,11 +372,11 @@
              </div>
 
              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                 <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                 <div class="lg:col-span-2 custom-card p-6 rounded-lg shadow-md">
                      <h3 class="font-bold mb-4 text-slate-900 dark:text-white">Vendas nos últimos 7 dias</h3>
                      <div class="h-80"><canvas id="vendas-semana-chart"></canvas></div>
                  </div>
-                 <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                 <div class="custom-card p-6 rounded-lg shadow-md">
                      <h3 class="font-bold mb-4 text-slate-900 dark:text-white">Formas de Pagamento</h3>
                      <div class="h-80"><canvas id="pagamento-chart"></canvas></div>
                  </div>
@@ -440,14 +386,14 @@
     
     <script type="text/html" id="configuracoes-template">
         <div class="space-y-6">
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Painel Administrativo</h3>
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-200 dark:border-slate-700 pt-4">
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
                     <div>
                          <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Configurações da Loja</h4>
                          <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Loja</label>
-                         <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
-                         <button id="save-settings-button" class="mt-2 bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors text-sm">Salvar Nome</button>
+                         <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                         <button id="save-settings-button" class="mt-2 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Nome</button>
                     </div>
                      <div>
                          <h4 class="text-md font-semibold text-red-600 dark:text-red-500 mb-2">Zona de Perigo</h4>
@@ -457,48 +403,48 @@
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Definir Metas e Bônus</h3>
                 <div class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label for="meta-diaria" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Diária (R$)</label>
-                            <input type="number" id="meta-diaria" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                            <input type="number" id="meta-diaria" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                         </div>
                         <div>
                             <label for="meta-semanal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Semanal (R$)</label>
-                            <input type="number" id="meta-semanal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                            <input type="number" id="meta-semanal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                         </div>
                          <div>
                             <label for="meta-mensal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Mensal (R$)</label>
-                            <input type="number" id="meta-mensal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                            <input type="number" id="meta-mensal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                         </div>
                     </div>
-                    <div class="border-t dark:border-slate-700 pt-4 space-y-2">
+                    <div class="border-t border-slate-300 dark:border-slate-700 pt-4 space-y-2">
                         <div class="flex items-center">
-                            <input id="enable-bonus" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500">
+                            <input id="enable-bonus" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
                             <label for="enable-bonus" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar sistema de bônus</label>
                         </div>
                         <div id="bonus-value-container" class="hidden">
                              <label for="bonus-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Ganha 2 pontos de bônus a cada (R$)</label>
-                            <input type="number" id="bonus-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                            <input type="number" id="bonus-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                         </div>
                     </div>
-                     <button id="save-goals-button" class="mt-4 bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors text-sm">Salvar</button>
+                     <button id="save-goals-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar</button>
                 </div>
             </div>
             
-            <div id="manage-stores-section" class="hidden bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <div id="manage-stores-section" class="hidden custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Lojas</h3>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t dark:border-slate-700 pt-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
                     <div>
                         <h4 class="text-md font-semibold mb-2">Criar Nova Loja</h4>
                         <form id="add-store-form" class="space-y-4">
                             <div>
                                 <label for="new-store-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Nova Loja</label>
-                                <input type="text" id="new-store-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                                <input type="text" id="new-store-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                             </div>
-                            <button type="submit" class="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors">Criar Loja</button>
+                            <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Criar Loja</button>
                         </form>
                     </div>
                     <div>
@@ -509,55 +455,55 @@
             </div>
 
 
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Exportar Vendas (CSV)</h3>
-                <div class="space-y-4 border-t dark:border-slate-700 pt-4">
+                <div class="space-y-4 border-t border-slate-300 dark:border-slate-700 pt-4">
                     <div>
                         <label for="export-vendedor-select" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Filtrar por Vendedor</label>
-                        <select id="export-vendedor-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></select>
+                        <select id="export-vendedor-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></select>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <button id="export-today-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas do Dia</button>
                         <button id="export-week-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas da Semana</button>
                         <button id="export-month-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas do Mês</button>
                     </div>
-                    <div class="border-t dark:border-slate-700 pt-4">
+                    <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
                         <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Exportar por data específica:</p>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label for="start-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Data de Início</label>
-                                <input type="date" id="start-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm">
+                                <input type="date" id="start-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
                             </div>
                             <div>
                                 <label for="end-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Data Final</label>
-                                <input type="date" id="end-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm">
+                                <input type="date" id="end-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
                             </div>
                         </div>
-                        <button id="export-range-btn" class="w-full mt-2 bg-primary-600 text-white p-2 rounded-md hover:bg-primary-700 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4"></i>Exportar Período</button>
+                        <button id="export-range-btn" class="w-full mt-2 bg-brand-primary text-white p-2 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4"></i>Exportar Período</button>
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                <div class="custom-card p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Usuário</h3>
                     <form id="add-user-form" class="space-y-4">
                         <div>
                             <label for="user-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome</label>
-                            <input type="text" id="user-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                            <input type="text" id="user-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                         </div>
                         <div>
                             <label for="user-password" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Senha</label>
-                            <input type="password" id="user-password" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                            <input type="password" id="user-password" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                         </div>
                         <div class="flex items-center">
-                            <input id="create-as-manager" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500">
+                            <input id="create-as-manager" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
                             <label for="create-as-manager" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Criar como Gerente</label>
                         </div>
-                        <button type="submit" class="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors">Salvar Usuário</button>
+                        <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Salvar Usuário</button>
                     </form>
                 </div>
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                <div class="custom-card p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Usuários Cadastrados</h3>
                     <ul id="users-list" class="space-y-2"></ul>
                 </div>
@@ -620,7 +566,7 @@
 
                     if (storesSnapshot.empty) {
                         document.getElementById('first-run-view').classList.remove('hidden');
-                        document.getElementById('first-run-view').innerHTML = '<p class="text-slate-500 dark:text-slate-400 mb-6 text-center">Configurando o sistema pela primeira vez, por favor aguarde...</p><div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary-500 mx-auto"></div>';
+                        document.getElementById('first-run-view').innerHTML = '<p class="text-slate-500 dark:text-slate-400 mb-6 text-center">Configurando o sistema pela primeira vez, por favor aguarde...</p><div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary mx-auto"></div>';
 
                         const storeName = "Loja Principal";
                         
@@ -655,7 +601,7 @@
                 storeList.innerHTML = '';
                 state.db.stores.forEach(store => {
                     const storeButton = document.createElement('button');
-                    storeButton.className = 'w-full text-left p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200 border border-slate-200 dark:border-slate-700';
+                    storeButton.className = 'w-full text-left p-4 custom-card rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors duration-200';
                     storeButton.dataset.storeId = store.id;
                     storeButton.dataset.storeName = store.name;
                     storeButton.textContent = store.name;
@@ -708,9 +654,9 @@
                     if (state.db.users.length > 0) {
                         state.db.users.forEach(user => {
                             const userButton = document.createElement('button');
-                            userButton.className = 'flex flex-col items-center p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200 transform hover:scale-105 border border-slate-200 dark:border-slate-700';
+                            userButton.className = 'flex flex-col items-center p-4 custom-card rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors duration-200 transform hover:scale-105';
                             userButton.dataset.username = user.name;
-                            userButton.innerHTML = `<div class="w-16 h-16 mb-2 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div><span class="font-semibold text-slate-800 dark:text-slate-200 text-center">${user.name}</span>`;
+                            userButton.innerHTML = `<div class="w-16 h-16 mb-2 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div><span class="font-semibold text-slate-800 dark:text-slate-200 text-center">${user.name}</span>`;
                             userList.appendChild(userButton);
                         });
                     } else {
@@ -746,7 +692,7 @@
                 }
                 return new Date(d).toLocaleDateString('pt-BR');
             };
-            const showToast = (m, t = 'success') => { const e = document.createElement('div'); e.className = `fixed bottom-5 right-5 ${t === 'success' ? 'bg-primary-600' : 'bg-red-600'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 3000) };
+            const showToast = (m, t = 'success') => { const e = document.createElement('div'); e.className = `fixed bottom-5 right-5 ${t === 'success' ? 'bg-brand-primary' : 'bg-red-600'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 3000) };
             const showConfirmModal = (m, onConfirm) => { const M = document.getElementById('confirm-modal'); M.querySelector('#confirm-modal-message').textContent = m; M.classList.remove('hidden'); const c = M.querySelector('#confirm-modal-confirm'), n = M.querySelector('#confirm-modal-cancel'); const h = () => { onConfirm(); hide() }; const k = () => hide(); const hide = () => { M.classList.add('hidden'); c.removeEventListener('click', h); n.removeEventListener('click', k) }; c.addEventListener('click', h, { once: true }); n.addEventListener('click', k, { once: true }) };
 
             function exportToCSV(data, filename) {
@@ -811,7 +757,7 @@
                  selectedUserForLogin = userButton.dataset.username;
                  document.getElementById('user-selection-view').classList.add('hidden');
                  document.getElementById('password-view').classList.remove('hidden');
-                 document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold text-slate-900 dark:text-white">${selectedUserForLogin}</h3>`;
+                 document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold text-slate-900 dark:text-white">${selectedUserForLogin}</h3>`;
                  document.getElementById('password').value = '';
                  document.getElementById('password').focus();
                 });
@@ -1023,14 +969,14 @@
                 const whatsappUrl = `https://wa.me/55${whatsAppNumber}?text=${encodedText}`;
 
                 modal.innerHTML = `
-                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6 m-4 fade-in">
+                    <div class="custom-card rounded-lg shadow-xl w-full max-w-md p-6 m-4 fade-in">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-bold text-slate-900 dark:text-white">Venda Finalizada</h3>
                             <button id="close-whatsapp-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full">&times;</button>
                         </div>
                         <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">Deseja enviar o comprovante para o cliente via WhatsApp?</p>
                         
-                        <div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-md mb-6 whitespace-pre-wrap text-xs text-slate-700 dark:text-slate-300 font-mono overflow-auto max-h-48">${couponText.replace(/\*/g, '')}</div>
+                        <div class="bg-slate-200/50 dark:bg-slate-800/50 p-4 rounded-md mb-6 whitespace-pre-wrap text-xs text-slate-700 dark:text-slate-300 font-mono overflow-auto max-h-48">${couponText.replace(/\*/g, '')}</div>
 
                         <div class="flex flex-col sm:flex-row justify-end gap-3">
                             <button id="close-whatsapp-modal-btn" class="bg-slate-200 dark:bg-slate-600 py-2 px-4 rounded-md">Fechar</button>
@@ -1070,7 +1016,7 @@
                     } else {
                         state.currentOrder.forEach((item, i) => {
                             const el = document.createElement('div');
-                            el.className = 'flex justify-between items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded-md';
+                            el.className = 'flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-3 rounded-md';
                             el.innerHTML = `
                                 <div>
                                     <p class="font-semibold text-slate-800 dark:text-slate-200">${item.name}</p>
@@ -1110,48 +1056,47 @@
                     }
                 });
                 
-                // MELHORIA DE FUNCIONALIDADE: Lógica de Pagamento Misto com Parcelamento
                 finalizeBtn.addEventListener('click', () => {
                     modalContainer.classList.remove('hidden');
                     const orderTotal = state.currentOrder.reduce((sum, i) => sum + i.value, 0);
 
                     modalContainer.innerHTML = `
-                        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in">
+                        <div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in">
                             <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Finalizar Pedido</h2>
-                            <p class="mb-4 text-lg">Total do Pedido: <span id="modal-total-value" class="font-bold text-primary-500">${formatCurrency(orderTotal)}</span></p>
+                            <p class="mb-4 text-lg">Total do Pedido: <span id="modal-total-value" class="font-bold text-brand-primary">${formatCurrency(orderTotal)}</span></p>
                             
                             <form id="finalize-order-form" class="space-y-3">
-                                <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700"></div>
-                                <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700" placeholder="Ex: 11987654321"></div>
+                                <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></div>
+                                <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Ex: 11987654321"></div>
 
-                                <div class="border-t dark:border-slate-600 pt-3">
+                                <div class="border-t border-slate-300 dark:border-slate-700 pt-3">
                                     <label class="block text-sm font-semibold mb-2 text-slate-800 dark:text-slate-200">Formas de Pagamento</label>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div><label for="payment-pix" class="text-xs text-slate-500">Pix</label><input type="number" id="payment-pix" data-method="Pix" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700" step="0.01" placeholder="0,00"></div>
-                                        <div><label for="payment-dinheiro" class="text-xs text-slate-500">Dinheiro</label><input type="number" id="payment-dinheiro" data-method="Dinheiro" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700" step="0.01" placeholder="0,00"></div>
+                                        <div><label for="payment-pix" class="text-xs text-slate-500">Pix</label><input type="number" id="payment-pix" data-method="Pix" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0,00"></div>
+                                        <div><label for="payment-dinheiro" class="text-xs text-slate-500">Dinheiro</label><input type="number" id="payment-dinheiro" data-method="Dinheiro" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0,00"></div>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                                         <div>
                                             <label for="payment-cartao" class="text-xs text-slate-500">Cartão</label>
-                                            <input type="number" id="payment-cartao" data-method="Cartão" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700" step="0.01" placeholder="0,00">
+                                            <input type="number" id="payment-cartao" data-method="Cartão" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0,00">
                                         </div>
                                         <div id="installments-container" class="hidden">
                                             <label for="payment-installments" class="text-xs text-slate-500">Parcelas</label>
-                                            <select id="payment-installments" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+                                            <select id="payment-installments" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                                                 ${Array.from({length: 12}, (_, i) => `<option value="${i+1}x">${i+1}x</option>`).join('')}
                                             </select>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div class="border-t dark:border-slate-600 pt-3 text-right text-sm">
+                                <div class="border-t border-slate-300 dark:border-slate-700 pt-3 text-right text-sm">
                                     <p>Total Pago: <span id="modal-paid-value" class="font-semibold text-slate-800 dark:text-slate-200">R$ 0,00</span></p>
                                     <p>Restante: <span id="modal-remaining-value" class="font-semibold text-red-500">R$ 0,00</span></p>
                                 </div>
 
                                 <div class="pt-4 flex justify-end gap-4">
                                     <button type="button" id="cancel-finalize-button" class="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 py-2 px-4 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500">Cancelar</button>
-                                    <button type="submit" id="confirm-sale-button" class="bg-primary-600 text-white py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>Confirmar Venda</button>
+                                    <button type="submit" id="confirm-sale-button" class="bg-brand-primary text-white py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>Confirmar Venda</button>
                                 </div>
                             </form>
                         </div>`;
@@ -1293,7 +1238,7 @@
                     } else {
                         sales.forEach(s => {
                             const r = document.createElement('tr');
-                            r.className = 'bg-white dark:bg-slate-800 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600';
+                            r.className = 'bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50';
                             
                             const paymentDisplay = Array.isArray(s.paymentMethods) 
                                 ? s.paymentMethods.map(p => {
@@ -1312,7 +1257,7 @@
                                  <td class="px-6 py-4">${paymentDisplay}</td>
                                  <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
                                  <td class="px-6 py-4 text-center">
-                                     <button data-order-id="${s.id}" class="view-details-btn text-primary-600 hover:underline">Detalhes</button>
+                                     <button data-order-id="${s.id}" class="view-details-btn text-brand-primary hover:underline">Detalhes</button>
                                  </td>`;
                             tbody.appendChild(r);
                         });
@@ -1388,7 +1333,7 @@
                                 }).join('')
                                 : `<li>${order.paymentMethod}: ${formatCurrency(order.total)}</li>`;
 
-                            m.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p></div></div>`;
+                            m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p></div></div>`;
                             m.querySelector('#close-details-modal').addEventListener('click', () => m.classList.add('hidden'));
                             lucide.createIcons();
                         }
@@ -1845,24 +1790,55 @@
                     });
 
                     const isDarkMode = document.documentElement.classList.contains('dark');
-                    const gridColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                    const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
                     const textColor = isDarkMode ? '#cbd5e1' : '#475569';
                     
                     const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
                     if(vendasCtx) {
+                      const gradient = vendasCtx.createLinearGradient(0, 0, 0, vendasCtx.canvas.height);
+                      gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+                      gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+                      
                       vendasChartInstance = new Chart(vendasCtx, {
-                          type: 'bar',
-                          data: { labels: Object.values(salesLast7Days).map(d => d.label), datasets: [{ label: 'Vendas Diárias', data: Object.values(salesLast7Days).map(d => d.total), backgroundColor: '#22c55e', borderRadius: 5 }] },
+                          type: 'line',
+                          data: { 
+                              labels: Object.values(salesLast7Days).map(d => d.label), 
+                              datasets: [{ 
+                                  label: 'Vendas Diárias', 
+                                  data: Object.values(salesLast7Days).map(d => d.total), 
+                                  backgroundColor: gradient,
+                                  borderColor: '#3b82f6',
+                                  borderWidth: 2,
+                                  pointBackgroundColor: '#3b82f6',
+                                  pointRadius: 4,
+                                  fill: true,
+                                  tension: 0.4
+                                }] 
+                          },
                           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
                       });
                     }
 
-                    const paymentCounts = sales.reduce((acc, sale) => { acc[sale.paymentMethod] = (acc[sale.paymentMethod] || 0) + sale.total; return acc; }, {});
+                    const paymentData = sales.reduce((acc, sale) => {
+                        (sale.paymentMethods || [{method: sale.paymentMethod, amount: sale.total}]).forEach(p => {
+                            acc[p.method] = (acc[p.method] || 0) + p.amount;
+                        });
+                        return acc;
+                    }, {});
+
                     const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
                     if(pagamentosCtx) {
                       pagamentoChartInstance = new Chart(pagamentosCtx, {
                           type: 'doughnut',
-                          data: { labels: Object.keys(paymentCounts), datasets: [{ data: Object.values(paymentCounts), backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'], borderColor: isDarkMode ? '#0f172a' : '#f8fafc', borderWidth: 4 }] },
+                          data: { 
+                              labels: Object.keys(paymentData), 
+                              datasets: [{ 
+                                  data: Object.values(paymentData), 
+                                  backgroundColor: ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b'], 
+                                  borderColor: isDarkMode ? '#0f172a' : '#f1f5f9', 
+                                  borderWidth: 4 
+                                }] 
+                          },
                           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
                       });
                     }
@@ -1914,7 +1890,7 @@
 
 
             const init = () => {
-                const theme = localStorage.getItem('theme') || 'light';
+                const theme = localStorage.getItem('theme') || 'dark';
                 applyTheme(theme);
                 const themeToggleHandler = () => {
                     const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
@@ -1937,3 +1913,4 @@
 </body>
 
 </html>
+
