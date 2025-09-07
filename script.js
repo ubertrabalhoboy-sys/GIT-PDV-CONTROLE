@@ -295,12 +295,15 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordInput.value = '';
             document.getElementById('login-error').textContent = '';
             initializeAppUI();
+            
         } catch (error) {
             console.error("Erro de login:", error.code);
             document.getElementById('login-error').textContent = 'Senha inválida.';
             document.getElementById('password-view').classList.add('animate-shake');
             setTimeout(() => document.getElementById('password-view').classList.remove('animate-shake'), 500);
+            console.log("Usuário logado para montar UI:", state.loggedInUser);
         }
+        
     });
 
     const logout = () => {
