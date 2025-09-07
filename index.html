@@ -10,11 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 
-    <!-- CORREÇÃO: Adicionados Scripts do Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -271,7 +266,7 @@
             <main class="p-4 md:p-6">
                 <div id="caixa-view" class="view"></div>
                 <div id="pedidos-view" class="view"></div>
-                <div id="clientes-view" class="view"></div> <!-- NOVO: View para Clientes -->
+                <div id="clientes-view" class="view"></div>
                 <div id="metas-view" class="view"></div>
                 <div id="ranking-view" class="view"></div>
                 <div id="relatorios-view" class="view"></div>
@@ -286,6 +281,7 @@
     <div id="whatsapp-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="bonus-wheel-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="prize-won-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
+    <div id="client-history-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Confirmação</h3>
@@ -408,8 +404,8 @@
                 <div class="custom-card p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Clientes Registados</h3>
                      <div class="mb-4">
-                        <label for="search-client-input" class="sr-only">Procurar Cliente</label>
-                        <input type="search" id="search-client-input" placeholder="Procurar por nome ou telefone..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                         <label for="search-client-input" class="sr-only">Procurar Cliente</label>
+                         <input type="search" id="search-client-input" placeholder="Procurar por nome ou telefone..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
                     </div>
                     <div id="clients-list-container" class="space-y-2 max-h-96 overflow-y-auto">
                         <!-- A lista de clientes será renderizada aqui -->
@@ -502,8 +498,8 @@
     <script type="text/html" id="relatorios-template">
         <div class="space-y-6">
              <div id="gerente-relatorios-vendedor-select-container" class="hidden custom-card p-4 rounded-lg shadow-md">
-                <label for="relatorios-vendedor-select" class="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Visualizar Relatório de:</label>
-                <select id="relatorios-vendedor-select" class="w-full md:w-1/3 block rounded-md border-slate-300 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-800/50"></select>
+                 <label for="relatorios-vendedor-select" class="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Visualizar Relatório de:</label>
+                 <select id="relatorios-vendedor-select" class="w-full md:w-1/3 block rounded-md border-slate-300 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-800/50"></select>
              </div>
              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                  <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas Hoje</p><p id="relatorio-vendas-hoje" class="text-2xl font-bold text-brand-primary">R$ 0,00</p></div>
@@ -526,7 +522,7 @@
                     <div id="ai-analysis-result-container" class="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-2 prose dark:prose-invert max-w-none">
                          <p class="text-slate-500 dark:text-slate-400">Clique no botão para gerar uma análise inteligente dos dados de vendas do período selecionado.</p>
                     </div>
-                </div>
+                 </div>
              </div>
 
              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -596,8 +592,8 @@
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Configurar Roleta de Prêmios</h3>
                 <div class="space-y-4">
                      <div class="flex items-center">
-                        <input id="enable-bonus-wheel" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
-                        <label for="enable-bonus-wheel" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar roleta de prêmios após a venda</label>
+                         <input id="enable-bonus-wheel" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
+                         <label for="enable-bonus-wheel" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar roleta de prêmios após a venda</label>
                     </div>
 
                     <div id="bonus-wheel-config-container" class="hidden">
@@ -711,7 +707,7 @@
     </script>
     
     <!-- Lógica da Aplicação -->
-    <script src="script.js"></script>
+    <!-- O script é carregado como um módulo, o que também adia sua execução (similar ao 'defer'). As importações do Firebase são tratadas dentro do próprio script. -->
+    <script src="script.js" type="module"></script>
 </body>
 </html>
-
