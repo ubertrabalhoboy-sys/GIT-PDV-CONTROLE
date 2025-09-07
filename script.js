@@ -707,15 +707,35 @@ document.addEventListener('DOMContentLoaded', () => {
     // ALTERADO: Função `renderCaixa` atualizada para o sistema híbrido
     function renderCaixa() {
         const view = document.getElementById('caixa-view');
+        
+        // ****** INÍCIO DA CORREÇÃO ******
+        // Seleciona os elementos que terão listeners
         let itemsContainer = view.querySelector('#current-order-items');
-        const totalEl = view.querySelector('#current-order-total');
         let finalizeBtn = view.querySelector('#finalize-order-button');
         let addForm = view.querySelector('#add-item-form');
-        const modalContainer = document.getElementById('finalize-order-modal');
-
-        // NOVO: Seletores e estado para a busca de produtos
         let productSearchInput = view.querySelector('#product-search');
         let searchResultsContainer = view.querySelector('#product-search-results');
+
+        // Função auxiliar para clonar e substituir o elemento, removendo listeners antigos
+        const cleanAndClone = (el) => {
+            if (!el) return null;
+            const newEl = el.cloneNode(true);
+            el.parentNode.replaceChild(newEl, el);
+            return newEl;
+        };
+        
+        // Limpa os listeners dos elementos antes de adicionar novos
+        addForm = cleanAndClone(addForm);
+        itemsContainer = cleanAndClone(itemsContainer);
+        productSearchInput = cleanAndClone(productSearchInput);
+        searchResultsContainer = cleanAndClone(searchResultsContainer);
+        finalizeBtn = cleanAndClone(finalizeBtn);
+        // ****** FIM DA CORREÇÃO ******
+
+        const totalEl = view.querySelector('#current-order-total');
+        const modalContainer = document.getElementById('finalize-order-modal');
+
+        // NOVO: estado para a busca de produtos
         let selectedProduct = null;
 
         const updateUI = () => {
@@ -752,19 +772,6 @@ document.addEventListener('DOMContentLoaded', () => {
             totalEl.textContent = formatCurrency(state.currentOrder.reduce((sum, i) => sum + i.value, 0));
             window.lucide.createIcons();
         };
-
-        // ****** INÍCIO DA CORREÇÃO 1: Limpeza de Eventos ******
-        const cleanAndClone = (el) => {
-            const newEl = el.cloneNode(true);
-            el.parentNode.replaceChild(newEl, el);
-            return newEl;
-        };
-        addForm = cleanAndClone(addForm);
-        itemsContainer = cleanAndClone(itemsContainer);
-        productSearchInput = cleanAndClone(productSearchInput);
-        searchResultsContainer = cleanAndClone(searchResultsContainer);
-        finalizeBtn = cleanAndClone(finalizeBtn);
-        // ****** FIM DA CORREÇÃO 1 ******
 
         addForm.addEventListener('submit', e => {
             e.preventDefault();
@@ -1057,9 +1064,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // NOVO: Função inteira para renderizar a tela de Clientes
     function renderClientes() {
         const view = document.getElementById('clientes-view');
+        
+        // ****** INÍCIO DA CORREÇÃO ******
+        // Seleciona os elementos que terão listeners
         let form = view.querySelector('#add-client-form');
         let tableBody = view.querySelector('#clients-table-body');
         let searchInput = view.querySelector('#client-search');
+
+        // Função auxiliar para clonar e substituir o elemento, removendo listeners antigos
+        const cleanAndClone = (el) => {
+            if (!el) return null;
+            const newEl = el.cloneNode(true);
+            el.parentNode.replaceChild(newEl, el);
+            return newEl;
+        };
+
+        // Limpa os listeners dos elementos antes de adicionar novos
+        form = cleanAndClone(form);
+        tableBody = cleanAndClone(tableBody);
+        searchInput = cleanAndClone(searchInput);
+        // ****** FIM DA CORREÇÃO ******
+
         let currentEditingId = null;
 
         const resetForm = () => {
@@ -1098,17 +1123,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             window.lucide.createIcons();
         };
-        
-        // ****** INÍCIO DA CORREÇÃO 2: Limpeza de Eventos ******
-        const cleanAndClone = (el) => {
-            const newEl = el.cloneNode(true);
-            el.parentNode.replaceChild(newEl, el);
-            return newEl;
-        };
-        form = cleanAndClone(form);
-        tableBody = cleanAndClone(tableBody);
-        searchInput = cleanAndClone(searchInput);
-        // ****** FIM DA CORREÇÃO 2 ******
 
         searchInput.addEventListener('input', () => {
             const term = searchInput.value.toLowerCase();
