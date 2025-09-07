@@ -455,8 +455,8 @@
     <script type="text/html" id="relatorios-template">
         <div class="space-y-6">
              <div id="gerente-relatorios-vendedor-select-container" class="hidden custom-card p-4 rounded-lg shadow-md">
-                <label for="relatorios-vendedor-select" class="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Visualizar Relatório de:</label>
-                <select id="relatorios-vendedor-select" class="w-full md:w-1/3 block rounded-md border-slate-300 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-800/50"></select>
+                 <label for="relatorios-vendedor-select" class="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Visualizar Relatório de:</label>
+                 <select id="relatorios-vendedor-select" class="w-full md:w-1/3 block rounded-md border-slate-300 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-800/50"></select>
              </div>
              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                  <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas Hoje</p><p id="relatorio-vendas-hoje" class="text-2xl font-bold text-brand-primary">R$ 0,00</p></div>
@@ -506,11 +506,11 @@
                          <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                          <button id="save-settings-button" class="mt-2 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Nome</button>
                      </div>
-                      <div>
+                     <div>
                          <h4 class="text-md font-semibold text-red-600 dark:text-red-500 mb-2">Zona de Perigo</h4>
                          <p class="text-xs text-slate-500 mb-2">Esta ação não pode ser desfeita e removerá permanentemente todas as vendas do sistema.</p>
                          <button id="delete-all-sales-button" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm">Zerar Todas as Vendas</button>
-                      </div>
+                     </div>
                  </div>
             </div>
 
@@ -661,9 +661,10 @@
                 </div>
             </div>
         </div>
+    </script>
 
-</script>
-
+    <!-- Firebase -->
     <script type="module" src="script.js"></script>
+
 </body>
 </html>
