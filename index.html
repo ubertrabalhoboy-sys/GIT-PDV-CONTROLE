@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -41,6 +42,103 @@
         .kpi-card-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
         .kpi-card-green { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
         .kpi-card-pink { box-shadow: 0 0 20px rgba(219, 39, 119, 0.3); }
+
+        /* Estilos da Roleta Futurista */
+        .wheel-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+        }
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-image: conic-gradient(
+                #0ff 0deg, #0ff 45deg,
+                #f0f 45deg, #f0f 90deg,
+                #8A2BE2 90deg, #8A2BE2 135deg,
+                #39FF14 135deg, #39FF14 180deg,
+                #FF69B4 180deg, #FF69B4 225deg,
+                #1E90FF 225deg, #1E90FF 270deg,
+                #FFD700 270deg, #FFD700 315deg,
+                #FF4500 315deg, #FF4500 360deg
+            );
+            position: relative;
+            overflow: hidden;
+            border: 4px solid #fff;
+            box-shadow: 0 0 15px #0ff, 0 0 30px #0ff, inset 0 0 10px rgba(0,0,0,0.5);
+            transition: transform 6s cubic-bezier(0.1, 0.5, 0.2, 1);
+        }
+        .wheel-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 35px solid #fff;
+            z-index: 10;
+            filter: drop-shadow(0 -3px 2px rgba(0,0,0,0.3)) drop-shadow(0 0 5px #fff);
+        }
+         .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: #020617;
+            border-radius: 50%;
+            border: 5px solid #fff;
+            box-shadow: 0 0 15px #0ff;
+            z-index: 11;
+        }
+        .wheel-segment {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .segment-label {
+            font-size: 2.5rem;
+            transform: rotate(-45deg) translateY(-80px);
+            text-shadow: 0 0 5px rgba(0,0,0,0.7);
+        }
+        
+        #spin-wheel-btn {
+            background: linear-gradient(45deg, #39FF14, #22c55e);
+            box-shadow: 0 5px 20px rgba(57, 255, 20, 0.4);
+            border: none;
+        }
+
+        /* Animação de Confete */
+        .confetti-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100px) rotateZ(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotateZ(720deg); opacity: 0; }
+        }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -179,6 +277,8 @@
     <div id="finalize-order-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="order-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="whatsapp-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
+    <div id="bonus-wheel-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
+    <div id="prize-won-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Confirmação</h3>
@@ -441,7 +541,48 @@
                             <input type="number" id="bonus-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                         </div>
                     </div>
-                     <button id="save-goals-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar</button>
+                     <button id="save-goals-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Metas e Bônus</button>
+                </div>
+            </div>
+
+             <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Configurar Roleta de Prêmios</h3>
+                <div class="space-y-4">
+                     <div class="flex items-center">
+                        <input id="enable-bonus-wheel" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
+                        <label for="enable-bonus-wheel" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar roleta de prêmios após a venda</label>
+                    </div>
+
+                    <div id="bonus-wheel-config-container" class="hidden">
+                        <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
+                            <div>
+                                <label for="bonus-wheel-min-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor Mínimo da Compra para Girar (R$)</label>
+                                <input type="number" id="bonus-wheel-min-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4 mt-4">
+                            <div>
+                                <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Adicionar Prêmio</h4>
+                                <form id="add-prize-form" class="space-y-4">
+                                    <div>
+                                        <label for="prize-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Prêmio</label>
+                                        <input type="text" id="prize-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                    </div>
+                                    <div>
+                                        <label for="prize-probability" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Chance de Sair (%)</label>
+                                        <input type="number" id="prize-probability" min="1" max="100" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                    </div>
+                                    <button type="submit" class="w-full bg-brand-secondary text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">Adicionar Prêmio</button>
+                                </form>
+                            </div>
+                             <div>
+                                <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Prêmios Atuais</h4>
+                                <p class="text-xs text-slate-500 mb-2">Probabilidade Total: <span id="total-probability">0%</span></p>
+                                <ul id="prizes-list" class="space-y-2 max-h-48 overflow-y-auto"></ul>
+                            </div>
+                        </div>
+                         <button id="save-wheel-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Configurações da Roleta</button>
+                    </div>
                 </div>
             </div>
             
@@ -525,7 +666,7 @@
     <!-- Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, orderBy, writeBatch, Timestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, orderBy, writeBatch, Timestamp, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
@@ -553,7 +694,8 @@
                     settings: { 
                         storeName: "Minha Loja",
                         goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                        bonusSystem: { enabled: true, value: 80 }
+                        bonusSystem: { enabled: true, value: 80 },
+                        bonusWheel: { enabled: false, prizes: [], minValue: 0 }
                     },
                     sales: []
                 },
@@ -586,7 +728,8 @@
                         await setDoc(doc(db, "settings", storeRef.id), {
                             storeName: storeName,
                             goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                            bonusSystem: { enabled: true, value: 80 }
+                            bonusSystem: { enabled: true, value: 80 },
+                            bonusWheel: { enabled: false, prizes: [], minValue: 0 }
                         });
                         showToast('Sistema pronto! Faça login com o superadmin criado no console.', 'success');
                         
@@ -637,11 +780,13 @@
                      await setDoc(settingsRef, {
                          storeName: state.selectedStore.name,
                          goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                         bonusSystem: { enabled: true, value: 80 }
+                         bonusSystem: { enabled: true, value: 80 },
+                         bonusWheel: { enabled: false, prizes: [], minValue: 0 }
                     });
                      state.db.settings.storeName = state.selectedStore.name;
                      state.db.settings.goals = { daily: 150, weekly: 1000, monthly: 4000 };
                      state.db.settings.bonusSystem = { enabled: true, value: 80 };
+                     state.db.settings.bonusWheel = { enabled: false, prizes: [], minValue: 0 };
                 }
 
                 loadUsersForStore(state.selectedStore.id);
@@ -655,10 +800,17 @@
 
                     const [usersSnapshot, superAdminSnapshot] = await Promise.all([getDocs(q), getDocs(superAdminQ)]);
                     
-                    let users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    const superAdmins = superAdminSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const usersMap = new Map();
                     
-                    state.db.users = [...users, ...superAdmins];
+                    usersSnapshot.docs.forEach(doc => {
+                        usersMap.set(doc.id, { id: doc.id, ...doc.data() });
+                    });
+                    
+                    superAdminSnapshot.docs.forEach(doc => {
+                        usersMap.set(doc.id, { id: doc.id, ...doc.data() });
+                    });
+
+                    state.db.users = Array.from(usersMap.values());
 
                     const userList = document.getElementById('user-list');
                     userList.innerHTML = '';
@@ -951,6 +1103,144 @@
             document.getElementById('mobile-menu-button').addEventListener('click', () => showMobileMenu(true));
             overlay.addEventListener('click', () => showMobileMenu(false));
 
+            function showPrizeWonModal(prize, saleData) {
+                const modal = document.getElementById('prize-won-modal');
+                modal.classList.remove('hidden');
+
+                modal.innerHTML = `
+                    <div class="custom-card rounded-lg shadow-xl w-full max-w-sm p-8 m-4 fade-in text-center relative overflow-hidden">
+                        <div class="confetti-container"></div>
+                        <i data-lucide="party-popper" class="w-16 h-16 mx-auto mb-4 text-amber-400"></i>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Parabéns!</h2>
+                        <p class="text-slate-600 dark:text-slate-400 mt-2">Você ganhou:</p>
+                        <p class="text-3xl font-bold text-brand-secondary my-4">${prize.name}</p>
+                        <button id="close-prize-modal" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors">Continuar</button>
+                    </div>
+                `;
+                lucide.createIcons();
+
+                // Confetti Effect
+                const confettiContainer = modal.querySelector('.confetti-container');
+                for (let i = 0; i < 50; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    const colors = ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b', '#8b5cf6'];
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.left = `${Math.random() * 100}%`;
+                    confetti.style.animationDelay = `${Math.random() * 3}s`;
+                    confetti.style.width = `${Math.random() * 8 + 5}px`;
+                    confetti.style.height = confetti.style.width;
+                    confettiContainer.appendChild(confetti);
+                }
+
+                modal.querySelector('#close-prize-modal').addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                    if (saleData.clientPhone) {
+                        showWhatsAppModal(saleData);
+                    }
+                }, { once: true });
+            }
+
+            async function showBonusWheelModal(saleData) {
+                const modal = document.getElementById('bonus-wheel-modal');
+                const prizes = state.db.settings.bonusWheel.prizes;
+
+                if (!prizes || prizes.length === 0) {
+                    if (saleData.clientPhone) showWhatsAppModal(saleData);
+                    return;
+                }
+
+                const segmentAngle = 360 / prizes.length;
+
+                const segmentsHTML = prizes.map((prize, index) => {
+                    const rotation = segmentAngle * index;
+                    return `
+                        <div class="wheel-segment" style="transform: rotate(${rotation}deg) skewY(${segmentAngle - 90}deg);">
+                            <span class="segment-label">🎁</span>
+                        </div>
+                    `;
+                }).join('');
+
+                modal.innerHTML = `
+                    <div class="custom-card rounded-lg shadow-xl w-full max-w-md p-6 m-4 fade-in text-center">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Parabéns!</h2>
+                        <p class="text-slate-600 dark:text-slate-400 mb-4">O cliente ganhou o direito de girar a roleta!</p>
+                        <div class="wheel-container">
+                            <div class="wheel-pointer"></div>
+                            <div class="wheel">${segmentsHTML}</div>
+                            <div class="wheel-center"></div>
+                        </div>
+                        <button id="spin-wheel-btn" class="w-full bg-brand-secondary text-white py-3 px-4 rounded-md hover:bg-green-700 transition-colors text-lg font-bold">GIRAR A ROLETA</button>
+                    </div>
+                `;
+                modal.classList.remove('hidden');
+
+                const spinBtn = modal.querySelector('#spin-wheel-btn');
+                const wheel = modal.querySelector('.wheel');
+                let isSpinning = false;
+
+                const synth = new Tone.Synth().toDestination();
+                const notes = ["C4", "D4", "E4", "G4", "A4", "G4", "E4", "D4"];
+                let noteIndex = 0;
+                const loop = new Tone.Loop(time => {
+                    synth.triggerAttackRelease(notes[noteIndex % notes.length], "16n", time);
+                    noteIndex++;
+                }, "16n");
+
+                spinBtn.addEventListener('click', async () => {
+                    if (isSpinning) return;
+                    isSpinning = true;
+                    spinBtn.disabled = true;
+                    spinBtn.textContent = 'GIRANDO...';
+
+                    await Tone.start();
+                    Tone.Transport.bpm.value = 180;
+                    loop.start(0);
+                    Tone.Transport.start();
+
+                    const slowDownInterval = setInterval(() => {
+                        if (Tone.Transport.bpm.value > 40) {
+                            Tone.Transport.bpm.value -= 5;
+                        } else {
+                            clearInterval(slowDownInterval);
+                        }
+                    }, 200);
+
+
+                    let cumulativeProbability = 0;
+                    const weightedPrizes = prizes.map(p => ({ ...p, cumulative: cumulativeProbability += p.probability }));
+                    const random = Math.random() * 100;
+                    const winningPrize = weightedPrizes.find(p => random < p.cumulative) || prizes[prizes.length - 1];
+                    const winningIndex = prizes.findIndex(p => p.name === winningPrize.name);
+
+                    const randomOffset = (Math.random() - 0.5) * (segmentAngle * 0.8);
+                    const targetAngle = (winningIndex * segmentAngle) + (segmentAngle / 2) + randomOffset;
+                    const spinCycles = 5;
+                    const finalRotation = (360 * spinCycles) - targetAngle;
+
+                    wheel.style.transform = `rotate(${finalRotation}deg)`;
+
+                    setTimeout(async () => {
+                        loop.stop();
+                        Tone.Transport.stop();
+                        noteIndex = 0;
+                        clearInterval(slowDownInterval);
+                        
+                        try {
+                            await updateDoc(doc(db, "sales", saleData.id), { prizeWon: winningPrize.name });
+                            saleData.prizeWon = winningPrize.name;
+                        } catch (error) {
+                            console.error("Erro ao atualizar a venda com o prêmio:", error);
+                            showToast('Erro ao salvar o prêmio.', 'error');
+                        }
+
+                        modal.classList.add('hidden');
+                        showPrizeWonModal(winningPrize, saleData);
+
+                    }, 6000);
+                });
+            }
+
             function showWhatsAppModal(saleData) {
                 const modal = document.getElementById('whatsapp-confirm-modal');
                 if (!modal) return;
@@ -974,8 +1264,14 @@
                 if (!paymentText) {
                     paymentText = `- ${saleData.paymentMethod}: ${formatCurrency(saleData.total)}`;
                 }
+                
+                let prizeText = '';
+                if(saleData.prizeWon) {
+                    prizeText = `\n\n🎁 *Prêmio Ganho na Roleta!*\nParabéns! Você ganhou: *${saleData.prizeWon}*`;
+                }
 
-                const couponText = `🧾 *Comprovante de Venda* 🧾\n\n*${storeName}*\n\n*Data:* ${saleDate}\n*Cliente:* ${saleData.clientName}\n\n*Itens:*\n${itemsText}\n\n*Pagamento:*\n${paymentText}\n\n*Total:* *${formatCurrency(saleData.total)}*\n*Vendedor:* ${saleData.vendedor}\n\nObrigado pela sua compra!`;
+
+                const couponText = `🧾 *Comprovante de Venda* 🧾\n\n*${storeName}*\n\n*Data:* ${saleDate}\n*Cliente:* ${saleData.clientName}\n\n*Itens:*\n${itemsText}\n\n*Pagamento:*\n${paymentText}\n\n*Total:* *${formatCurrency(saleData.total)}*\n*Vendedor:* ${saleData.vendedor}${prizeText}\n\nObrigado pela sua compra!`;
 
                 const whatsAppNumber = saleData.clientPhone.replace(/\D/g, ''); // Clean phone number
                 const encodedText = encodeURIComponent(couponText);
@@ -1196,14 +1492,23 @@
                             date: Timestamp.now(),
                             vendedor: state.loggedInUser.name,
                             status: 'Finalizado',
-                            storeId: state.selectedStore.id
+                            storeId: state.selectedStore.id,
+                            prizeWon: null
                         };
 
                         try {
-                            await addDoc(collection(db, "sales"), saleData);
+                            const docRef = await addDoc(collection(db, "sales"), saleData);
+                            saleData.id = docRef.id;
                             showToast('Venda registrada com sucesso!', 'success');
                             modalContainer.classList.add('hidden');
-                            if(saleData.clientPhone) showWhatsAppModal(saleData);
+                            
+                            const wheelConfig = state.db.settings.bonusWheel;
+                            if (wheelConfig && wheelConfig.enabled && wheelConfig.prizes && wheelConfig.prizes.length > 0 && total >= (wheelConfig.minValue || 0)) {
+                                showBonusWheelModal(saleData);
+                            } else if (saleData.clientPhone) {
+                                showWhatsAppModal(saleData);
+                            }
+
                             state.currentOrder = [];
                             updateUI();
                         } catch (error) {
@@ -1345,8 +1650,13 @@
                                     return paymentString;
                                 }).join('')
                                 : `<li>${order.paymentMethod}: ${formatCurrency(order.total)}</li>`;
+                            
+                             let prizeDetails = '';
+                             if(order.prizeWon){
+                                 prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
+                             }
 
-                            m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p></div></div>`;
+                            m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p>${prizeDetails}</div></div>`;
                             m.querySelector('#close-details-modal').addEventListener('click', () => m.classList.add('hidden'));
                             lucide.createIcons();
                         }
@@ -1620,19 +1930,19 @@
                 const handleExport = async (startDate, endDate, filename) => {
                     const selectedVendedor = exportVendedorSelect.value;
                     try {
-                        let conditions = [
+                        let baseConditions = [
                             where("storeId", "==", state.selectedStore.id),
                             where("date", ">=", startDate),
                             where("date", "<=", endDate)
                         ];
 
+                        const baseQuery = query(collection(db, "sales"), ...baseConditions);
+                        const salesSnapshot = await getDocs(baseQuery);
+                        let salesToExport = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
                         if (selectedVendedor !== 'Todos') {
-                            conditions.push(where("vendedor", "==", selectedVendedor));
+                            salesToExport = salesToExport.filter(sale => sale.vendedor === selectedVendedor);
                         }
-                        
-                        const finalQuery = query(collection(db, "sales"), ...conditions);
-                        const salesSnapshot = await getDocs(finalQuery);
-                        const salesToExport = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
                         exportToCSV(salesToExport, filename);
                     } catch (error) {
@@ -1799,9 +2109,9 @@
                         }, { merge: true });
                         state.db.settings.goals = newGoals;
                         state.db.settings.bonusSystem = newBonusSystem;
-                        showToast('Configurações salvas com sucesso!', 'success');
+                        showToast('Metas e bônus salvos com sucesso!', 'success');
                     } catch(error) {
-                        showToast('Erro ao salvar configurações.', 'error');
+                        showToast('Erro ao salvar metas e bônus.', 'error');
                     }
                 });
                 
@@ -1889,6 +2199,86 @@
                 } else {
                     manageStoresSection.classList.add('hidden');
                 }
+
+                // Roleta
+                const wheelConfigContainer = c.querySelector('#bonus-wheel-config-container');
+                const enableWheelCheckbox = c.querySelector('#enable-bonus-wheel');
+                let prizes = state.db.settings.bonusWheel?.prizes ? [...state.db.settings.bonusWheel.prizes] : [];
+                
+                enableWheelCheckbox.checked = state.db.settings.bonusWheel?.enabled ?? false;
+                wheelConfigContainer.classList.toggle('hidden', !enableWheelCheckbox.checked);
+
+                const minValueInput = c.querySelector('#bonus-wheel-min-value');
+                minValueInput.value = state.db.settings.bonusWheel?.minValue ?? 0;
+
+                enableWheelCheckbox.addEventListener('change', () => {
+                    wheelConfigContainer.classList.toggle('hidden', !enableWheelCheckbox.checked);
+                });
+
+                const renderPrizes = () => {
+                    const list = c.querySelector('#prizes-list');
+                    const totalProbEl = c.querySelector('#total-probability');
+                    list.innerHTML = '';
+                    let totalProb = 0;
+                    prizes.forEach((prize, index) => {
+                        totalProb += prize.probability;
+                        list.innerHTML += `
+                            <li class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md text-sm">
+                                <span>${prize.name} <span class="text-xs text-slate-500">(${prize.probability}%)</span></span>
+                                <button data-index="${index}" class="remove-prize-btn text-red-500 hover:text-red-700">
+                                    <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+                                </button>
+                            </li>
+                        `;
+                    });
+                    totalProbEl.textContent = `${totalProb}%`;
+                    totalProbEl.classList.toggle('text-red-500', totalProb !== 100);
+                    totalProbEl.classList.toggle('text-green-500', totalProb === 100);
+                    lucide.createIcons();
+                };
+
+                c.querySelector('#add-prize-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = c.querySelector('#prize-name').value.trim();
+                    const probability = parseInt(c.querySelector('#prize-probability').value);
+                    if (name && probability > 0) {
+                        prizes.push({ name, probability });
+                        renderPrizes();
+                        e.target.reset();
+                    }
+                });
+
+                c.querySelector('#prizes-list').addEventListener('click', (e) => {
+                    if (e.target.closest('.remove-prize-btn')) {
+                        const index = e.target.closest('.remove-prize-btn').dataset.index;
+                        prizes.splice(index, 1);
+                        renderPrizes();
+                    }
+                });
+
+                c.querySelector('#save-wheel-button').addEventListener('click', async () => {
+                    const totalProb = prizes.reduce((sum, p) => sum + p.probability, 0);
+                    if (prizes.length > 0 && totalProb !== 100) {
+                        return showToast('A soma das probabilidades dos prêmios deve ser exatamente 100%.', 'error');
+                    }
+                    
+                    const newWheelSettings = {
+                        enabled: enableWheelCheckbox.checked,
+                        prizes: prizes,
+                        minValue: parseFloat(minValueInput.value) || 0
+                    };
+
+                    try {
+                        await setDoc(doc(db, "settings", state.selectedStore.id), { bonusWheel: newWheelSettings }, { merge: true });
+                        state.db.settings.bonusWheel = newWheelSettings;
+                        showToast('Configurações da roleta salvas!', 'success');
+                    } catch (error) {
+                        showToast('Erro ao salvar configurações da roleta.', 'error');
+                        console.error("Erro ao salvar roleta:", error);
+                    }
+                });
+
+                renderPrizes();
             }
 
             function renderRelatorios() {
@@ -2071,3 +2461,4 @@
 </body>
 
 </html>
+
