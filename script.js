@@ -1,4 +1,4 @@
-// Firebase Imports (necessário para o type="module")
+// Firebase Imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, writeBatch, Timestamp, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -29,8 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
             users: [],
             stores: [],
             products: [],
-            // NOVO: Adiciona a coleção de clientes ao estado
-            customers: [],
+            clients: [], // NOVO: Adicionado estado para clientes
             settings: {
                 storeName: "Minha Loja",
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
@@ -39,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             sales: []
         },
-        listeners: { users: null, sales: null, stores: null, products: null, customers: null }, // NOVO: Listener para clientes
+        listeners: { users: null, sales: null, stores: null, products: null, clients: null }, // NOVO: Listener para clientes
         selectedStore: null
     };
     let selectedUserForLogin = null;
@@ -306,15 +305,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const logout = () => {
         signOut(auth);
-        // Desliga todos os listeners ao sair
-        Object.values(state.listeners).forEach(listener => listener && listener());
-        state.listeners = { users: null, sales: null, stores: null, products: null, customers: null };
-        
+        if (state.listeners.users) state.listeners.users();
+        if (state.listeners.sales) state.listeners.sales();
+        if (state.listeners.stores) state.listeners.stores();
+        if (state.listeners.products) state.listeners.products();
+        if (state.listeners.clients) state.listeners.clients(); // NOVO: Limpa listener de clientes
+        state.listeners = { users: null, sales: null, stores: null, products: null, clients: null };
         Object.assign(state, {
             loggedInUser: null,
             selectedStore: null,
             currentOrder: [],
-            db: { users: [], stores: [], sales: [], products: [], customers: [], settings: {} }
+            db: { users: [], stores: [], sales: [], products: [], clients: [], settings: {} } // NOVO: Limpa clientes
         });
         selectedUserForLogin = null;
         document.getElementById('app').classList.add('hidden');
@@ -327,7 +328,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const user = state.loggedInUser;
         const store = state.selectedStore;
 
-        console.log("DIAGNÓSTICO: Iniciando UI para o usuário:", user);
         if (!user || !user.role) {
             console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida. Fazendo logout forçado.");
             showToast("Erro de autenticação, por favor faça login novamente.", "error");
@@ -339,34 +339,46 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('username-sidebar').textContent = user.name;
         document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
 
-        // Desliga listeners antigos antes de criar novos
-        Object.values(state.listeners).forEach(listener => listener && listener());
-
+        if (state.listeners.users) state.listeners.users();
         state.listeners.users = onSnapshot(query(collection(db, "users")), (snapshot) => {
             state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes')) {
+                const activeView = document.getElementById(`${state.currentView}-view`);
+                if (activeView && activeView.classList.contains('active')) {
+                    renderViewContent(state.currentView);
+                }
+            }
         });
         
+        if (state.listeners.products) state.listeners.products();
         const productsQuery = query(collection(db, "products"), where("storeId", "==", store.id));
         state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
             state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (state.currentView === 'produtos' && document.getElementById('produtos-view').classList.contains('active')) {
+                renderProdutos();
+            }
         }, (error) => {
             console.error("Erro ao carregar produtos (verifique suas Regras de Segurança do Firestore):", error);
+            showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
         });
 
-        // NOVO: Listener para a coleção de clientes
-        const customersQuery = query(collection(db, "customers"), where("storeId", "==", store.id));
-        state.listeners.customers = onSnapshot(customersQuery, (snapshot) => {
-            state.db.customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // NOVO: Listener para a coleção de Clientes
+        if (state.listeners.clients) state.listeners.clients();
+        const clientsQuery = query(collection(db, "clients"), where("storeId", "==", store.id));
+        state.listeners.clients = onSnapshot(clientsQuery, (snapshot) => {
+            state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             if (state.currentView === 'clientes' && document.getElementById('clientes-view').classList.contains('active')) {
                 renderClientes();
             }
         }, (error) => {
-             console.error("Erro ao carregar clientes (verifique suas Regras de Segurança do Firestore):", error);
+            console.error("Erro ao carregar clientes:", error);
+            showToast('Erro ao carregar clientes.', 'error');
         });
 
 
         const switcherContainer = document.getElementById('store-switcher-container');
         if (user.role === 'superadmin') {
+            if (state.listeners.stores) state.listeners.stores();
             state.listeners.stores = onSnapshot(query(collection(db, "stores")), (snapshot) => {
                 state.db.stores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const select = document.getElementById('store-switcher-select');
@@ -376,9 +388,40 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.db.stores.forEach(s => {
                         select.innerHTML += `<option value="${s.id}" ${s.id === currentStoreId ? 'selected' : ''}>${s.name}</option>`;
                     });
+                    if (!state.db.stores.some(s => s.id === currentStoreId)) {
+                        if (state.db.stores.length > 0) {
+                            state.selectedStore = state.db.stores[0];
+                            initializeAppUI();
+                            switchView(state.currentView || 'pedidos');
+                        } else {
+                            logout();
+                        }
+                    }
                 }
             });
+
             switcherContainer.classList.remove('hidden');
+            const select = document.getElementById('store-switcher-select');
+            select.onchange = async (e) => {
+                const newStoreId = e.target.value;
+                state.selectedStore = state.db.stores.find(s => s.id === newStoreId);
+                const settingsRef = doc(db, "settings", state.selectedStore.id);
+                const settingsSnap = await getDoc(settingsRef);
+                if (settingsSnap.exists()) {
+                    state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
+                }
+                document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
+                if (state.listeners.products) state.listeners.products();
+                state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
+                    state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                });
+                // NOVO: Recarrega clientes ao trocar de loja
+                if (state.listeners.clients) state.listeners.clients();
+                 state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
+                    state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                });
+                switchView(state.currentView);
+            };
         } else {
             switcherContainer.classList.add('hidden');
         }
@@ -388,20 +431,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const vM = document.getElementById('vendedor-menu'), gM = document.getElementById('gerente-menu');
         vM.innerHTML = ''; gM.innerHTML = '';
-        
-        // CORREÇÃO: Menu agora é unificado para evitar lógicas complexas
-        let commonMenu = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('clientes', 'users', 'Clientes');
-        let vendedorMenu = createMenuItem('caixa', 'shopping-basket', 'Caixa') + commonMenu + createMenuItem('metas', 'target', 'Metas') + createMenuItem('ranking', 'trophy', 'Ranking') + createMenuItem('relatorios', 'bar-chart-2', 'Relatórios');
-        let gerenteMenu = commonMenu + createMenuItem('produtos', 'package', 'Produtos') + createMenuItem('ranking', 'trophy', 'Ranking') + createMenuItem('relatorios', 'area-chart', 'Relatórios') + createMenuItem('configuracoes', 'settings', 'Configurações');
 
         if (user.role === 'vendedor') {
-            console.log("Renderizando menu de VENDEDOR.");
-            vM.innerHTML = vendedorMenu + createLogoutItem();
+            vM.innerHTML = createMenuItem('caixa', 'shopping-basket', 'Caixa') + createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('metas', 'target', 'Metas') + createMenuItem('ranking', 'trophy', 'Ranking') + createMenuItem('relatorios', 'bar-chart-2', 'Relatórios') + createLogoutItem();
             vM.classList.remove('hidden'); gM.classList.add('hidden');
             switchView('caixa');
         } else {
-            console.log(`Renderizando menu de GERENTE/SUPERADMIN para a função: "${user.role}"`);
-            gM.innerHTML = gerenteMenu + createLogoutItem();
+            // CORREÇÃO: Adicionada a opção "Produtos" de volta ao menu de Gerente/Super Admin
+            const managerMenuHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
+                                  createMenuItem('clientes', 'users', 'Clientes') + 
+                                  createMenuItem('produtos', 'package', 'Produtos') + 
+                                  createMenuItem('ranking', 'trophy', 'Ranking') + 
+                                  createMenuItem('relatorios', 'area-chart', 'Relatórios') + 
+                                  createMenuItem('configuracoes', 'settings', 'Configurações') + 
+                                  createLogoutItem();
+            
+            gM.innerHTML = managerMenuHTML;
             gM.classList.remove('hidden'); vM.classList.add('hidden');
             switchView('pedidos');
         }
@@ -441,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (viewId) {
             case 'caixa': renderCaixa(); break;
             case 'pedidos': renderPedidos(); break;
-            case 'clientes': renderClientes(); break;
+            case 'clientes': renderClientes(); break; // NOVO: case para a view de clientes
             case 'produtos': renderProdutos(); break;
             case 'metas': renderMetas(); break;
             case 'ranking': renderRanking(); break;
@@ -455,19 +500,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('mobile-menu-button').addEventListener('click', () => showMobileMenu(true));
     overlay.addEventListener('click', () => showMobileMenu(false));
 
-    // ... (O resto das funções, de showPrizeWonModal até o final, permanecem as mesmas, mas com a adição da lógica do CRM)
-    
-    // As funções renderCaixa, renderPedidos e outras serão modificadas para integrar o CRM.
-    // O código completo é fornecido abaixo.
-
-    // ... As funções showPrizeWonModal, showBonusWheelModal, showWhatsAppModal permanecem iguais ...
-    // ... A função renderCaixa será atualizada para buscar clientes ...
-    // ... A função renderPedidos será atualizada para usar customerId ...
-    // ... A nova função renderClientes será adicionada ...
-
-    // O código completo e atualizado segue abaixo, incluindo todas as funções
-    
-    // Colar TODO o resto do JS aqui, com as novas funções e modificações
     function showPrizeWonModal(prize, saleData) {
         const modal = document.getElementById('prize-won-modal');
         modal.classList.remove('hidden');
@@ -672,6 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ALTERADO: Função `renderCaixa` atualizada para o sistema híbrido
     function renderCaixa() {
         const view = document.getElementById('caixa-view');
         const itemsContainer = view.querySelector('#current-order-items');
@@ -680,6 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const addForm = view.querySelector('#add-item-form');
         const modalContainer = document.getElementById('finalize-order-modal');
         
+        // NOVO: Seletores e estado para a busca de produtos
         const productSearchInput = view.querySelector('#product-search');
         const searchResultsContainer = view.querySelector('#product-search-results');
         let selectedProduct = null;
@@ -694,7 +728,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const el = document.createElement('div');
                     el.className = 'flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-3 rounded-md';
                     
-                    const stockIcon = item.productId ? `<i data-lucide="package" class="w-4 h-4 text-slate-500 mr-2"></i>` : '';
+                    // NOVO: Ícone para indicar se o item é do estoque
+                    const stockIcon = item.productId ? `<i data-lucide="package" class="w-4 h-4 text-slate-500 mr-2" title="Item do Estoque"></i>` : '';
 
                     el.innerHTML = `
                         <div class="flex items-center">
@@ -727,6 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 exchange: view.querySelector('#item-exchange').value
             };
             
+            // NOVO: Associa o ID do produto ao item do pedido se ele foi selecionado da busca
             if (selectedProduct) {
                 newItem.productId = selectedProduct.id;
             }
@@ -735,7 +771,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateUI();
             addForm.reset();
             productSearchInput.value = '';
-            selectedProduct = null;
+            selectedProduct = null; // Limpa o produto selecionado
             view.querySelector('#item-name').focus();
         });
 
@@ -747,6 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
+        // NOVO: Lógica de busca de produtos
         productSearchInput.addEventListener('input', () => {
             const searchTerm = productSearchInput.value.toLowerCase();
             if (searchTerm.length < 2) {
@@ -772,6 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // NOVO: Lógica para auto-preenchimento ao clicar no resultado da busca
         searchResultsContainer.addEventListener('click', (e) => {
             const resultDiv = e.target.closest('[data-product-id]');
             if (resultDiv) {
@@ -792,9 +830,7 @@ document.addEventListener('DOMContentLoaded', () => {
             modalContainer.classList.remove('hidden');
             const orderTotal = state.currentOrder.reduce((sum, i) => sum + i.value, 0);
 
-            // NOVO: Lógica de busca de clientes no modal de finalização
-            let selectedCustomerId = null;
-
+            // NOVO: Adicionado campo de busca de cliente no modal de finalização
             modalContainer.innerHTML = `
                 <div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in">
                     <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Finalizar Pedido</h2>
@@ -802,18 +838,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     <form id="finalize-order-form" class="space-y-3">
                         <div class="relative">
-                           <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente</label>
-                           <input type="text" id="client-name" autocomplete="off" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                           <div id="client-search-results" class="absolute z-20 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md mt-1 shadow-lg max-h-40 overflow-y-auto hidden"></div>
+                            <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Buscar Cliente</label>
+                            <input type="text" id="sale-client-search" autocomplete="off" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Digite nome ou telefone...">
+                             <div id="sale-client-search-results" class="absolute z-20 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md mt-1 shadow-lg max-h-40 overflow-y-auto hidden"></div>
                         </div>
-                        <div>
-                           <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label>
-                           <input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Ex: 11987654321">
-                        </div>
-                         <div class="flex items-center" id="save-new-client-container">
-                            <input id="save-new-client-checkbox" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
-                            <label for="save-new-client-checkbox" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Salvar novo cliente no CRM</label>
-                        </div>
+                        <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente (para a venda)</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></div>
+                        <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Ex: 11987654321"></div>
 
                         <div class="border-t border-slate-300 dark:border-slate-700 pt-3">
                             <label class="block text-sm font-semibold mb-2 text-slate-800 dark:text-slate-200">Formas de Pagamento</label>
@@ -846,45 +876,43 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </form>
                 </div>`;
-
+            
+            let selectedClient = null; // Estado para o cliente selecionado na venda
+            const clientSearchInput = modalContainer.querySelector('#sale-client-search');
+            const clientSearchResults = modalContainer.querySelector('#sale-client-search-results');
             const clientNameInput = modalContainer.querySelector('#client-name');
             const clientPhoneInput = modalContainer.querySelector('#client-phone');
-            const clientSearchResults = modalContainer.querySelector('#client-search-results');
-            const saveClientCheckboxContainer = modalContainer.querySelector('#save-new-client-container');
-
-            clientNameInput.addEventListener('input', () => {
-                const searchTerm = clientNameInput.value.toLowerCase();
-                selectedCustomerId = null; // Reseta a seleção se o usuário digitar
-                saveClientCheckboxContainer.classList.remove('hidden');
-
-                if (searchTerm.length < 2) {
+            
+            clientSearchInput.addEventListener('input', () => {
+                const term = clientSearchInput.value.toLowerCase();
+                if (term.length < 2) {
                     clientSearchResults.classList.add('hidden');
                     return;
                 }
-                const results = state.db.customers.filter(c => c.name.toLowerCase().includes(searchTerm));
-                if (results.length > 0) {
+                const results = state.db.clients.filter(c => c.name.toLowerCase().includes(term) || (c.phone && c.phone.includes(term)));
+                if(results.length > 0) {
                     clientSearchResults.innerHTML = results.map(c => `
                         <div class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer" data-client-id="${c.id}">
-                           ${c.name} <span class="text-xs text-slate-500">${c.phone || ''}</span>
-                        </div>`).join('');
+                            <p class="text-sm font-medium">${c.name}</p>
+                            <p class="text-xs text-slate-500">${c.phone || 'Sem telefone'}</p>
+                        </div>
+                    `).join('');
                     clientSearchResults.classList.remove('hidden');
                 } else {
                     clientSearchResults.classList.add('hidden');
                 }
             });
 
-            clientSearchResults.addEventListener('click', (e) => {
+            clientSearchResults.addEventListener('click', e => {
                 const clientDiv = e.target.closest('[data-client-id]');
-                if (clientDiv) {
-                    const clientId = clientDiv.dataset.clientId;
-                    const client = state.db.customers.find(c => c.id === clientId);
-                    if (client) {
-                        clientNameInput.value = client.name;
-                        clientPhoneInput.value = client.phone || '';
-                        selectedCustomerId = client.id;
-                        saveClientCheckboxContainer.classList.add('hidden');
+                if(clientDiv) {
+                    selectedClient = state.db.clients.find(c => c.id === clientDiv.dataset.clientId);
+                    if(selectedClient){
+                        clientNameInput.value = selectedClient.name;
+                        clientPhoneInput.value = selectedClient.phone || '';
                     }
                     clientSearchResults.classList.add('hidden');
+                    clientSearchInput.value = selectedClient.name;
                 }
             });
 
@@ -936,7 +964,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 paymentInputs.forEach(input => {
                     const amount = parseFloat(input.value);
                     if (amount > 0) {
-                        const method = { method: input.dataset.method, amount: amount };
+                        const method = {
+                            method: input.dataset.method,
+                            amount: amount
+                        };
                         if (input.id === 'payment-cartao') {
                             method.installments = modalContainer.querySelector('#payment-installments').value;
                         }
@@ -955,33 +986,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (bonusConfig && bonusConfig.enabled && bonusConfig.value > 0) {
                     bonus = Math.floor(total / bonusConfig.value) * 2;
                 }
-                
-                let currentCustomerId = selectedCustomerId;
-                const clientName = clientNameInput.value;
-                const clientPhone = clientPhoneInput.value;
-
-                // Salva novo cliente se a caixa estiver marcada
-                if (!currentCustomerId && modalContainer.querySelector('#save-new-client-checkbox').checked) {
-                    try {
-                        const newClientRef = await addDoc(collection(db, "customers"), {
-                            name: clientName,
-                            phone: clientPhone,
-                            email: '',
-                            address: '',
-                            storeId: state.selectedStore.id,
-                            createdAt: Timestamp.now()
-                        });
-                        currentCustomerId = newClientRef.id;
-                        showToast(`Cliente "${clientName}" salvo no CRM!`, 'success');
-                    } catch (error) {
-                        console.error("Erro ao salvar novo cliente:", error);
-                    }
-                }
 
                 const saleData = {
-                    clientName: clientName,
-                    clientPhone: clientPhone,
-                    customerId: currentCustomerId || null, // Salva o ID do cliente
+                    clientName: clientNameInput.value,
+                    clientPhone: clientPhoneInput.value,
+                    clientId: selectedClient ? selectedClient.id : null, // NOVO: Salva o ID do cliente
                     paymentMethods: paymentMethods,
                     paymentMethod: paymentMethods.map(p => p.method).join(' + '),
                     items: state.currentOrder,
@@ -995,6 +1004,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 try {
+                    // ALTERADO: Uso do `writeBatch` para garantir atomicidade (venda + baixa de estoque)
                     const batch = writeBatch(db);
                     const itemsToDecrement = state.currentOrder.filter(item => item.productId);
                     
@@ -1010,11 +1020,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     saleData.id = newSaleRef.id;
                     
-                    showToast('Venda registrada com sucesso!', 'success');
+                    showToast('Venda registrada e estoque atualizado!', 'success');
                     modalContainer.classList.add('hidden');
 
                     const wheelConfig = state.db.settings.bonusWheel;
-                    if (wheelConfig && wheelConfig.enabled && total >= (wheelConfig.minValue || 0)) {
+                    if (wheelConfig && wheelConfig.enabled && wheelConfig.prizes && wheelConfig.prizes.length > 0 && total >= (wheelConfig.minValue || 0)) {
                         showBonusWheelModal(saleData);
                     } else if (saleData.clientPhone) {
                         showWhatsAppModal(saleData);
@@ -1023,7 +1033,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.currentOrder = [];
                     updateUI();
                 } catch (error) {
-                    showToast('Erro ao registrar a venda.', 'error');
+                    showToast('Erro ao registrar a venda. Estoque pode não ter sido atualizado.', 'error');
                     console.error("Erro no batch de venda:", error);
                 }
             });
@@ -1031,7 +1041,169 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
     
-    // ... (As outras funções permanecem majoritariamente iguais, mas com pequenas adaptações)
+    // NOVO: Função inteira para renderizar a tela de Clientes
+    function renderClientes() {
+        const view = document.getElementById('clientes-view');
+        const form = view.querySelector('#add-client-form');
+        const tableBody = view.querySelector('#clients-table-body');
+        const searchInput = view.querySelector('#client-search');
+        let currentEditingId = null;
+
+        const resetForm = () => {
+            form.reset();
+            form.querySelector('#client-form-id').value = '';
+            view.querySelector('#client-form-title').textContent = 'Adicionar Novo Cliente';
+            view.querySelector('#client-form-btn-text').textContent = 'Salvar Cliente';
+            view.querySelector('#client-form-cancel').classList.add('hidden');
+            currentEditingId = null;
+        }
+
+        const renderClientsTable = (clients) => {
+            tableBody.innerHTML = '';
+            const clientsToRender = clients || state.db.clients;
+
+            if (clientsToRender.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="3" class="text-center p-8 text-slate-500">Nenhum cliente cadastrado.</td></tr>`;
+                return;
+            }
+
+            const sortedClients = [...clientsToRender].sort((a, b) => a.name.localeCompare(b.name));
+
+            sortedClients.forEach(client => {
+                const row = `
+                    <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
+                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${client.name}</td>
+                        <td class="px-6 py-4">${client.phone || 'N/A'}</td>
+                        <td class="px-6 py-4 text-center space-x-2">
+                            <button data-client-id="${client.id}" class="view-client-btn text-blue-500 hover:text-blue-700" title="Ver Detalhes"><i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i></button>
+                            <button data-client-id="${client.id}" class="edit-client-btn text-amber-500 hover:text-amber-700" title="Editar"><i data-lucide="edit-2" class="w-4 h-4 pointer-events-none"></i></button>
+                            <button data-client-id="${client.id}" class="remove-client-btn text-red-500 hover:text-red-700" title="Remover"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+            window.lucide.createIcons();
+        };
+
+        searchInput.addEventListener('input', () => {
+            const term = searchInput.value.toLowerCase();
+            const filteredClients = state.db.clients.filter(c => 
+                c.name.toLowerCase().includes(term) || (c.phone && c.phone.includes(term))
+            );
+            renderClientsTable(filteredClients);
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const clientData = {
+                name: view.querySelector('#client-form-name').value,
+                phone: view.querySelector('#client-form-phone').value,
+                email: view.querySelector('#client-form-email').value,
+                address: view.querySelector('#client-form-address').value,
+                storeId: state.selectedStore.id
+            };
+
+            try {
+                if (currentEditingId) {
+                    await setDoc(doc(db, "clients", currentEditingId), clientData);
+                    showToast('Cliente atualizado com sucesso!', 'success');
+                } else {
+                    await addDoc(collection(db, "clients"), clientData);
+                    showToast('Cliente adicionado com sucesso!', 'success');
+                }
+                resetForm();
+            } catch (error) {
+                console.error("Erro ao salvar cliente:", error);
+                showToast('Erro ao salvar cliente.', 'error');
+            }
+        });
+        
+        form.addEventListener('reset', () => setTimeout(resetForm, 0));
+
+        tableBody.addEventListener('click', async (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            
+            const clientId = btn.dataset.clientId;
+
+            if (btn.classList.contains('remove-client-btn')) {
+                showConfirmModal('Tem certeza que deseja remover este cliente? A ação não pode ser desfeita.', async () => {
+                    try {
+                        await deleteDoc(doc(db, "clients", clientId));
+                        showToast('Cliente removido!', 'success');
+                    } catch (error) { showToast('Erro ao remover cliente.', 'error'); }
+                });
+            } else if (btn.classList.contains('edit-client-btn')) {
+                const client = state.db.clients.find(c => c.id === clientId);
+                if(client) {
+                    currentEditingId = client.id;
+                    view.querySelector('#client-form-id').value = client.id;
+                    view.querySelector('#client-form-name').value = client.name;
+                    view.querySelector('#client-form-phone').value = client.phone || '';
+                    view.querySelector('#client-form-email').value = client.email || '';
+                    view.querySelector('#client-form-address').value = client.address || '';
+                    view.querySelector('#client-form-title').textContent = 'Editando Cliente';
+                    view.querySelector('#client-form-btn-text').textContent = 'Atualizar';
+                    view.querySelector('#client-form-cancel').classList.remove('hidden');
+                    view.querySelector('#client-form-name').focus();
+                }
+            } else if (btn.classList.contains('view-client-btn')) {
+                 const client = state.db.clients.find(c => c.id === clientId);
+                 const salesQuery = query(collection(db, "sales"), where("clientId", "==", clientId));
+                 const salesSnapshot = await getDocs(salesQuery);
+                 const clientSales = salesSnapshot.docs.map(doc => doc.data());
+
+                 const modal = document.getElementById('client-details-modal');
+                 modal.classList.remove('hidden');
+
+                 const totalSpent = clientSales.reduce((acc, sale) => acc + sale.total, 0);
+
+                 let salesHTML = '<p class="text-sm text-slate-500">Nenhuma compra registrada.</p>';
+                 if (clientSales.length > 0) {
+                     salesHTML = `<ul class="space-y-2 text-sm max-h-60 overflow-y-auto pr-2">` + clientSales.sort((a,b) => b.date.seconds - a.date.seconds).map(sale => `
+                        <li class="p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-md">
+                            <div class="flex justify-between font-semibold">
+                                <span>${formatDate(sale.date)}</span>
+                                <span>${formatCurrency(sale.total)}</span>
+                            </div>
+                            <ul class="list-disc list-inside text-xs text-slate-600 dark:text-slate-400">
+                                ${sale.items.map(item => `<li>${item.name}</li>`).join('')}
+                            </ul>
+                        </li>
+                     `).join('') + `</ul>`;
+                 }
+
+                 modal.innerHTML = `
+                    <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
+                        <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
+                            <button id="close-client-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><i data-lucide="x" class="w-6 h-6"></i></button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="font-bold mb-2">Informações de Contato</h4>
+                                <p><strong class="font-medium">Telefone:</strong> ${client.phone || 'N/A'}</p>
+                                <p><strong class="font-medium">Email:</strong> ${client.email || 'N/A'}</p>
+                                <p><strong class="font-medium">Endereço:</strong> ${client.address || 'N/A'}</p>
+                                <hr class="my-3 dark:border-slate-700">
+                                <h4 class="font-bold">Total Gasto na Loja:</h4>
+                                <p class="text-xl font-bold text-brand-primary">${formatCurrency(totalSpent)}</p>
+                            </div>
+                            <div>
+                                <h4 class="font-bold mb-2">Histórico de Compras (${clientSales.length})</h4>
+                                ${salesHTML}
+                            </div>
+                        </div>
+                    </div>
+                 `;
+                 window.lucide.createIcons();
+                 modal.querySelector('#close-client-details-modal').addEventListener('click', () => modal.classList.add('hidden'));
+            }
+        });
+        
+        renderClientsTable();
+    }
 
     function renderProdutos() {
         const view = document.getElementById('produtos-view');
@@ -1111,157 +1283,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProductsTable();
     }
     
-    // ... O resto das funções (renderPedidos, renderMetas, etc.) segue aqui...
-    
-    // A função renderClientes é totalmente nova
-    function renderClientes() {
-        const view = document.getElementById('clientes-view');
-        const form = view.querySelector('#add-client-form');
-        const tableBody = view.querySelector('#clients-table-body');
-        const searchInput = view.querySelector('#client-search');
-
-        const renderClientsTable = (clients) => {
-            tableBody.innerHTML = '';
-            const clientsToRender = clients || state.db.customers;
-
-            if (clientsToRender.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="3" class="text-center p-8 text-slate-500">Nenhum cliente encontrado.</td></tr>`;
-                return;
-            }
-
-            const sortedClients = [...clientsToRender].sort((a, b) => a.name.localeCompare(b.name));
-
-            sortedClients.forEach(client => {
-                const row = `
-                    <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
-                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${client.name}</td>
-                        <td class="px-6 py-4">${client.phone || 'N/A'}</td>
-                        <td class="px-6 py-4 text-center">
-                            <button data-client-id="${client.id}" class="view-client-details-btn text-brand-primary hover:underline">Detalhes</button>
-                        </td>
-                    </tr>
-                `;
-                tableBody.innerHTML += row;
-            });
-        };
-
-        searchInput.addEventListener('input', () => {
-            const searchTerm = searchInput.value.toLowerCase();
-            const filteredClients = state.db.customers.filter(c => 
-                c.name.toLowerCase().includes(searchTerm) || 
-                (c.phone && c.phone.includes(searchTerm))
-            );
-            renderClientsTable(filteredClients);
-        });
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = view.querySelector('#client-form-name').value;
-            const phone = view.querySelector('#client-form-phone').value;
-            const email = view.querySelector('#client-form-email').value;
-            const address = view.querySelector('#client-form-address').value;
-
-            if (!name) {
-                showToast('O nome do cliente é obrigatório.', 'error');
-                return;
-            }
-
-            try {
-                await addDoc(collection(db, "customers"), {
-                    name, phone, email, address,
-                    storeId: state.selectedStore.id,
-                    createdAt: Timestamp.now()
-                });
-                showToast('Cliente adicionado com sucesso!', 'success');
-                form.reset();
-            } catch (error) {
-                console.error("Erro ao adicionar cliente:", error);
-                showToast('Erro ao adicionar cliente.', 'error');
-            }
-        });
-        
-        tableBody.addEventListener('click', e => {
-            const detailsBtn = e.target.closest('.view-client-details-btn');
-            if(detailsBtn){
-                const clientId = detailsBtn.dataset.clientId;
-                showClientDetailsModal(clientId);
-            }
-        });
-
-        renderClientsTable();
-    }
-    
-    async function showClientDetailsModal(clientId) {
-        const modal = document.getElementById('client-details-modal');
-        const client = state.db.customers.find(c => c.id === clientId);
-        if (!client) return;
-
-        // Buscar histórico de compras
-        const salesQuery = query(collection(db, "sales"), where("customerId", "==", clientId));
-        const salesSnapshot = await getDocs(salesQuery);
-        const salesHistory = salesSnapshot.docs.map(doc => doc.data());
-
-        let historyHtml = '<p class="text-sm text-slate-500">Nenhuma compra registrada.</p>';
-        if (salesHistory.length > 0) {
-            historyHtml = `
-                <ul class="space-y-2 max-h-48 overflow-y-auto">
-                    ${salesHistory.sort((a,b) => b.date.seconds - a.date.seconds).map(sale => `
-                        <li class="text-sm p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-md">
-                            ${formatDate(sale.date)} - ${sale.items.length} item(ns) - <span class="font-semibold">${formatCurrency(sale.total)}</span>
-                        </li>
-                    `).join('')}
-                </ul>
-            `;
-        }
-
-        modal.innerHTML = `
-            <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
-                <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
-                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
-                    <button id="close-client-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <h4 class="font-semibold mb-2">Detalhes do Contato</h4>
-                        <p class="text-sm"><i data-lucide="phone" class="inline w-4 h-4 mr-2"></i>${client.phone || 'Não informado'}</p>
-                        <p class="text-sm"><i data-lucide="mail" class="inline w-4 h-4 mr-2"></i>${client.email || 'Não informado'}</p>
-                        <p class="text-sm mt-2"><i data-lucide="map-pin" class="inline w-4 h-4 mr-2"></i>${client.address || 'Não informado'}</p>
-                    </div>
-                    <div>
-                        <h4 class="font-semibold mb-2">Histórico de Compras</h4>
-                        ${historyHtml}
-                    </div>
-                </div>
-                 <div class="flex justify-end mt-6">
-                    <button data-client-id="${client.id}" id="delete-client-btn" class="text-sm bg-red-600 text-white py-2 px-3 rounded-md hover:bg-red-700 transition-colors flex items-center gap-2">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>Excluir Cliente
-                    </button>
-                </div>
-            </div>`;
-        
-        window.lucide.createIcons();
-        modal.classList.remove('hidden');
-
-        modal.querySelector('#close-client-details-modal').addEventListener('click', () => modal.classList.add('hidden'));
-        modal.querySelector('#delete-client-btn').addEventListener('click', (e) => {
-            const id = e.target.dataset.clientId;
-            showConfirmModal(`Tem certeza que deseja excluir "${client.name}"? Esta ação não pode ser desfeita.`, async () => {
-                try {
-                    await deleteDoc(doc(db, "customers", id));
-                    modal.classList.add('hidden');
-                    showToast('Cliente excluído com sucesso!', 'success');
-                } catch (error) {
-                    showToast('Erro ao excluir cliente.', 'error');
-                }
-            });
-        });
-    }
-
-    // A função renderPedidos precisa ser ajustada para mostrar o nome do cliente corretamente
     function renderPedidos() {
         const c = document.getElementById('pedidos-view');
-        // ... (resto do código da função como estava antes)
-         const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
+        const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
 
         if (isGerente) {
             c.querySelector('#vendedor-pedidos-dashboard')?.classList.add('hidden');
@@ -1390,10 +1414,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         }).join('')
                         : `<li>${order.paymentMethod}: ${formatCurrency(order.total)}</li>`;
                     
-                         let prizeDetails = '';
-                         if(order.prizeWon){
-                              prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
-                         }
+                             let prizeDetails = '';
+                             if(order.prizeWon){
+                                  prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
+                             }
 
                     m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p>${prizeDetails}</div></div>`;
                     m.querySelector('#close-details-modal').addEventListener('click', () => m.classList.add('hidden'));
@@ -1833,8 +1857,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 monthly: parseFloat(c.querySelector('#meta-mensal').value) || 0,
             };
              const newBonusSystem = {
-                  enabled: c.querySelector('#enable-bonus').checked,
-                  value: parseFloat(c.querySelector('#bonus-value').value) || 80,
+                 enabled: c.querySelector('#enable-bonus').checked,
+                 value: parseFloat(c.querySelector('#bonus-value').value) || 80,
             };
 
             try {
@@ -1851,18 +1875,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
          c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
-              showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
-                  try {
-                      const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-                      const salesSnapshot = await getDocs(q);
-                      if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
-                      const batch = writeBatch(db);
-                      salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-                      await batch.commit();
-                      showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
-                  } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
-              });
-         });
+               showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
+                   try {
+                       const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
+                       const salesSnapshot = await getDocs(q);
+                       if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
+                       const batch = writeBatch(db);
+                       salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+                       await batch.commit();
+                       showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
+                   } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
+               });
+          });
         
         const manageStoresSection = c.querySelector('#manage-stores-section');
         if (state.loggedInUser.role === 'superadmin') {
@@ -2189,4 +2213,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
-
