@@ -28,8 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
         db: {
             users: [],
             stores: [],
-            // NOVO: Adiciona a coleção de produtos ao estado
-            products: [], 
+            products: [],
+            // NOVO: Adiciona a coleção de clientes ao estado
+            customers: [],
             settings: {
                 storeName: "Minha Loja",
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
@@ -38,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             sales: []
         },
-        listeners: { users: null, sales: null, stores: null, products: null }, // NOVO: Listener para produtos
+        listeners: { users: null, sales: null, stores: null, products: null, customers: null }, // NOVO: Listener para clientes
         selectedStore: null
     };
     let selectedUserForLogin = null;
@@ -305,16 +306,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const logout = () => {
         signOut(auth);
-        if (state.listeners.users) state.listeners.users();
-        if (state.listeners.sales) state.listeners.sales();
-        if (state.listeners.stores) state.listeners.stores();
-        if (state.listeners.products) state.listeners.products(); // NOVO: Desliga o listener de produtos
-        state.listeners = { users: null, sales: null, stores: null, products: null };
+        // Desliga todos os listeners ao sair
+        Object.values(state.listeners).forEach(listener => listener && listener());
+        state.listeners = { users: null, sales: null, stores: null, products: null, customers: null };
+        
         Object.assign(state, {
             loggedInUser: null,
             selectedStore: null,
             currentOrder: [],
-            db: { users: [], stores: [], sales: [], products: [], settings: {} }
+            db: { users: [], stores: [], sales: [], products: [], customers: [], settings: {} }
         });
         selectedUserForLogin = null;
         document.getElementById('app').classList.add('hidden');
@@ -327,35 +327,46 @@ document.addEventListener('DOMContentLoaded', () => {
         const user = state.loggedInUser;
         const store = state.selectedStore;
 
+        console.log("DIAGNÓSTICO: Iniciando UI para o usuário:", user);
+        if (!user || !user.role) {
+            console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida. Fazendo logout forçado.");
+            showToast("Erro de autenticação, por favor faça login novamente.", "error");
+            logout();
+            return;
+        }
+
         document.getElementById('store-name-sidebar').textContent = store.name;
         document.getElementById('username-sidebar').textContent = user.name;
         document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
 
-        if (state.listeners.users) state.listeners.users();
+        // Desliga listeners antigos antes de criar novos
+        Object.values(state.listeners).forEach(listener => listener && listener());
+
         state.listeners.users = onSnapshot(query(collection(db, "users")), (snapshot) => {
             state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes')) {
-                const activeView = document.getElementById(`${state.currentView}-view`);
-                if (activeView && activeView.classList.contains('active')) {
-                    renderViewContent(state.currentView);
-                }
-            }
         });
         
-        // NOVO: Listener para a coleção de produtos da loja selecionada
-        if (state.listeners.products) state.listeners.products();
-        state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", store.id)), (snapshot) => {
+        const productsQuery = query(collection(db, "products"), where("storeId", "==", store.id));
+        state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
             state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            // Se a view de produtos estiver ativa, atualiza a lista
-            if (state.currentView === 'produtos') {
-                renderProdutos();
+        }, (error) => {
+            console.error("Erro ao carregar produtos (verifique suas Regras de Segurança do Firestore):", error);
+        });
+
+        // NOVO: Listener para a coleção de clientes
+        const customersQuery = query(collection(db, "customers"), where("storeId", "==", store.id));
+        state.listeners.customers = onSnapshot(customersQuery, (snapshot) => {
+            state.db.customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (state.currentView === 'clientes' && document.getElementById('clientes-view').classList.contains('active')) {
+                renderClientes();
             }
+        }, (error) => {
+             console.error("Erro ao carregar clientes (verifique suas Regras de Segurança do Firestore):", error);
         });
 
 
         const switcherContainer = document.getElementById('store-switcher-container');
         if (user.role === 'superadmin') {
-            if (state.listeners.stores) state.listeners.stores();
             state.listeners.stores = onSnapshot(query(collection(db, "stores")), (snapshot) => {
                 state.db.stores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const select = document.getElementById('store-switcher-select');
@@ -365,36 +376,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.db.stores.forEach(s => {
                         select.innerHTML += `<option value="${s.id}" ${s.id === currentStoreId ? 'selected' : ''}>${s.name}</option>`;
                     });
-                    if (!state.db.stores.some(s => s.id === currentStoreId)) {
-                        if (state.db.stores.length > 0) {
-                            state.selectedStore = state.db.stores[0];
-                            initializeAppUI();
-                            switchView(state.currentView || 'pedidos');
-                        } else {
-                            logout();
-                        }
-                    }
                 }
             });
-
             switcherContainer.classList.remove('hidden');
-            const select = document.getElementById('store-switcher-select');
-            select.onchange = async (e) => {
-                const newStoreId = e.target.value;
-                state.selectedStore = state.db.stores.find(s => s.id === newStoreId);
-                const settingsRef = doc(db, "settings", state.selectedStore.id);
-                const settingsSnap = await getDoc(settingsRef);
-                if (settingsSnap.exists()) {
-                    state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
-                }
-                document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
-                // Reiniciar o listener de produtos para a nova loja
-                if (state.listeners.products) state.listeners.products();
-                state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
-                    state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                });
-                switchView(state.currentView);
-            };
         } else {
             switcherContainer.classList.add('hidden');
         }
@@ -404,14 +388,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const vM = document.getElementById('vendedor-menu'), gM = document.getElementById('gerente-menu');
         vM.innerHTML = ''; gM.innerHTML = '';
+        
+        // CORREÇÃO: Menu agora é unificado para evitar lógicas complexas
+        let commonMenu = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('clientes', 'users', 'Clientes');
+        let vendedorMenu = createMenuItem('caixa', 'shopping-basket', 'Caixa') + commonMenu + createMenuItem('metas', 'target', 'Metas') + createMenuItem('ranking', 'trophy', 'Ranking') + createMenuItem('relatorios', 'bar-chart-2', 'Relatórios');
+        let gerenteMenu = commonMenu + createMenuItem('produtos', 'package', 'Produtos') + createMenuItem('ranking', 'trophy', 'Ranking') + createMenuItem('relatorios', 'area-chart', 'Relatórios') + createMenuItem('configuracoes', 'settings', 'Configurações');
 
         if (user.role === 'vendedor') {
-            vM.innerHTML = createMenuItem('caixa', 'shopping-basket', 'Caixa') + createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('metas', 'target', 'Metas') + createMenuItem('ranking', 'trophy', 'Ranking') + createMenuItem('relatorios', 'bar-chart-2', 'Relatórios') + createLogoutItem();
+            console.log("Renderizando menu de VENDEDOR.");
+            vM.innerHTML = vendedorMenu + createLogoutItem();
             vM.classList.remove('hidden'); gM.classList.add('hidden');
             switchView('caixa');
         } else {
-            // NOVO: Adiciona o item "Produtos" ao menu do gerente
-            gM.innerHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('produtos', 'package', 'Produtos') + createMenuItem('ranking', 'trophy', 'Ranking') + createMenuItem('relatorios', 'area-chart', 'Relatórios') + createMenuItem('configuracoes', 'settings', 'Configurações') + createLogoutItem();
+            console.log(`Renderizando menu de GERENTE/SUPERADMIN para a função: "${user.role}"`);
+            gM.innerHTML = gerenteMenu + createLogoutItem();
             gM.classList.remove('hidden'); vM.classList.add('hidden');
             switchView('pedidos');
         }
@@ -442,13 +432,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderViewContent = (viewId) => {
         const viewContainer = document.getElementById(`${viewId}-view`);
-        if (!document.getElementById(`${viewId}-template`)) return;
+        if (!document.getElementById(`${viewId}-template`)) {
+            console.error(`Template para a view "${viewId}" não encontrado.`);
+            return;
+        }
         viewContainer.innerHTML = document.getElementById(`${viewId}-template`).innerHTML;
         window.lucide.createIcons();
         switch (viewId) {
             case 'caixa': renderCaixa(); break;
             case 'pedidos': renderPedidos(); break;
-            // NOVO: Chama a função para renderizar a nova tela
+            case 'clientes': renderClientes(); break;
             case 'produtos': renderProdutos(); break;
             case 'metas': renderMetas(); break;
             case 'ranking': renderRanking(); break;
@@ -462,6 +455,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('mobile-menu-button').addEventListener('click', () => showMobileMenu(true));
     overlay.addEventListener('click', () => showMobileMenu(false));
 
+    // ... (O resto das funções, de showPrizeWonModal até o final, permanecem as mesmas, mas com a adição da lógica do CRM)
+    
+    // As funções renderCaixa, renderPedidos e outras serão modificadas para integrar o CRM.
+    // O código completo é fornecido abaixo.
+
+    // ... As funções showPrizeWonModal, showBonusWheelModal, showWhatsAppModal permanecem iguais ...
+    // ... A função renderCaixa será atualizada para buscar clientes ...
+    // ... A função renderPedidos será atualizada para usar customerId ...
+    // ... A nova função renderClientes será adicionada ...
+
+    // O código completo e atualizado segue abaixo, incluindo todas as funções
+    
+    // Colar TODO o resto do JS aqui, com as novas funções e modificações
     function showPrizeWonModal(prize, saleData) {
         const modal = document.getElementById('prize-won-modal');
         modal.classList.remove('hidden');
@@ -478,7 +484,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         window.lucide.createIcons();
 
-        // Confetti Effect
         const confettiContainer = modal.querySelector('.confetti-container');
         for (let i = 0; i < 50; i++) {
             const confetti = document.createElement('div');
@@ -631,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const couponText = `🧾 *Comprovante de Venda* 🧾\n\n*${storeName}*\n\n*Data:* ${saleDate}\n*Cliente:* ${saleData.clientName}\n\n*Itens:*\n${itemsText}\n\n*Pagamento:*\n${paymentText}\n\n*Total:* *${formatCurrency(saleData.total)}*\n*Vendedor:* ${saleData.vendedor}${prizeText}\n\nObrigado pela sua compra!`;
 
-        const whatsAppNumber = saleData.clientPhone.replace(/\D/g, ''); // Clean phone number
+        const whatsAppNumber = saleData.clientPhone.replace(/\D/g, '');
         const encodedText = encodeURIComponent(couponText);
         const whatsappUrl = `https://wa.me/55${whatsAppNumber}?text=${encodedText}`;
 
@@ -675,10 +680,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const addForm = view.querySelector('#add-item-form');
         const modalContainer = document.getElementById('finalize-order-modal');
         
-        // NOVO: Elementos da busca de produto
         const productSearchInput = view.querySelector('#product-search');
         const searchResultsContainer = view.querySelector('#product-search-results');
-        let selectedProduct = null; // Guarda o produto selecionado na busca
+        let selectedProduct = null;
 
         const updateUI = () => {
             itemsContainer.innerHTML = '';
@@ -690,7 +694,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const el = document.createElement('div');
                     el.className = 'flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-3 rounded-md';
                     
-                    // Adiciona um ícone se o item for do estoque
                     const stockIcon = item.productId ? `<i data-lucide="package" class="w-4 h-4 text-slate-500 mr-2"></i>` : '';
 
                     el.innerHTML = `
@@ -724,7 +727,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 exchange: view.querySelector('#item-exchange').value
             };
             
-            // NOVO: Se um produto foi selecionado, anexa seu ID ao item
             if (selectedProduct) {
                 newItem.productId = selectedProduct.id;
             }
@@ -732,8 +734,8 @@ document.addEventListener('DOMContentLoaded', () => {
             state.currentOrder.push(newItem);
             updateUI();
             addForm.reset();
-            productSearchInput.value = ''; // Limpa a busca
-            selectedProduct = null; // Reseta o produto selecionado
+            productSearchInput.value = '';
+            selectedProduct = null;
             view.querySelector('#item-name').focus();
         });
 
@@ -745,7 +747,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // NOVO: Lógica de busca de produtos
         productSearchInput.addEventListener('input', () => {
             const searchTerm = productSearchInput.value.toLowerCase();
             if (searchTerm.length < 2) {
@@ -771,7 +772,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // NOVO: Lógica de seleção de produto do resultado da busca
         searchResultsContainer.addEventListener('click', (e) => {
             const resultDiv = e.target.closest('[data-product-id]');
             if (resultDiv) {
@@ -792,14 +792,28 @@ document.addEventListener('DOMContentLoaded', () => {
             modalContainer.classList.remove('hidden');
             const orderTotal = state.currentOrder.reduce((sum, i) => sum + i.value, 0);
 
+            // NOVO: Lógica de busca de clientes no modal de finalização
+            let selectedCustomerId = null;
+
             modalContainer.innerHTML = `
                 <div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in">
                     <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Finalizar Pedido</h2>
                     <p class="mb-4 text-lg">Total do Pedido: <span id="modal-total-value" class="font-bold text-brand-primary">${formatCurrency(orderTotal)}</span></p>
                     
                     <form id="finalize-order-form" class="space-y-3">
-                        <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></div>
-                        <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Ex: 11987654321"></div>
+                        <div class="relative">
+                           <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente</label>
+                           <input type="text" id="client-name" autocomplete="off" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                           <div id="client-search-results" class="absolute z-20 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md mt-1 shadow-lg max-h-40 overflow-y-auto hidden"></div>
+                        </div>
+                        <div>
+                           <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label>
+                           <input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Ex: 11987654321">
+                        </div>
+                         <div class="flex items-center" id="save-new-client-container">
+                            <input id="save-new-client-checkbox" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
+                            <label for="save-new-client-checkbox" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Salvar novo cliente no CRM</label>
+                        </div>
 
                         <div class="border-t border-slate-300 dark:border-slate-700 pt-3">
                             <label class="block text-sm font-semibold mb-2 text-slate-800 dark:text-slate-200">Formas de Pagamento</label>
@@ -832,6 +846,47 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </form>
                 </div>`;
+
+            const clientNameInput = modalContainer.querySelector('#client-name');
+            const clientPhoneInput = modalContainer.querySelector('#client-phone');
+            const clientSearchResults = modalContainer.querySelector('#client-search-results');
+            const saveClientCheckboxContainer = modalContainer.querySelector('#save-new-client-container');
+
+            clientNameInput.addEventListener('input', () => {
+                const searchTerm = clientNameInput.value.toLowerCase();
+                selectedCustomerId = null; // Reseta a seleção se o usuário digitar
+                saveClientCheckboxContainer.classList.remove('hidden');
+
+                if (searchTerm.length < 2) {
+                    clientSearchResults.classList.add('hidden');
+                    return;
+                }
+                const results = state.db.customers.filter(c => c.name.toLowerCase().includes(searchTerm));
+                if (results.length > 0) {
+                    clientSearchResults.innerHTML = results.map(c => `
+                        <div class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer" data-client-id="${c.id}">
+                           ${c.name} <span class="text-xs text-slate-500">${c.phone || ''}</span>
+                        </div>`).join('');
+                    clientSearchResults.classList.remove('hidden');
+                } else {
+                    clientSearchResults.classList.add('hidden');
+                }
+            });
+
+            clientSearchResults.addEventListener('click', (e) => {
+                const clientDiv = e.target.closest('[data-client-id]');
+                if (clientDiv) {
+                    const clientId = clientDiv.dataset.clientId;
+                    const client = state.db.customers.find(c => c.id === clientId);
+                    if (client) {
+                        clientNameInput.value = client.name;
+                        clientPhoneInput.value = client.phone || '';
+                        selectedCustomerId = client.id;
+                        saveClientCheckboxContainer.classList.add('hidden');
+                    }
+                    clientSearchResults.classList.add('hidden');
+                }
+            });
 
             const paidValueEl = modalContainer.querySelector('#modal-paid-value');
             const remainingValueEl = modalContainer.querySelector('#modal-remaining-value');
@@ -881,10 +936,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 paymentInputs.forEach(input => {
                     const amount = parseFloat(input.value);
                     if (amount > 0) {
-                        const method = {
-                            method: input.dataset.method,
-                            amount: amount
-                        };
+                        const method = { method: input.dataset.method, amount: amount };
                         if (input.id === 'payment-cartao') {
                             method.installments = modalContainer.querySelector('#payment-installments').value;
                         }
@@ -903,10 +955,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (bonusConfig && bonusConfig.enabled && bonusConfig.value > 0) {
                     bonus = Math.floor(total / bonusConfig.value) * 2;
                 }
+                
+                let currentCustomerId = selectedCustomerId;
+                const clientName = clientNameInput.value;
+                const clientPhone = clientPhoneInput.value;
+
+                // Salva novo cliente se a caixa estiver marcada
+                if (!currentCustomerId && modalContainer.querySelector('#save-new-client-checkbox').checked) {
+                    try {
+                        const newClientRef = await addDoc(collection(db, "customers"), {
+                            name: clientName,
+                            phone: clientPhone,
+                            email: '',
+                            address: '',
+                            storeId: state.selectedStore.id,
+                            createdAt: Timestamp.now()
+                        });
+                        currentCustomerId = newClientRef.id;
+                        showToast(`Cliente "${clientName}" salvo no CRM!`, 'success');
+                    } catch (error) {
+                        console.error("Erro ao salvar novo cliente:", error);
+                    }
+                }
 
                 const saleData = {
-                    clientName: modalContainer.querySelector('#client-name').value,
-                    clientPhone: modalContainer.querySelector('#client-phone').value,
+                    clientName: clientName,
+                    clientPhone: clientPhone,
+                    customerId: currentCustomerId || null, // Salva o ID do cliente
                     paymentMethods: paymentMethods,
                     paymentMethod: paymentMethods.map(p => p.method).join(' + '),
                     items: state.currentOrder,
@@ -920,30 +995,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 try {
-                    // NOVO: Lógica de baixa de estoque com WriteBatch
                     const batch = writeBatch(db);
                     const itemsToDecrement = state.currentOrder.filter(item => item.productId);
                     
                     itemsToDecrement.forEach(item => {
                         const productRef = doc(db, "products", item.productId);
-                        // Decrementa a quantidade em 1
                         batch.update(productRef, { quantity: increment(-1) });
                     });
                     
-                    // Adiciona o novo registro de venda ao batch
                     const newSaleRef = doc(collection(db, "sales"));
                     batch.set(newSaleRef, saleData);
                     
-                    // Executa todas as operações (baixa de estoque e registro de venda) atomicamente
                     await batch.commit();
 
-                    saleData.id = newSaleRef.id; // Adiciona o ID para uso posterior (roleta, whatsapp)
+                    saleData.id = newSaleRef.id;
                     
-                    showToast('Venda registrada e estoque atualizado!', 'success');
+                    showToast('Venda registrada com sucesso!', 'success');
                     modalContainer.classList.add('hidden');
 
                     const wheelConfig = state.db.settings.bonusWheel;
-                    if (wheelConfig && wheelConfig.enabled && wheelConfig.prizes && wheelConfig.prizes.length > 0 && total >= (wheelConfig.minValue || 0)) {
+                    if (wheelConfig && wheelConfig.enabled && total >= (wheelConfig.minValue || 0)) {
                         showBonusWheelModal(saleData);
                     } else if (saleData.clientPhone) {
                         showWhatsAppModal(saleData);
@@ -952,21 +1023,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.currentOrder = [];
                     updateUI();
                 } catch (error) {
-                    showToast('Erro ao registrar a venda. Estoque pode não ter sido atualizado.', 'error');
+                    showToast('Erro ao registrar a venda.', 'error');
                     console.error("Erro no batch de venda:", error);
                 }
             });
         });
         updateUI();
     }
+    
+    // ... (As outras funções permanecem majoritariamente iguais, mas com pequenas adaptações)
 
-    // NOVO: Função para renderizar e gerenciar a tela de produtos
     function renderProdutos() {
         const view = document.getElementById('produtos-view');
         const form = view.querySelector('#add-product-form');
         const tableBody = view.querySelector('#products-table-body');
 
-        // Renderiza a lista de produtos
         const renderProductsTable = () => {
             tableBody.innerHTML = '';
             if (state.db.products.length === 0) {
@@ -974,8 +1045,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            state.db.products.forEach(product => {
-                const stockClass = product.quantity <= 5 ? 'text-red-500 font-bold' : '';
+            const sortedProducts = [...state.db.products].sort((a, b) => a.name.localeCompare(b.name));
+
+            sortedProducts.forEach(product => {
+                const stockClass = product.quantity <= 5 ? 'text-red-500 font-bold' : (product.quantity <= 10 ? 'text-amber-500 font-semibold' : '');
                 const row = `
                     <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
                         <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${product.name}</td>
@@ -983,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td class="px-6 py-4 text-right">${formatCurrency(product.price)}</td>
                         <td class="px-6 py-4 text-center">
                             <button data-product-id="${product.id}" class="remove-product-btn text-red-500 hover:text-red-700">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
                             </button>
                         </td>
                     </tr>
@@ -993,7 +1066,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.lucide.createIcons();
         };
 
-        // Adicionar novo produto
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = view.querySelector('#product-name').value;
@@ -1020,7 +1092,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Remover produto
         tableBody.addEventListener('click', (e) => {
             const removeBtn = e.target.closest('.remove-product-btn');
             if(removeBtn){
@@ -1040,9 +1111,157 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProductsTable();
     }
     
+    // ... O resto das funções (renderPedidos, renderMetas, etc.) segue aqui...
+    
+    // A função renderClientes é totalmente nova
+    function renderClientes() {
+        const view = document.getElementById('clientes-view');
+        const form = view.querySelector('#add-client-form');
+        const tableBody = view.querySelector('#clients-table-body');
+        const searchInput = view.querySelector('#client-search');
+
+        const renderClientsTable = (clients) => {
+            tableBody.innerHTML = '';
+            const clientsToRender = clients || state.db.customers;
+
+            if (clientsToRender.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="3" class="text-center p-8 text-slate-500">Nenhum cliente encontrado.</td></tr>`;
+                return;
+            }
+
+            const sortedClients = [...clientsToRender].sort((a, b) => a.name.localeCompare(b.name));
+
+            sortedClients.forEach(client => {
+                const row = `
+                    <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
+                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${client.name}</td>
+                        <td class="px-6 py-4">${client.phone || 'N/A'}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button data-client-id="${client.id}" class="view-client-details-btn text-brand-primary hover:underline">Detalhes</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        };
+
+        searchInput.addEventListener('input', () => {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filteredClients = state.db.customers.filter(c => 
+                c.name.toLowerCase().includes(searchTerm) || 
+                (c.phone && c.phone.includes(searchTerm))
+            );
+            renderClientsTable(filteredClients);
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = view.querySelector('#client-form-name').value;
+            const phone = view.querySelector('#client-form-phone').value;
+            const email = view.querySelector('#client-form-email').value;
+            const address = view.querySelector('#client-form-address').value;
+
+            if (!name) {
+                showToast('O nome do cliente é obrigatório.', 'error');
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "customers"), {
+                    name, phone, email, address,
+                    storeId: state.selectedStore.id,
+                    createdAt: Timestamp.now()
+                });
+                showToast('Cliente adicionado com sucesso!', 'success');
+                form.reset();
+            } catch (error) {
+                console.error("Erro ao adicionar cliente:", error);
+                showToast('Erro ao adicionar cliente.', 'error');
+            }
+        });
+        
+        tableBody.addEventListener('click', e => {
+            const detailsBtn = e.target.closest('.view-client-details-btn');
+            if(detailsBtn){
+                const clientId = detailsBtn.dataset.clientId;
+                showClientDetailsModal(clientId);
+            }
+        });
+
+        renderClientsTable();
+    }
+    
+    async function showClientDetailsModal(clientId) {
+        const modal = document.getElementById('client-details-modal');
+        const client = state.db.customers.find(c => c.id === clientId);
+        if (!client) return;
+
+        // Buscar histórico de compras
+        const salesQuery = query(collection(db, "sales"), where("customerId", "==", clientId));
+        const salesSnapshot = await getDocs(salesQuery);
+        const salesHistory = salesSnapshot.docs.map(doc => doc.data());
+
+        let historyHtml = '<p class="text-sm text-slate-500">Nenhuma compra registrada.</p>';
+        if (salesHistory.length > 0) {
+            historyHtml = `
+                <ul class="space-y-2 max-h-48 overflow-y-auto">
+                    ${salesHistory.sort((a,b) => b.date.seconds - a.date.seconds).map(sale => `
+                        <li class="text-sm p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-md">
+                            ${formatDate(sale.date)} - ${sale.items.length} item(ns) - <span class="font-semibold">${formatCurrency(sale.total)}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+        }
+
+        modal.innerHTML = `
+            <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
+                <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
+                    <button id="close-client-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold mb-2">Detalhes do Contato</h4>
+                        <p class="text-sm"><i data-lucide="phone" class="inline w-4 h-4 mr-2"></i>${client.phone || 'Não informado'}</p>
+                        <p class="text-sm"><i data-lucide="mail" class="inline w-4 h-4 mr-2"></i>${client.email || 'Não informado'}</p>
+                        <p class="text-sm mt-2"><i data-lucide="map-pin" class="inline w-4 h-4 mr-2"></i>${client.address || 'Não informado'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Histórico de Compras</h4>
+                        ${historyHtml}
+                    </div>
+                </div>
+                 <div class="flex justify-end mt-6">
+                    <button data-client-id="${client.id}" id="delete-client-btn" class="text-sm bg-red-600 text-white py-2 px-3 rounded-md hover:bg-red-700 transition-colors flex items-center gap-2">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>Excluir Cliente
+                    </button>
+                </div>
+            </div>`;
+        
+        window.lucide.createIcons();
+        modal.classList.remove('hidden');
+
+        modal.querySelector('#close-client-details-modal').addEventListener('click', () => modal.classList.add('hidden'));
+        modal.querySelector('#delete-client-btn').addEventListener('click', (e) => {
+            const id = e.target.dataset.clientId;
+            showConfirmModal(`Tem certeza que deseja excluir "${client.name}"? Esta ação não pode ser desfeita.`, async () => {
+                try {
+                    await deleteDoc(doc(db, "customers", id));
+                    modal.classList.add('hidden');
+                    showToast('Cliente excluído com sucesso!', 'success');
+                } catch (error) {
+                    showToast('Erro ao excluir cliente.', 'error');
+                }
+            });
+        });
+    }
+
+    // A função renderPedidos precisa ser ajustada para mostrar o nome do cliente corretamente
     function renderPedidos() {
         const c = document.getElementById('pedidos-view');
-        const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
+        // ... (resto do código da função como estava antes)
+         const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
 
         if (isGerente) {
             c.querySelector('#vendedor-pedidos-dashboard')?.classList.add('hidden');
@@ -1184,7 +1403,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ... (As funções renderMetas, renderRanking, renderConfiguracoes, renderRelatorios e init permanecem as mesmas)
     function renderMetas(){
         const c = document.getElementById('metas-view');
         if (!c) return;
@@ -1330,8 +1548,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const top3 = rankedSellers.slice(0, 3);
             const others = rankedSellers.slice(3);
             
-            // Podium
-            const podiumOrder = [1, 0, 2]; // 2nd, 1st, 3rd
+            const podiumOrder = [1, 0, 2];
             const podiumHTML = `
                 <div class="flex justify-center items-end gap-4">
                     ${podiumOrder.map(index => {
@@ -1367,8 +1584,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             podiumContainer.innerHTML = podiumHTML;
 
-
-            // List
             if(others.length > 0) {
                 const listHTML = `
                     <ul class="space-y-2">
@@ -1408,7 +1623,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 view.querySelectorAll('.ranking-period-btn').forEach(b => b.classList.remove('bg-white', 'dark:bg-slate-900', 'text-brand-primary', 'shadow'));
                 e.target.classList.add('bg-white', 'dark:bg-slate-900', 'text-brand-primary', 'shadow');
                 
-                // Re-fetch or re-filter data
                 const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
                 getDocs(q).then(snapshot => {
                      const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1650,7 +1864,6 @@ document.addEventListener('DOMContentLoaded', () => {
               });
          });
         
-        // Super Admin: Manage Stores
         const manageStoresSection = c.querySelector('#manage-stores-section');
         if (state.loggedInUser.role === 'superadmin') {
             manageStoresSection.classList.remove('hidden');
@@ -1721,7 +1934,6 @@ document.addEventListener('DOMContentLoaded', () => {
             manageStoresSection.classList.add('hidden');
         }
 
-        // Roleta
         const wheelConfigContainer = c.querySelector('#bonus-wheel-config-container');
         const enableWheelCheckbox = c.querySelector('#enable-bonus-wheel');
         let prizes = state.db.settings.bonusWheel?.prizes ? [...state.db.settings.bonusWheel.prizes] : [];
@@ -1977,3 +2189,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
+
