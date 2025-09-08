@@ -439,12 +439,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // CORREÇÃO: Adicionada a opção "Produtos" de volta ao menu de Gerente/Super Admin
             const managerMenuHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
-                                  createMenuItem('clientes', 'users', 'Clientes') + 
-                                  createMenuItem('produtos', 'package', 'Produtos') + 
-                                  createMenuItem('ranking', 'trophy', 'Ranking') + 
-                                  createMenuItem('relatorios', 'area-chart', 'Relatórios') + 
-                                  createMenuItem('configuracoes', 'settings', 'Configurações') + 
-                                  createLogoutItem();
+                                    createMenuItem('clientes', 'users', 'Clientes') + 
+                                    createMenuItem('produtos', 'package', 'Produtos') + 
+                                    createMenuItem('ranking', 'trophy', 'Ranking') + 
+                                    createMenuItem('relatorios', 'area-chart', 'Relatórios') + 
+                                    createMenuItem('configuracoes', 'settings', 'Configurações') + 
+                                    createLogoutItem();
             
             gM.innerHTML = managerMenuHTML;
             gM.classList.remove('hidden'); vM.classList.add('hidden');
@@ -1161,41 +1161,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
                  let salesHTML = '<p class="text-sm text-slate-500">Nenhuma compra registrada.</p>';
                  if (clientSales.length > 0) {
-                     salesHTML = `<ul class="space-y-2 text-sm max-h-60 overflow-y-auto pr-2">` + clientSales.sort((a,b) => b.date.seconds - a.date.seconds).map(sale => `
-                        <li class="p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-md">
-                            <div class="flex justify-between font-semibold">
-                                <span>${formatDate(sale.date)}</span>
-                                <span>${formatCurrency(sale.total)}</span>
-                            </div>
-                            <ul class="list-disc list-inside text-xs text-slate-600 dark:text-slate-400">
-                                ${sale.items.map(item => `<li>${item.name}</li>`).join('')}
-                            </ul>
-                        </li>
-                     `).join('') + `</ul>`;
+                      salesHTML = `<ul class="space-y-2 text-sm max-h-60 overflow-y-auto pr-2">` + clientSales.sort((a,b) => b.date.seconds - a.date.seconds).map(sale => `
+                          <li class="p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-md">
+                              <div class="flex justify-between font-semibold">
+                                  <span>${formatDate(sale.date)}</span>
+                                  <span>${formatCurrency(sale.total)}</span>
+                              </div>
+                              <ul class="list-disc list-inside text-xs text-slate-600 dark:text-slate-400">
+                                  ${sale.items.map(item => `<li>${item.name}</li>`).join('')}
+                              </ul>
+                          </li>
+                      `).join('') + `</ul>`;
                  }
 
                  modal.innerHTML = `
-                    <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
-                        <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
-                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
-                            <button id="close-client-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><i data-lucide="x" class="w-6 h-6"></i></button>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h4 class="font-bold mb-2">Informações de Contato</h4>
-                                <p><strong class="font-medium">Telefone:</strong> ${client.phone || 'N/A'}</p>
-                                <p><strong class="font-medium">Email:</strong> ${client.email || 'N/A'}</p>
-                                <p><strong class="font-medium">Endereço:</strong> ${client.address || 'N/A'}</p>
-                                <hr class="my-3 dark:border-slate-700">
-                                <h4 class="font-bold">Total Gasto na Loja:</h4>
-                                <p class="text-xl font-bold text-brand-primary">${formatCurrency(totalSpent)}</p>
-                            </div>
-                            <div>
-                                <h4 class="font-bold mb-2">Histórico de Compras (${clientSales.length})</h4>
-                                ${salesHTML}
-                            </div>
-                        </div>
-                    </div>
+                   <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
+                       <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
+                           <h2 class="text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
+                           <button id="close-client-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><i data-lucide="x" class="w-6 h-6"></i></button>
+                       </div>
+                       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                               <h4 class="font-bold mb-2">Informações de Contato</h4>
+                               <p><strong class="font-medium">Telefone:</strong> ${client.phone || 'N/A'}</p>
+                               <p><strong class="font-medium">Email:</strong> ${client.email || 'N/A'}</p>
+                               <p><strong class="font-medium">Endereço:</strong> ${client.address || 'N/A'}</p>
+                               <hr class="my-3 dark:border-slate-700">
+                               <h4 class="font-bold">Total Gasto na Loja:</h4>
+                               <p class="text-xl font-bold text-brand-primary">${formatCurrency(totalSpent)}</p>
+                           </div>
+                           <div>
+                               <h4 class="font-bold mb-2">Histórico de Compras (${clientSales.length})</h4>
+                               ${salesHTML}
+                           </div>
+                       </div>
+                   </div>
                  `;
                  window.lucide.createIcons();
                  modal.querySelector('#close-client-details-modal').addEventListener('click', () => modal.classList.add('hidden'));
@@ -1205,9 +1205,64 @@ document.addEventListener('DOMContentLoaded', () => {
         renderClientsTable();
     }
 
+    // =================================================================
+    // CORREÇÃO DO BUG DE DUPLICAÇÃO
+    // A lógica de adicionar e remover produtos foi movida para fora da função `renderProdutos`
+    // e agora usa um único "escutador de eventos" (event listener) no elemento #app.
+    // Isso garante que o evento seja registrado apenas uma vez.
+    // =================================================================
+
+    document.getElementById('app').addEventListener('submit', async (e) => {
+        // Lógica para Adicionar um novo produto
+        if (e.target.id === 'add-product-form') {
+            e.preventDefault();
+            const form = e.target;
+            const name = form.querySelector('#product-name').value;
+            const price = parseFloat(form.querySelector('#product-price').value);
+            const quantity = parseInt(form.querySelector('#product-quantity').value);
+
+            if (!name || isNaN(price) || isNaN(quantity)) {
+                showToast('Por favor, preencha todos os campos corretamente.', 'error');
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "products"), {
+                    name,
+                    price,
+                    quantity,
+                    storeId: state.selectedStore.id
+                });
+                showToast('Produto adicionado com sucesso!', 'success');
+                form.reset();
+            } catch (error) {
+                console.error("Erro ao adicionar produto:", error);
+                showToast('Erro ao adicionar produto.', 'error');
+            }
+        }
+    });
+
+    document.getElementById('app').addEventListener('click', (e) => {
+        // Lógica para Remover um produto
+        const removeBtn = e.target.closest('.remove-product-btn');
+        if (removeBtn) {
+            const productId = removeBtn.dataset.productId;
+            showConfirmModal('Tem certeza que deseja remover este produto? A ação não pode ser desfeita.', async () => {
+                try {
+                    await deleteDoc(doc(db, "products", productId));
+                    showToast('Produto removido com sucesso!', 'success');
+                } catch (error) {
+                    console.error("Erro ao remover produto:", error);
+                    showToast('Erro ao remover produto.', 'error');
+                }
+            });
+        }
+    });
+
     function renderProdutos() {
+        // A função agora é responsável apenas por RENDERIZAR a tabela.
+        // Toda a lógica de eventos foi movida para fora para evitar duplicação.
         const view = document.getElementById('produtos-view');
-        const form = view.querySelector('#add-product-form');
         const tableBody = view.querySelector('#products-table-body');
 
         const renderProductsTable = () => {
@@ -1237,48 +1292,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             window.lucide.createIcons();
         };
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = view.querySelector('#product-name').value;
-            const price = parseFloat(view.querySelector('#product-price').value);
-            const quantity = parseInt(view.querySelector('#product-quantity').value);
-
-            if (!name || isNaN(price) || isNaN(quantity)) {
-                showToast('Por favor, preencha todos os campos corretamente.', 'error');
-                return;
-            }
-
-            try {
-                await addDoc(collection(db, "products"), {
-                    name,
-                    price,
-                    quantity,
-                    storeId: state.selectedStore.id
-                });
-                showToast('Produto adicionado com sucesso!', 'success');
-                form.reset();
-            } catch (error) {
-                console.error("Erro ao adicionar produto:", error);
-                showToast('Erro ao adicionar produto.', 'error');
-            }
-        });
-        
-        tableBody.addEventListener('click', (e) => {
-            const removeBtn = e.target.closest('.remove-product-btn');
-            if(removeBtn){
-                const productId = removeBtn.dataset.productId;
-                showConfirmModal('Tem certeza que deseja remover este produto? A ação não pode ser desfeita.', async () => {
-                    try {
-                        await deleteDoc(doc(db, "products", productId));
-                        showToast('Produto removido com sucesso!', 'success');
-                    } catch (error) {
-                        console.error("Erro ao remover produto:", error);
-                        showToast('Erro ao remover produto.', 'error');
-                    }
-                });
-            }
-        });
 
         renderProductsTable();
     }
@@ -1875,17 +1888,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
          c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
-               showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
-                   try {
-                       const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-                       const salesSnapshot = await getDocs(q);
-                       if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
-                       const batch = writeBatch(db);
-                       salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-                       await batch.commit();
-                       showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
-                   } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
-               });
+              showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
+                  try {
+                      const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
+                      const salesSnapshot = await getDocs(q);
+                      if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
+                      const batch = writeBatch(db);
+                      salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+                      await batch.commit();
+                      showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
+                  } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
+              });
           });
         
         const manageStoresSection = c.querySelector('#manage-stores-section');
