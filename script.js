@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loggedInUser: null,
         currentView: '',
         currentOrder: [],
+        productsLoaded: false, // <-- Adicionado para controlar o carregamento de produtos
         db: {
             users: [],
             stores: [],
@@ -323,6 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loggedInUser: null,
             selectedStore: null,
             currentOrder: [],
+            productsLoaded: false, // <-- Resetar no logout
             db: { users: [], stores: [], sales: [], products: [], clients: [], settings: {} }
         });
         selectedUserForLogin = null;
@@ -368,9 +370,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (state.listeners.products) state.listeners.products();
+        state.productsLoaded = false; // <-- Resetar antes de carregar
         const productsQuery = query(collection(db, "products"), where("storeId", "==", store.id));
         state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
             state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            state.productsLoaded = true; // <-- Marcar como carregado
             
             console.log(`[LOG] Produtos carregados para a loja ${store.name}:`, state.db.products.length, "itens.");
 
@@ -378,8 +382,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderProdutos();
             }
             
-            // ****** INÍCIO DA CORREÇÃO ******
-            // Quando os produtos são carregados ou atualizados, habilita a barra de busca na tela do caixa
             if (state.currentView === 'caixa') {
                 const caixaView = document.getElementById('caixa-view');
                 const searchInput = caixaView?.querySelector('#product-search');
@@ -388,7 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     searchInput.placeholder = "Procurar Produto...";
                 }
             }
-            // ****** FIM DA CORREÇÃO ******
 
         }, (error) => {
             console.error("Erro ao carregar produtos (verifique suas Regras de Segurança do Firestore):", error);
@@ -742,14 +743,16 @@ document.addEventListener('DOMContentLoaded', () => {
         productSearchInput = cleanAndClone(productSearchInput);
         searchResultsContainer = cleanAndClone(searchResultsContainer);
         finalizeBtn = cleanAndClone(finalizeBtn);
-
-        // ****** INÍCIO DA CORREÇÃO ******
-        // Desabilita o campo de busca enquanto os produtos não são carregados
+        
         if (productSearchInput) {
-            productSearchInput.disabled = true;
-            productSearchInput.placeholder = "Carregando produtos...";
+            if (state.productsLoaded) {
+                productSearchInput.disabled = false;
+                productSearchInput.placeholder = "Procurar Produto...";
+            } else {
+                productSearchInput.disabled = true;
+                productSearchInput.placeholder = "Carregando produtos...";
+            }
         }
-        // ****** FIM DA CORREÇÃO ******
 
         const totalEl = view.querySelector('#current-order-total');
         const modalContainer = document.getElementById('finalize-order-modal');
@@ -1281,10 +1284,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     storeId: state.selectedStore.id
                 });
                 showToast('Produto adicionado com sucesso!', 'success');
-                // ****** INÍCIO DA CORREÇÃO ******
-                // Usar e.target para garantir que o formulário correto seja limpo
                 e.target.reset();
-                // ****** FIM DA CORREÇÃO ******
             } catch (error) {
                 console.error("Erro ao adicionar produto:", error);
                 showToast('Erro ao adicionar produto.', 'error');
@@ -1689,6 +1689,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderConfiguracoes() {
         const c = document.getElementById('configuracoes-view');
+        
+        // ****** INÍCIO DA CORREÇÃO ******
+        // Limpa o listener do formulário de adicionar usuário
+        let addUserForm = c.querySelector('#add-user-form');
+        addUserForm = cleanAndClone(addUserForm);
+        // ****** FIM DA CORREÇÃO ******
+
         c.querySelector('#config-store-name').value = state.db.settings.storeName;
         c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
         c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
@@ -1814,7 +1821,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateUsersList();
 
-        c.querySelector('#add-user-form').addEventListener('submit', async e => {
+        addUserForm.addEventListener('submit', async e => {
             e.preventDefault();
             const n = c.querySelector('#user-name').value.trim();
             const p = c.querySelector('#user-password').value;
