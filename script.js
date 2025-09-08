@@ -46,16 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let pagamentoChartInstance = null;
     let currentRankingPeriod = 'day';
 
-    // ****** INÍCIO DA CORREÇÃO ******
     // Função auxiliar para clonar e substituir um elemento, removendo listeners antigos
-    // Esta função será usada em todas as renderizações de view que adicionam listeners
     const cleanAndClone = (el) => {
         if (!el) return null;
         const newEl = el.cloneNode(true);
         el.parentNode.replaceChild(newEl, el);
         return newEl;
     };
-    // ****** FIM DA CORREÇÃO ******
 
     async function loadInitialData() {
         document.getElementById('first-run-view').classList.add('hidden');
@@ -338,13 +335,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const initializeAppUI = () => {
         const user = state.loggedInUser;
         const store = state.selectedStore;
-        console.log("Usuário logado para montar UI:", state.loggedInUser);
+
         if (!user || !user.role) {
             console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida. Fazendo logout forçado.");
             showToast("Erro de autenticação, por favor faça login novamente.", "error");
             logout();
             return;
         }
+
+        if (!store) {
+            console.error("ERRO CRÍTICO: Nenhuma loja selecionada para o usuário. Fazendo logout forçado.");
+            showToast("Erro de configuração da loja, por favor faça login novamente.", "error");
+            logout();
+            return;
+        }
+        
+        console.log(`Inicializando UI para o usuário ${user.name} na loja ${store.name} (${store.id})`);
 
         document.getElementById('store-name-sidebar').textContent = store.name;
         document.getElementById('username-sidebar').textContent = user.name;
@@ -366,14 +372,11 @@ document.addEventListener('DOMContentLoaded', () => {
         state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
             state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
-            // ****** LOG DE DEPURAÇÃO ADICIONADO ******
-            console.log(`Produtos carregados para a loja ${store.name} (${store.id}):`, state.db.products);
+            // Log para depuração para garantir que os produtos estão sendo carregados
+            console.log(`[LOG] Produtos carregados para a loja ${store.name}:`, state.db.products.length, "itens.");
 
             if (state.currentView === 'produtos' && document.getElementById('produtos-view').classList.contains('active')) {
                 renderProdutos();
-            }
-            if (state.currentView === 'caixa' && document.getElementById('caixa-view').classList.contains('active')) {
-                 // A busca na tela caixa já usa o `state.db.products` atualizado, então não é preciso re-renderizar tudo.
             }
         }, (error) => {
             console.error("Erro ao carregar produtos (verifique suas Regras de Segurança do Firestore):", error);
@@ -400,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.db.stores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const select = document.getElementById('store-switcher-select');
                 if (select) {
-                    const currentStoreId = state.selectedStore ? state.selectedStore.id : state.db.stores[0].id;
+                    const currentStoreId = state.selectedStore ? state.selectedStore.id : (state.db.stores[0]?.id || null);
                     select.innerHTML = '';
                     state.db.stores.forEach(s => {
                         select.innerHTML += `<option value="${s.id}" ${s.id === currentStoreId ? 'selected' : ''}>${s.name}</option>`;
@@ -409,7 +412,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (state.db.stores.length > 0) {
                             state.selectedStore = state.db.stores[0];
                             initializeAppUI();
-                            switchView(state.currentView || 'pedidos');
                         } else {
                             logout();
                         }
@@ -422,21 +424,18 @@ document.addEventListener('DOMContentLoaded', () => {
             select.onchange = async (e) => {
                 const newStoreId = e.target.value;
                 state.selectedStore = state.db.stores.find(s => s.id === newStoreId);
+                
+                // Recarrega todas as configurações e listeners da nova loja
                 const settingsRef = doc(db, "settings", state.selectedStore.id);
                 const settingsSnap = await getDoc(settingsRef);
                 if (settingsSnap.exists()) {
                     state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
                 }
                 document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
-                if (state.listeners.products) state.listeners.products();
-                state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
-                    state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                });
-                if (state.listeners.clients) state.listeners.clients();
-                state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
-                    state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                });
-                switchView(state.currentView);
+                
+                // Reinicia os listeners para a nova loja
+                initializeAppUI(); 
+                switchView(state.currentView || 'pedidos');
             };
         } else {
             switcherContainer.classList.add('hidden');
@@ -722,21 +721,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderCaixa() {
         const view = document.getElementById('caixa-view');
         
-        // ****** INÍCIO DA CORREÇÃO ******
-        // Seleciona os elementos que terão listeners
         let itemsContainer = view.querySelector('#current-order-items');
         let finalizeBtn = view.querySelector('#finalize-order-button');
         let addForm = view.querySelector('#add-item-form');
         let productSearchInput = view.querySelector('#product-search');
         let searchResultsContainer = view.querySelector('#product-search-results');
         
-        // Limpa os listeners dos elementos antes de adicionar novos
         addForm = cleanAndClone(addForm);
         itemsContainer = cleanAndClone(itemsContainer);
         productSearchInput = cleanAndClone(productSearchInput);
         searchResultsContainer = cleanAndClone(searchResultsContainer);
         finalizeBtn = cleanAndClone(finalizeBtn);
-        // ****** FIM DA CORREÇÃO ******
 
         const totalEl = view.querySelector('#current-order-total');
         const modalContainer = document.getElementById('finalize-order-modal');
@@ -1047,7 +1042,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderClientes() {
         const view = document.getElementById('clientes-view');
         
-        // ****** INÍCIO DA CORREÇÃO ******
         let form = view.querySelector('#add-client-form');
         let tableBody = view.querySelector('#clients-table-body');
         let searchInput = view.querySelector('#client-search');
@@ -1055,7 +1049,6 @@ document.addEventListener('DOMContentLoaded', () => {
         form = cleanAndClone(form);
         tableBody = cleanAndClone(tableBody);
         searchInput = cleanAndClone(searchInput);
-        // ****** FIM DA CORREÇÃO ******
 
         let currentEditingId = null;
 
@@ -1217,14 +1210,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderProdutos() {
         const view = document.getElementById('produtos-view');
         
-        // ****** INÍCIO DA CORREÇÃO ******
-        // Limpando listeners para evitar duplicação de eventos
         let form = view.querySelector('#add-product-form');
         let tableBody = view.querySelector('#products-table-body');
         
         form = cleanAndClone(form);
         tableBody = cleanAndClone(tableBody);
-        // ****** FIM DA CORREÇÃO ******
 
         const renderProductsTable = () => {
             tableBody.innerHTML = '';
@@ -1302,14 +1292,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPedidos() {
         const view = document.getElementById('pedidos-view');
         
-        // ****** INÍCIO DA CORREÇÃO ******
-        // Limpando listeners para evitar duplicação de eventos
         let form = view.querySelector('#filter-form');
         let tableBody = view.querySelector('#orders-table-body');
 
         form = cleanAndClone(form);
         tableBody = cleanAndClone(tableBody);
-        // ****** FIM DA CORREÇÃO ******
 
         const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
 
@@ -1451,10 +1438,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    // Nenhuma alteração necessária nas funções abaixo (renderMetas, renderRanking, etc.),
-    // pois elas não adicionam listeners de forma repetida como as outras.
-    // O código original delas está mantido.
     
     function renderMetas() {
         const c = document.getElementById('metas-view');
@@ -1601,14 +1584,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const top3 = rankedSellers.slice(0, 3);
             const others = rankedSellers.slice(3);
 
-            const podiumOrder = [1, 0, 2]; 
+            const podiumOrder = [1, 0, 2];
             const podiumHTML = `
                 <div class="flex justify-center items-end gap-4">
                     ${podiumOrder.map(index => {
                         const seller = top3[index];
                         if (!seller) return '<div class="w-1/3"></div>';
                         
-                        const heightClasses = ['h-48', 'h-32', 'h-24'];
                         const place = index === 0 ? 2 : (index === 1 ? 1 : 3);
                         const barHeight = place === 1 ? 'h-48' : (place === 2 ? 'h-32' : 'h-24');
                         const colorClasses = [
@@ -1633,10 +1615,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             </div>
                         `;
-                    }).join('')}
+                    }).join('').replace(/undefined/g, '')} 
                 </div>
             `;
-            podiumContainer.innerHTML = podiumHTML.replace('undefined','').replace('undefined',''); // Quick fix for potential undefined sellers
+            podiumContainer.innerHTML = podiumHTML;
 
             if (others.length > 0) {
                 const listHTML = `
