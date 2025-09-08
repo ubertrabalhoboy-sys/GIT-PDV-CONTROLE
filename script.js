@@ -351,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
             logout();
             return;
         }
-        
+
         console.log(`Inicializando UI para o usuário ${user.name} na loja ${store.name} (${store.id})`);
 
         document.getElementById('store-name-sidebar').textContent = store.name;
@@ -375,13 +375,13 @@ document.addEventListener('DOMContentLoaded', () => {
         state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
             state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             state.productsLoaded = true;
-            
+
             console.log(`[LOG] Produtos carregados para a loja ${store.name}:`, state.db.products.length, "itens.");
 
             if (state.currentView === 'produtos' && document.getElementById('produtos-view')?.classList.contains('active')) {
                 renderProdutos();
             }
-            
+
             // ****** INÍCIO DA CORREÇÃO ******
             // Se o usuário estiver na tela do caixa quando os produtos carregarem,
             // força a re-renderização do caixa para habilitar a busca.
@@ -436,15 +436,15 @@ document.addEventListener('DOMContentLoaded', () => {
             select.onchange = async (e) => {
                 const newStoreId = e.target.value;
                 state.selectedStore = state.db.stores.find(s => s.id === newStoreId);
-                
+
                 const settingsRef = doc(db, "settings", state.selectedStore.id);
                 const settingsSnap = await getDoc(settingsRef);
                 if (settingsSnap.exists()) {
                     state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
                 }
                 document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
-                
-                initializeAppUI(); 
+
+                initializeAppUI();
                 switchView(state.currentView || 'pedidos');
             };
         } else {
@@ -730,20 +730,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderCaixa() {
         const view = document.getElementById('caixa-view');
-        
+
         let itemsContainer = view.querySelector('#current-order-items');
         let finalizeBtn = view.querySelector('#finalize-order-button');
         let addForm = view.querySelector('#add-item-form');
         let productSearchInput = view.querySelector('#product-search');
         let searchResultsContainer = view.querySelector('#product-search-results');
-        
+
         addForm = cleanAndClone(addForm);
         itemsContainer = cleanAndClone(itemsContainer);
         productSearchInput = cleanAndClone(productSearchInput);
         searchResultsContainer = cleanAndClone(searchResultsContainer);
         finalizeBtn = cleanAndClone(finalizeBtn);
-        
-        // ****** INÍCIO DA CORREÇÃO ******
+
         // Lógica para desabilitar a busca enquanto os produtos carregam
         if (productSearchInput) {
             if (state.productsLoaded) {
@@ -754,7 +753,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 productSearchInput.placeholder = "Carregando produtos...";
             }
         }
-        // ****** FIM DA CORREÇÃO ******
 
         const totalEl = view.querySelector('#current-order-total');
         const modalContainer = document.getElementById('finalize-order-modal');
@@ -827,7 +825,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             const results = state.db.products.filter(p =>
-                p.name.toLowerCase().includes(searchTerm) && p.quantity > 0
+                // CORREÇÃO: Adiciona verificação para garantir que 'p' e 'p.name' existam antes de usar.
+                p && p.name && typeof p.name === 'string' && p.name.toLowerCase().includes(searchTerm) && p.quantity > 0
             );
             if (results.length > 0) {
                 searchResultsContainer.innerHTML = results.map(p => `
@@ -1064,11 +1063,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderClientes() {
         const view = document.getElementById('clientes-view');
-        
+
         let form = view.querySelector('#add-client-form');
         let tableBody = view.querySelector('#clients-table-body');
         let searchInput = view.querySelector('#client-search');
-        
+
         form = cleanAndClone(form);
         tableBody = cleanAndClone(tableBody);
         searchInput = cleanAndClone(searchInput);
@@ -1232,10 +1231,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderProdutos() {
         const view = document.getElementById('produtos-view');
-        
+
         let form = view.querySelector('#add-product-form');
         let tableBody = view.querySelector('#products-table-body');
-        
+
         form = cleanAndClone(form);
         tableBody = cleanAndClone(tableBody);
 
@@ -1314,7 +1313,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderPedidos() {
         const view = document.getElementById('pedidos-view');
-        
+
         let form = view.querySelector('#filter-form');
         let tableBody = view.querySelector('#orders-table-body');
 
@@ -1461,7 +1460,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
+
     function renderMetas() {
         const c = document.getElementById('metas-view');
         if (!c) return;
@@ -1611,19 +1610,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const podiumHTML = `
                 <div class="flex justify-center items-end gap-4">
                     ${podiumOrder.map(index => {
-                        const seller = top3[index];
-                        if (!seller) return '<div class="w-1/3"></div>';
-                        
-                        const place = index === 0 ? 2 : (index === 1 ? 1 : 3);
-                        const barHeight = place === 1 ? 'h-48' : (place === 2 ? 'h-32' : 'h-24');
-                        const colorClasses = [
-                            'bg-amber-400 dark:bg-amber-500', 
-                            'bg-slate-300 dark:bg-slate-400', 
-                            'bg-yellow-600 dark:bg-yellow-700'
-                        ];
-                        const rankColor = place === 1 ? 'border-amber-400' : (place === 2 ? 'border-slate-400' : 'border-yellow-600');
-                        
-                        return `
+                const seller = top3[index];
+                if (!seller) return '<div class="w-1/3"></div>';
+
+                const place = index === 0 ? 2 : (index === 1 ? 1 : 3);
+                const barHeight = place === 1 ? 'h-48' : (place === 2 ? 'h-32' : 'h-24');
+                const colorClasses = [
+                    'bg-amber-400 dark:bg-amber-500',
+                    'bg-slate-300 dark:bg-slate-400',
+                    'bg-yellow-600 dark:bg-yellow-700'
+                ];
+                const rankColor = place === 1 ? 'border-amber-400' : (place === 2 ? 'border-slate-400' : 'border-yellow-600');
+
+                return `
                             <div class="w-1/3 text-center flex flex-col items-center">
                                 <div class="relative mb-2">
                                     <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-3xl sm:text-4xl font-bold border-4 ${rankColor}">
@@ -1633,12 +1632,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <p class="font-bold text-slate-800 dark:text-white truncate w-full">${seller.name}</p>
                                 <p class="text-sm text-brand-primary font-semibold">${formatCurrency(seller.total)}</p>
-                                <div class="w-full ${barHeight} ${colorClasses[place-1]} rounded-t-lg mt-2 flex items-center justify-center">
-                                     <i data-lucide="award" class="w-10 h-10 text-white/50"></i>
+                                <div class="w-full ${barHeight} ${colorClasses[place - 1]} rounded-t-lg mt-2 flex items-center justify-center">
+                                      <i data-lucide="award" class="w-10 h-10 text-white/50"></i>
                                 </div>
                             </div>
                         `;
-                    }).join('').replace(/undefined/g, '')} 
+            }).join('').replace(/undefined/g, '')} 
                 </div>
             `;
             podiumContainer.innerHTML = podiumHTML;
@@ -1691,7 +1690,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderConfiguracoes() {
         const c = document.getElementById('configuracoes-view');
-        
+
         let addUserForm = c.querySelector('#add-user-form');
         addUserForm = cleanAndClone(addUserForm);
 
@@ -2250,4 +2249,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
-
