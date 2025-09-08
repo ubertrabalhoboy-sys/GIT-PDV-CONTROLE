@@ -1,4 +1,4 @@
-// Firebase Imports
+// Firebase Imports (necessário para o type="module")
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, writeBatch, Timestamp, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -25,12 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
         loggedInUser: null,
         currentView: '',
         currentOrder: [],
-        productsLoaded: false, // <-- Adicionado para controlar o carregamento de produtos
         db: {
             users: [],
             stores: [],
-            products: [],
-            clients: [],
+            // NOVO: Adiciona a coleção de produtos ao estado
+            products: [], 
             settings: {
                 storeName: "Minha Loja",
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
@@ -39,21 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             sales: []
         },
-        listeners: { users: null, sales: null, stores: null, products: null, clients: null },
+        listeners: { users: null, sales: null, stores: null, products: null }, // NOVO: Listener para produtos
         selectedStore: null
     };
     let selectedUserForLogin = null;
     let vendasChartInstance = null;
     let pagamentoChartInstance = null;
     let currentRankingPeriod = 'day';
-
-    // Função auxiliar para clonar e substituir um elemento, removendo listeners antigos
-    const cleanAndClone = (el) => {
-        if (!el) return null;
-        const newEl = el.cloneNode(true);
-        el.parentNode.replaceChild(newEl, el);
-        return newEl;
-    };
 
     async function loadInitialData() {
         document.getElementById('first-run-view').classList.add('hidden');
@@ -317,15 +308,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.listeners.users) state.listeners.users();
         if (state.listeners.sales) state.listeners.sales();
         if (state.listeners.stores) state.listeners.stores();
-        if (state.listeners.products) state.listeners.products();
-        if (state.listeners.clients) state.listeners.clients();
-        state.listeners = { users: null, sales: null, stores: null, products: null, clients: null };
+        if (state.listeners.products) state.listeners.products(); // NOVO: Desliga o listener de produtos
+        state.listeners = { users: null, sales: null, stores: null, products: null };
         Object.assign(state, {
             loggedInUser: null,
             selectedStore: null,
             currentOrder: [],
-            productsLoaded: false, // <-- Resetar no logout
-            db: { users: [], stores: [], sales: [], products: [], clients: [], settings: {} }
+            db: { users: [], stores: [], sales: [], products: [], settings: {} }
         });
         selectedUserForLogin = null;
         document.getElementById('app').classList.add('hidden');
@@ -337,22 +326,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const initializeAppUI = () => {
         const user = state.loggedInUser;
         const store = state.selectedStore;
-
-        if (!user || !user.role) {
-            console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida. Fazendo logout forçado.");
-            showToast("Erro de autenticação, por favor faça login novamente.", "error");
-            logout();
-            return;
-        }
-
-        if (!store) {
-            console.error("ERRO CRÍTICO: Nenhuma loja selecionada para o usuário. Fazendo logout forçado.");
-            showToast("Erro de configuração da loja, por favor faça login novamente.", "error");
-            logout();
-            return;
-        }
-
-        console.log(`Inicializando UI para o usuário ${user.name} na loja ${store.name} (${store.id})`);
 
         document.getElementById('store-name-sidebar').textContent = store.name;
         document.getElementById('username-sidebar').textContent = user.name;
@@ -368,39 +341,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-
+        
+        // NOVO: Listener para a coleção de produtos da loja selecionada
         if (state.listeners.products) state.listeners.products();
-        state.productsLoaded = false;
-        const productsQuery = query(collection(db, "products"), where("storeId", "==", store.id));
-        state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
+        state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", store.id)), (snapshot) => {
             state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            state.productsLoaded = true;
-
-            console.log(`[LOG] Produtos carregados para a loja ${store.name}:`, state.db.products.length, "itens.");
-
-            if (state.currentView === 'produtos' && document.getElementById('produtos-view')?.classList.contains('active')) {
+            // Se a view de produtos estiver ativa, atualiza a lista
+            if (state.currentView === 'produtos') {
                 renderProdutos();
             }
-
-            if (state.currentView === 'caixa' && document.getElementById('caixa-view')?.classList.contains('active')) {
-                renderCaixa();
-            }
-
-        }, (error) => {
-            console.error("Erro ao carregar produtos (verifique suas Regras de Segurança do Firestore):", error);
-            showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
-        });
-
-        if (state.listeners.clients) state.listeners.clients();
-        const clientsQuery = query(collection(db, "clients"), where("storeId", "==", store.id));
-        state.listeners.clients = onSnapshot(clientsQuery, (snapshot) => {
-            state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView === 'clientes' && document.getElementById('clientes-view').classList.contains('active')) {
-                renderClientes();
-            }
-        }, (error) => {
-            console.error("Erro ao carregar clientes:", error);
-            showToast('Erro ao carregar clientes.', 'error');
         });
 
 
@@ -411,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.db.stores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const select = document.getElementById('store-switcher-select');
                 if (select) {
-                    const currentStoreId = state.selectedStore ? state.selectedStore.id : (state.db.stores[0]?.id || null);
+                    const currentStoreId = state.selectedStore ? state.selectedStore.id : state.db.stores[0].id;
                     select.innerHTML = '';
                     state.db.stores.forEach(s => {
                         select.innerHTML += `<option value="${s.id}" ${s.id === currentStoreId ? 'selected' : ''}>${s.name}</option>`;
@@ -420,6 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (state.db.stores.length > 0) {
                             state.selectedStore = state.db.stores[0];
                             initializeAppUI();
+                            switchView(state.currentView || 'pedidos');
                         } else {
                             logout();
                         }
@@ -432,16 +382,18 @@ document.addEventListener('DOMContentLoaded', () => {
             select.onchange = async (e) => {
                 const newStoreId = e.target.value;
                 state.selectedStore = state.db.stores.find(s => s.id === newStoreId);
-
                 const settingsRef = doc(db, "settings", state.selectedStore.id);
                 const settingsSnap = await getDoc(settingsRef);
                 if (settingsSnap.exists()) {
                     state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
                 }
                 document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
-
-                initializeAppUI();
-                switchView(state.currentView || 'pedidos');
+                // Reiniciar o listener de produtos para a nova loja
+                if (state.listeners.products) state.listeners.products();
+                state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
+                    state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                });
+                switchView(state.currentView);
             };
         } else {
             switcherContainer.classList.add('hidden');
@@ -458,15 +410,8 @@ document.addEventListener('DOMContentLoaded', () => {
             vM.classList.remove('hidden'); gM.classList.add('hidden');
             switchView('caixa');
         } else {
-            const managerMenuHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') +
-                createMenuItem('clientes', 'users', 'Clientes') +
-                createMenuItem('produtos', 'package', 'Produtos') +
-                createMenuItem('ranking', 'trophy', 'Ranking') +
-                createMenuItem('relatorios', 'area-chart', 'Relatórios') +
-                createMenuItem('configuracoes', 'settings', 'Configurações') +
-                createLogoutItem();
-
-            gM.innerHTML = managerMenuHTML;
+            // NOVO: Adiciona o item "Produtos" ao menu do gerente
+            gM.innerHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('produtos', 'package', 'Produtos') + createMenuItem('ranking', 'trophy', 'Ranking') + createMenuItem('relatorios', 'area-chart', 'Relatórios') + createMenuItem('configuracoes', 'settings', 'Configurações') + createLogoutItem();
             gM.classList.remove('hidden'); vM.classList.add('hidden');
             switchView('pedidos');
         }
@@ -497,16 +442,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderViewContent = (viewId) => {
         const viewContainer = document.getElementById(`${viewId}-view`);
-        if (!document.getElementById(`${viewId}-template`)) {
-            console.error(`Template para a view "${viewId}" não encontrado.`);
-            return;
-        }
+        if (!document.getElementById(`${viewId}-template`)) return;
         viewContainer.innerHTML = document.getElementById(`${viewId}-template`).innerHTML;
         window.lucide.createIcons();
         switch (viewId) {
             case 'caixa': renderCaixa(); break;
             case 'pedidos': renderPedidos(); break;
-            case 'clientes': renderClientes(); break;
+            // NOVO: Chama a função para renderizar a nova tela
             case 'produtos': renderProdutos(); break;
             case 'metas': renderMetas(); break;
             case 'ranking': renderRanking(); break;
@@ -536,6 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         window.lucide.createIcons();
 
+        // Confetti Effect
         const confettiContainer = modal.querySelector('.confetti-container');
         for (let i = 0; i < 50; i++) {
             const confetti = document.createElement('div');
@@ -594,14 +537,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const spinBtn = modal.querySelector('#spin-wheel-btn');
         const wheel = modal.querySelector('.wheel');
         let isSpinning = false;
-
+        
         spinBtn.addEventListener('click', async () => {
             if (isSpinning) return;
             isSpinning = true;
             spinBtn.disabled = true;
             spinBtn.textContent = 'GIRANDO...';
 
-            await window.Tone.start();
+            await window.Tone.start(); 
             const synth = new window.Tone.Synth().toDestination();
             const notes = ["C4", "D4", "E4", "G4", "A4", "G4", "E4", "D4"];
             let noteIndex = 0;
@@ -688,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const couponText = `🧾 *Comprovante de Venda* 🧾\n\n*${storeName}*\n\n*Data:* ${saleDate}\n*Cliente:* ${saleData.clientName}\n\n*Itens:*\n${itemsText}\n\n*Pagamento:*\n${paymentText}\n\n*Total:* *${formatCurrency(saleData.total)}*\n*Vendedor:* ${saleData.vendedor}${prizeText}\n\nObrigado pela sua compra!`;
 
-        const whatsAppNumber = saleData.clientPhone.replace(/\D/g, '');
+        const whatsAppNumber = saleData.clientPhone.replace(/\D/g, ''); // Clean phone number
         const encodedText = encodeURIComponent(couponText);
         const whatsappUrl = `https://wa.me/55${whatsAppNumber}?text=${encodedText}`;
 
@@ -726,34 +669,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderCaixa() {
         const view = document.getElementById('caixa-view');
-
-        let itemsContainer = view.querySelector('#current-order-items');
-        let finalizeBtn = view.querySelector('#finalize-order-button');
-        let addForm = view.querySelector('#add-item-form');
-        let productSearchInput = view.querySelector('#product-search');
-        let searchResultsContainer = view.querySelector('#product-search-results');
-
-        addForm = cleanAndClone(addForm);
-        itemsContainer = cleanAndClone(itemsContainer);
-        productSearchInput = cleanAndClone(productSearchInput);
-        searchResultsContainer = cleanAndClone(searchResultsContainer);
-        finalizeBtn = cleanAndClone(finalizeBtn);
-
-        // Lógica para desabilitar a busca enquanto os produtos carregam
-        if (productSearchInput) {
-            if (state.productsLoaded) {
-                productSearchInput.disabled = false;
-                productSearchInput.placeholder = "Procurar Produto...";
-            } else {
-                productSearchInput.disabled = true;
-                productSearchInput.placeholder = "Carregando produtos...";
-            }
-        }
-
+        const itemsContainer = view.querySelector('#current-order-items');
         const totalEl = view.querySelector('#current-order-total');
+        const finalizeBtn = view.querySelector('#finalize-order-button');
+        const addForm = view.querySelector('#add-item-form');
         const modalContainer = document.getElementById('finalize-order-modal');
-
-        let selectedProduct = null;
+        
+        // NOVO: Elementos da busca de produto
+        const productSearchInput = view.querySelector('#product-search');
+        const searchResultsContainer = view.querySelector('#product-search-results');
+        let selectedProduct = null; // Guarda o produto selecionado na busca
 
         const updateUI = () => {
             itemsContainer.innerHTML = '';
@@ -764,7 +689,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.currentOrder.forEach((item, i) => {
                     const el = document.createElement('div');
                     el.className = 'flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-3 rounded-md';
-                    const stockIcon = item.productId ? `<i data-lucide="package" class="w-4 h-4 text-slate-500 mr-2" title="Item do Estoque"></i>` : '';
+                    
+                    // Adiciona um ícone se o item for do estoque
+                    const stockIcon = item.productId ? `<i data-lucide="package" class="w-4 h-4 text-slate-500 mr-2"></i>` : '';
+
                     el.innerHTML = `
                         <div class="flex items-center">
                             ${stockIcon}
@@ -789,19 +717,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         addForm.addEventListener('submit', e => {
             e.preventDefault();
+            
             const newItem = {
                 name: view.querySelector('#item-name').value,
                 value: parseFloat(view.querySelector('#item-value').value),
                 exchange: view.querySelector('#item-exchange').value
             };
+            
+            // NOVO: Se um produto foi selecionado, anexa seu ID ao item
             if (selectedProduct) {
                 newItem.productId = selectedProduct.id;
             }
+
             state.currentOrder.push(newItem);
             updateUI();
             addForm.reset();
-            productSearchInput.value = '';
-            selectedProduct = null;
+            productSearchInput.value = ''; // Limpa a busca
+            selectedProduct = null; // Reseta o produto selecionado
             view.querySelector('#item-name').focus();
         });
 
@@ -812,7 +744,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateUI();
             }
         });
-
+        
+        // NOVO: Lógica de busca de produtos
         productSearchInput.addEventListener('input', () => {
             const searchTerm = productSearchInput.value.toLowerCase();
             if (searchTerm.length < 2) {
@@ -820,13 +753,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchResultsContainer.classList.add('hidden');
                 return;
             }
-            const results = state.db.products.filter(p =>
-                // CORREÇÃO: Adiciona verificação para garantir que 'p' e 'p.name' existam e sejam do tipo string.
-                p && p.name && typeof p.name === 'string' && p.name.toLowerCase().includes(searchTerm) && p.quantity > 0
+
+            const results = state.db.products.filter(p => 
+                p.name.toLowerCase().includes(searchTerm) && p.quantity > 0
             );
-            
-            // LOG DE DIAGNÓSTICO: Mostra no console o que está sendo buscado e o resultado.
-            console.log(`Buscando por: "${searchTerm}". Encontrados ${results.length} de ${state.db.products.length} produtos totais.`);
 
             if (results.length > 0) {
                 searchResultsContainer.innerHTML = results.map(p => `
@@ -837,20 +767,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 `).join('');
                 searchResultsContainer.classList.remove('hidden');
             } else {
-                searchResultsContainer.innerHTML = '';
                 searchResultsContainer.classList.add('hidden');
             }
         });
 
+        // NOVO: Lógica de seleção de produto do resultado da busca
         searchResultsContainer.addEventListener('click', (e) => {
             const resultDiv = e.target.closest('[data-product-id]');
             if (resultDiv) {
                 const productId = resultDiv.dataset.productId;
                 selectedProduct = state.db.products.find(p => p.id === productId);
+
                 if (selectedProduct) {
                     view.querySelector('#item-name').value = selectedProduct.name;
                     view.querySelector('#item-value').value = selectedProduct.price;
                 }
+
                 productSearchInput.value = '';
                 searchResultsContainer.classList.add('hidden');
             }
@@ -859,18 +791,14 @@ document.addEventListener('DOMContentLoaded', () => {
         finalizeBtn.addEventListener('click', () => {
             modalContainer.classList.remove('hidden');
             const orderTotal = state.currentOrder.reduce((sum, i) => sum + i.value, 0);
+
             modalContainer.innerHTML = `
                 <div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in">
                     <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Finalizar Pedido</h2>
                     <p class="mb-4 text-lg">Total do Pedido: <span id="modal-total-value" class="font-bold text-brand-primary">${formatCurrency(orderTotal)}</span></p>
                     
                     <form id="finalize-order-form" class="space-y-3">
-                        <div class="relative">
-                            <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Buscar Cliente</label>
-                            <input type="text" id="sale-client-search" autocomplete="off" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Digite nome ou telefone...">
-                                <div id="sale-client-search-results" class="absolute z-20 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md mt-1 shadow-lg max-h-40 overflow-y-auto hidden"></div>
-                        </div>
-                        <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente (para a venda)</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></div>
+                        <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></div>
                         <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Ex: 11987654321"></div>
 
                         <div class="border-t border-slate-300 dark:border-slate-700 pt-3">
@@ -905,45 +833,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </form>
                 </div>`;
 
-            let selectedClient = null;
-            const clientSearchInput = modalContainer.querySelector('#sale-client-search');
-            const clientSearchResults = modalContainer.querySelector('#sale-client-search-results');
-            const clientNameInput = modalContainer.querySelector('#client-name');
-            const clientPhoneInput = modalContainer.querySelector('#client-phone');
-
-            clientSearchInput.addEventListener('input', () => {
-                const term = clientSearchInput.value.toLowerCase();
-                if (term.length < 2) {
-                    clientSearchResults.classList.add('hidden');
-                    return;
-                }
-                const results = state.db.clients.filter(c => c.name.toLowerCase().includes(term) || (c.phone && c.phone.includes(term)));
-                if (results.length > 0) {
-                    clientSearchResults.innerHTML = results.map(c => `
-                            <div class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer" data-client-id="${c.id}">
-                                <p class="text-sm font-medium">${c.name}</p>
-                                <p class="text-xs text-slate-500">${c.phone || 'Sem telefone'}</p>
-                            </div>
-                        `).join('');
-                    clientSearchResults.classList.remove('hidden');
-                } else {
-                    clientSearchResults.classList.add('hidden');
-                }
-            });
-
-            clientSearchResults.addEventListener('click', e => {
-                const clientDiv = e.target.closest('[data-client-id]');
-                if (clientDiv) {
-                    selectedClient = state.db.clients.find(c => c.id === clientDiv.dataset.clientId);
-                    if (selectedClient) {
-                        clientNameInput.value = selectedClient.name;
-                        clientPhoneInput.value = selectedClient.phone || '';
-                    }
-                    clientSearchResults.classList.add('hidden');
-                    clientSearchInput.value = selectedClient.name;
-                }
-            });
-
             const paidValueEl = modalContainer.querySelector('#modal-paid-value');
             const remainingValueEl = modalContainer.querySelector('#modal-remaining-value');
             const confirmBtn = modalContainer.querySelector('#confirm-sale-button');
@@ -956,9 +845,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 paymentInputs.forEach(input => {
                     paidAmount += parseFloat(input.value) || 0;
                 });
+
                 const remainingAmount = orderTotal - paidAmount;
+
                 paidValueEl.textContent = formatCurrency(paidAmount);
                 remainingValueEl.textContent = formatCurrency(remainingAmount);
+
                 installmentsContainer.classList.toggle('hidden', !(parseFloat(cartaoInput.value) > 0));
 
                 if (remainingAmount <= 0.001) {
@@ -984,6 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             modalContainer.querySelector('#finalize-order-form').addEventListener('submit', async e => {
                 e.preventDefault();
+
                 const paymentMethods = [];
                 paymentInputs.forEach(input => {
                     const amount = parseFloat(input.value);
@@ -1012,9 +905,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const saleData = {
-                    clientName: clientNameInput.value,
-                    clientPhone: clientPhoneInput.value,
-                    clientId: selectedClient ? selectedClient.id : null,
+                    clientName: modalContainer.querySelector('#client-name').value,
+                    clientPhone: modalContainer.querySelector('#client-phone').value,
                     paymentMethods: paymentMethods,
                     paymentMethod: paymentMethods.map(p => p.method).join(' + '),
                     items: state.currentOrder,
@@ -1028,19 +920,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 try {
+                    // NOVO: Lógica de baixa de estoque com WriteBatch
                     const batch = writeBatch(db);
                     const itemsToDecrement = state.currentOrder.filter(item => item.productId);
-
+                    
                     itemsToDecrement.forEach(item => {
                         const productRef = doc(db, "products", item.productId);
+                        // Decrementa a quantidade em 1
                         batch.update(productRef, { quantity: increment(-1) });
                     });
-
+                    
+                    // Adiciona o novo registro de venda ao batch
                     const newSaleRef = doc(collection(db, "sales"));
                     batch.set(newSaleRef, saleData);
+                    
+                    // Executa todas as operações (baixa de estoque e registro de venda) atomicamente
                     await batch.commit();
-                    saleData.id = newSaleRef.id;
 
+                    saleData.id = newSaleRef.id; // Adiciona o ID para uso posterior (roleta, whatsapp)
+                    
                     showToast('Venda registrada e estoque atualizado!', 'success');
                     modalContainer.classList.add('hidden');
 
@@ -1062,187 +960,13 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
 
-    // ... As outras funções (renderClientes, renderProdutos, etc.) continuam aqui sem alterações ...
-    // NOTE: For brevity, the rest of the file is omitted, but it is unchanged from the user's provided version.
-    // The only change is in renderCaixa as specified.
-
-    function renderClientes() {
-        const view = document.getElementById('clientes-view');
-
-        let form = view.querySelector('#add-client-form');
-        let tableBody = view.querySelector('#clients-table-body');
-        let searchInput = view.querySelector('#client-search');
-
-        form = cleanAndClone(form);
-        tableBody = cleanAndClone(tableBody);
-        searchInput = cleanAndClone(searchInput);
-
-        let currentEditingId = null;
-
-        const resetForm = () => {
-            form.reset();
-            form.querySelector('#client-form-id').value = '';
-            view.querySelector('#client-form-title').textContent = 'Adicionar Novo Cliente';
-            view.querySelector('#client-form-btn-text').textContent = 'Salvar Cliente';
-            view.querySelector('#client-form-cancel').classList.add('hidden');
-            currentEditingId = null;
-        }
-
-        const renderClientsTable = (clients) => {
-            tableBody.innerHTML = '';
-            const clientsToRender = clients || state.db.clients;
-
-            if (clientsToRender.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="3" class="text-center p-8 text-slate-500">Nenhum cliente cadastrado.</td></tr>`;
-                return;
-            }
-
-            const sortedClients = [...clientsToRender].sort((a, b) => a.name.localeCompare(b.name));
-
-            sortedClients.forEach(client => {
-                const row = `
-                    <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
-                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${client.name}</td>
-                        <td class="px-6 py-4">${client.phone || 'N/A'}</td>
-                        <td class="px-6 py-4 text-center space-x-2">
-                            <button data-client-id="${client.id}" class="view-client-btn text-blue-500 hover:text-blue-700" title="Ver Detalhes"><i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i></button>
-                            <button data-client-id="${client.id}" class="edit-client-btn text-amber-500 hover:text-amber-700" title="Editar"><i data-lucide="edit-2" class="w-4 h-4 pointer-events-none"></i></button>
-                            <button data-client-id="${client.id}" class="remove-client-btn text-red-500 hover:text-red-700" title="Remover"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>
-                        </td>
-                    </tr>
-                `;
-                tableBody.innerHTML += row;
-            });
-            window.lucide.createIcons();
-        };
-
-        searchInput.addEventListener('input', () => {
-            const term = searchInput.value.toLowerCase();
-            const filteredClients = state.db.clients.filter(c =>
-                c.name.toLowerCase().includes(term) || (c.phone && c.phone.includes(term))
-            );
-            renderClientsTable(filteredClients);
-        });
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const clientData = {
-                name: view.querySelector('#client-form-name').value,
-                phone: view.querySelector('#client-form-phone').value,
-                email: view.querySelector('#client-form-email').value,
-                address: view.querySelector('#client-form-address').value,
-                storeId: state.selectedStore.id
-            };
-
-            try {
-                if (currentEditingId) {
-                    await setDoc(doc(db, "clients", currentEditingId), clientData);
-                    showToast('Cliente atualizado com sucesso!', 'success');
-                } else {
-                    await addDoc(collection(db, "clients"), clientData);
-                    showToast('Cliente adicionado com sucesso!', 'success');
-                }
-                resetForm();
-            } catch (error) {
-                console.error("Erro ao salvar cliente:", error);
-                showToast('Erro ao salvar cliente.', 'error');
-            }
-        });
-
-        form.addEventListener('reset', () => setTimeout(resetForm, 0));
-
-        tableBody.addEventListener('click', async (e) => {
-            const btn = e.target.closest('button');
-            if (!btn) return;
-            const clientId = btn.dataset.clientId;
-
-            if (btn.classList.contains('remove-client-btn')) {
-                showConfirmModal('Tem certeza que deseja remover este cliente? A ação não pode ser desfeita.', async () => {
-                    try {
-                        await deleteDoc(doc(db, "clients", clientId));
-                        showToast('Cliente removido!', 'success');
-                    } catch (error) { showToast('Erro ao remover cliente.', 'error'); }
-                });
-            } else if (btn.classList.contains('edit-client-btn')) {
-                const client = state.db.clients.find(c => c.id === clientId);
-                if (client) {
-                    currentEditingId = client.id;
-                    view.querySelector('#client-form-id').value = client.id;
-                    view.querySelector('#client-form-name').value = client.name;
-                    view.querySelector('#client-form-phone').value = client.phone || '';
-                    view.querySelector('#client-form-email').value = client.email || '';
-                    view.querySelector('#client-form-address').value = client.address || '';
-                    view.querySelector('#client-form-title').textContent = 'Editando Cliente';
-                    view.querySelector('#client-form-btn-text').textContent = 'Atualizar';
-                    view.querySelector('#client-form-cancel').classList.remove('hidden');
-                    view.querySelector('#client-form-name').focus();
-                }
-            } else if (btn.classList.contains('view-client-btn')) {
-                const client = state.db.clients.find(c => c.id === clientId);
-                const salesQuery = query(collection(db, "sales"), where("clientId", "==", clientId));
-                const salesSnapshot = await getDocs(salesQuery);
-                const clientSales = salesSnapshot.docs.map(doc => doc.data());
-
-                const modal = document.getElementById('client-details-modal');
-                modal.classList.remove('hidden');
-
-                const totalSpent = clientSales.reduce((acc, sale) => acc + sale.total, 0);
-
-                let salesHTML = '<p class="text-sm text-slate-500">Nenhuma compra registrada.</p>';
-                if (clientSales.length > 0) {
-                    salesHTML = `<ul class="space-y-2 text-sm max-h-60 overflow-y-auto pr-2">` + clientSales.sort((a, b) => b.date.seconds - a.date.seconds).map(sale => `
-                        <li class="p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-md">
-                            <div class="flex justify-between font-semibold">
-                                <span>${formatDate(sale.date)}</span>
-                                <span>${formatCurrency(sale.total)}</span>
-                            </div>
-                            <ul class="list-disc list-inside text-xs text-slate-600 dark:text-slate-400">
-                                ${sale.items.map(item => `<li>${item.name}</li>`).join('')}
-                            </ul>
-                        </li>
-                    `).join('') + `</ul>`;
-                }
-
-                modal.innerHTML = `
-                    <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
-                        <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
-                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
-                            <button id="close-client-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><i data-lucide="x" class="w-6 h-6"></i></button>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h4 class="font-bold mb-2">Informações de Contato</h4>
-                                <p><strong class="font-medium">Telefone:</strong> ${client.phone || 'N/A'}</p>
-                                <p><strong class="font-medium">Email:</strong> ${client.email || 'N/A'}</p>
-                                <p><strong class="font-medium">Endereço:</strong> ${client.address || 'N/A'}</p>
-                                <hr class="my-3 dark:border-slate-700">
-                                <h4 class="font-bold">Total Gasto na Loja:</h4>
-                                <p class="text-xl font-bold text-brand-primary">${formatCurrency(totalSpent)}</p>
-                            </div>
-                            <div>
-                                <h4 class="font-bold mb-2">Histórico de Compras (${clientSales.length})</h4>
-                                ${salesHTML}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                window.lucide.createIcons();
-                modal.querySelector('#close-client-details-modal').addEventListener('click', () => modal.classList.add('hidden'));
-            }
-        });
-
-        renderClientsTable();
-    }
-
+    // NOVO: Função para renderizar e gerenciar a tela de produtos
     function renderProdutos() {
         const view = document.getElementById('produtos-view');
+        const form = view.querySelector('#add-product-form');
+        const tableBody = view.querySelector('#products-table-body');
 
-        let form = view.querySelector('#add-product-form');
-        let tableBody = view.querySelector('#products-table-body');
-
-        form = cleanAndClone(form);
-        tableBody = cleanAndClone(tableBody);
-
+        // Renderiza a lista de produtos
         const renderProductsTable = () => {
             tableBody.innerHTML = '';
             if (state.db.products.length === 0) {
@@ -1250,10 +974,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const sortedProducts = [...state.db.products].sort((a, b) => a.name.localeCompare(b.name));
-
-            sortedProducts.forEach(product => {
-                const stockClass = product.quantity <= 5 ? 'text-red-500 font-bold' : (product.quantity <= 10 ? 'text-amber-500 font-semibold' : '');
+            state.db.products.forEach(product => {
+                const stockClass = product.quantity <= 5 ? 'text-red-500 font-bold' : '';
                 const row = `
                     <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
                         <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${product.name}</td>
@@ -1261,7 +983,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td class="px-6 py-4 text-right">${formatCurrency(product.price)}</td>
                         <td class="px-6 py-4 text-center">
                             <button data-product-id="${product.id}" class="remove-product-btn text-red-500 hover:text-red-700">
-                                <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </td>
                     </tr>
@@ -1271,6 +993,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.lucide.createIcons();
         };
 
+        // Adicionar novo produto
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = view.querySelector('#product-name').value;
@@ -1290,16 +1013,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     storeId: state.selectedStore.id
                 });
                 showToast('Produto adicionado com sucesso!', 'success');
-                e.target.reset();
+                form.reset();
             } catch (error) {
                 console.error("Erro ao adicionar produto:", error);
                 showToast('Erro ao adicionar produto.', 'error');
             }
         });
-
+        
+        // Remover produto
         tableBody.addEventListener('click', (e) => {
             const removeBtn = e.target.closest('.remove-product-btn');
-            if (removeBtn) {
+            if(removeBtn){
                 const productId = removeBtn.dataset.productId;
                 showConfirmModal('Tem certeza que deseja remover este produto? A ação não pode ser desfeita.', async () => {
                     try {
@@ -1315,25 +1039,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderProductsTable();
     }
-
+    
     function renderPedidos() {
-        const view = document.getElementById('pedidos-view');
-
-        let form = view.querySelector('#filter-form');
-        let tableBody = view.querySelector('#orders-table-body');
-
-        form = cleanAndClone(form);
-        tableBody = cleanAndClone(tableBody);
-
+        const c = document.getElementById('pedidos-view');
         const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
 
         if (isGerente) {
-            view.querySelector('#vendedor-pedidos-dashboard')?.classList.add('hidden');
-            view.querySelector('#gerente-vendedor-filter-container').classList.remove('hidden');
-            if (!view.querySelector('#orders-table-header-row').innerText.includes('Vendedor')) {
-                view.querySelector('#orders-table-header-row').insertAdjacentHTML('afterbegin', '<th scope="col" class="px-6 py-3">Vendedor</th>');
+            c.querySelector('#vendedor-pedidos-dashboard')?.classList.add('hidden');
+            c.querySelector('#gerente-vendedor-filter-container').classList.remove('hidden');
+            if (!c.querySelector('#orders-table-header-row').innerText.includes('Vendedor')) {
+                c.querySelector('#orders-table-header-row').insertAdjacentHTML('afterbegin', '<th scope="col" class="px-6 py-3">Vendedor</th>');
             }
-            const select = view.querySelector('#filter-vendedor');
+            const select = c.querySelector('#filter-vendedor');
             select.innerHTML = '<option value="Todos">Todos</option>';
             const storeUsers = state.db.users.filter(u => u.storeId === state.selectedStore.id && u.role === 'vendedor');
             const vendedores = [...new Set(storeUsers.map(u => u.name))];
@@ -1346,20 +1063,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isGerente) return;
             const totalSales = sales.length;
             const totalValue = sales.reduce((sum, order) => sum + parseFloat(order.total || 0), 0);
-            view.querySelector('#pedidos-finalizados').textContent = totalSales;
-            view.querySelector('#valor-total').textContent = formatCurrency(totalValue);
-            view.querySelector('#ticket-medio').textContent = formatCurrency(totalSales > 0 ? totalValue / totalSales : 0);
+            c.querySelector('#pedidos-finalizados').textContent = totalSales;
+            c.querySelector('#valor-total').textContent = formatCurrency(totalValue);
+            c.querySelector('#ticket-medio').textContent = formatCurrency(totalSales > 0 ? totalValue / totalSales : 0);
         };
 
         const renderTable = (sales) => {
-            tableBody.innerHTML = '';
+            const tbody = c.querySelector('#orders-table-body');
+            tbody.innerHTML = '';
             if (!sales || sales.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="10" class="text-center p-8 text-slate-500">Nenhum pedido encontrado.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center p-8 text-slate-500">Nenhum pedido encontrado.</td></tr>';
             } else {
                 sales.forEach(s => {
                     const r = document.createElement('tr');
                     r.className = 'bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50';
-
+                    
                     const paymentDisplay = Array.isArray(s.paymentMethods)
                         ? s.paymentMethods.map(p => {
                             let paymentString = p.method;
@@ -1372,24 +1090,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     r.innerHTML =
                         `${isGerente ? `<td class="px-6 py-4">${s.vendedor}</td>` : ''}
-                                <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
-                                <td class="px-6 py-4">${new Date(s.date.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                                <td class="px-6 py-4">${paymentDisplay}</td>
-                                <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
-                                <td class="px-6 py-4 text-center">
-                                    <button data-order-id="${s.id}" class="view-details-btn text-brand-primary hover:underline">Detalhes</button>
-                                </td>`;
-                    tableBody.appendChild(r);
+                            <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
+                            <td class="px-6 py-4">${new Date(s.date.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                            <td class="px-6 py-4">${paymentDisplay}</td>
+                            <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
+                            <td class="px-6 py-4 text-center">
+                                <button data-order-id="${s.id}" class="view-details-btn text-brand-primary hover:underline">Detalhes</button>
+                            </td>`;
+                    tbody.appendChild(r);
                 });
             }
         };
-
+        
         const applyFiltersAndFetchSales = () => {
             if (state.listeners.sales) state.listeners.sales();
 
-            const dateFilter = view.querySelector('#filter-date').value;
-            const paymentFilter = view.querySelector('#filter-payment').value;
-            const vendedorFilter = isGerente ? view.querySelector('#filter-vendedor').value : null;
+            const dateFilter = c.querySelector('#filter-date').value;
+            const paymentFilter = c.querySelector('#filter-payment').value;
+            const vendedorFilter = isGerente ? c.querySelector('#filter-vendedor').value : null;
 
             let conditions = [where("storeId", "==", state.selectedStore.id)];
 
@@ -1400,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 conditions.push(where("vendedor", "==", state.loggedInUser.name));
             }
-
+            
             if (paymentFilter && paymentFilter !== 'Todos') {
                 conditions.push(where("paymentMethod", "==", paymentFilter));
             }
@@ -1411,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 conditions.push(where("date", ">=", startDate));
                 conditions.push(where("date", "<=", endDate));
             }
-
+            
             const finalQuery = query(collection(db, "sales"), ...conditions);
 
             state.listeners.sales = onSnapshot(finalQuery, (snapshot) => {
@@ -1424,16 +1142,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, (error) => {
                 console.error("Erro ao buscar pedidos: ", error);
-                tableBody.innerHTML = `<tr><td colspan="10" class="text-center p-8 text-red-500"><b>Erro ao carregar pedidos.</b><br><span class="text-xs">Pode ser necessário criar um índice no Firestore. Verifique o console de depuração para um link de criação.</span></td></tr>`;
+                c.querySelector('#orders-table-body').innerHTML = `<tr><td colspan="10" class="text-center p-8 text-red-500"><b>Erro ao carregar pedidos.</b><br><span class="text-xs">Pode ser necessário criar um índice no Firestore. Verifique o console de depuração para um link de criação.</span></td></tr>`;
             });
         };
 
-        form.addEventListener('submit', e => { e.preventDefault(); applyFiltersAndFetchSales(); });
-        form.addEventListener('reset', () => { setTimeout(applyFiltersAndFetchSales, 0); });
-
+        c.querySelector('#filter-form').addEventListener('submit', e => { e.preventDefault(); applyFiltersAndFetchSales(); });
+        c.querySelector('#filter-form').addEventListener('reset', () => { setTimeout(applyFiltersAndFetchSales, 0); });
+        
         applyFiltersAndFetchSales();
 
-        tableBody.addEventListener('click', e => {
+        c.querySelector('#orders-table-body').addEventListener('click', e => {
             const b = e.target.closest('.view-details-btn');
             if (b) {
                 const order = state.db.sales.find(s => s.id == b.dataset.orderId);
@@ -1441,22 +1159,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     const m = document.getElementById('order-details-modal');
                     m.classList.remove('hidden');
                     const itemsList = order.items.map(i => `<li>${i.productId ? '<i class="inline-block" data-lucide="package"></i> ' : ''}${i.name} (${formatCurrency(i.value)})</li>`).join('');
-
+                    
                     const paymentDetails = Array.isArray(order.paymentMethods)
                         ? order.paymentMethods.map(p => {
                             let paymentString = `<li>${p.method}: ${formatCurrency(p.amount)}`;
-                            if (p.installments) {
+                            if(p.installments) {
                                 paymentString += ` (em ${p.installments})`;
                             }
                             paymentString += `</li>`;
                             return paymentString;
                         }).join('')
                         : `<li>${order.paymentMethod}: ${formatCurrency(order.total)}</li>`;
-
-                    let prizeDetails = '';
-                    if (order.prizeWon) {
-                        prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
-                    }
+                    
+                         let prizeDetails = '';
+                         if(order.prizeWon){
+                              prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
+                         }
 
                     m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p>${prizeDetails}</div></div>`;
                     m.querySelector('#close-details-modal').addEventListener('click', () => m.classList.add('hidden'));
@@ -1466,7 +1184,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderMetas() {
+    // ... (As funções renderMetas, renderRanking, renderConfiguracoes, renderRelatorios e init permanecem as mesmas)
+    function renderMetas(){
         const c = document.getElementById('metas-view');
         if (!c) return;
 
@@ -1479,7 +1198,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const dayOfWeek = now.getDay();
             const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
             const weekStart = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
-
+            
             const vendasHoje = sales.filter(s => s.date.toDate().getTime() >= todayStart.getTime()).reduce((sum, s) => sum + s.total, 0);
             const vendasSemana = sales.filter(s => s.date.toDate().getTime() >= weekStart.getTime()).reduce((sum, s) => sum + s.total, 0);
             const vendasMes = sales.filter(s => s.date.toDate().getTime() >= monthStart.getTime()).reduce((sum, s) => sum + s.total, 0);
@@ -1495,8 +1214,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const getWeekIdentifier = (d) => {
                 const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-                date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
-                const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+                date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay()||7));
+                const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
                 const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
                 return `${date.getUTCFullYear()}-W${weekNo}`;
             }
@@ -1507,10 +1226,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return acc;
             }, {});
             const melhorSemanaValor = Math.max(0, ...Object.values(salesByWeek));
-
+            
             let streak = 0;
-            let currentDay = new Date(new Date().setHours(0, 0, 0, 0));
-            for (let i = 0; i < 365; i++) {
+            let currentDay = new Date(new Date().setHours(0,0,0,0));
+            for(let i = 0; i < 365; i++){
                 const dayKey = currentDay.toISOString().split('T')[0];
                 const daySales = salesByDay[dayKey] || 0;
                 if (daySales >= (goals.daily || 0.01)) {
@@ -1526,13 +1245,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const updateProgressBar = (barId, textId, current, goal) => {
                 const bar = document.getElementById(barId);
                 const text = document.getElementById(textId);
-                if (bar && text) {
+                if(bar && text) {
                     const percentage = Math.min(100, (current / (goal || 1)) * 100);
                     bar.style.width = `${percentage}%`;
                     text.textContent = `${formatCurrency(current)} / ${formatCurrency(goal)}`;
                 }
             }
-
+            
             updateProgressBar('progresso-diario-barra', 'progresso-diario-texto', vendasHoje, goals.daily);
             updateProgressBar('progresso-semanal-barra', 'progresso-semanal-texto', vendasSemana, goals.weekly);
             updateProgressBar('progresso-mensal-barra', 'progresso-mensal-texto', vendasMes, goals.monthly);
@@ -1540,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('recorde-melhor-dia').textContent = formatCurrency(melhorDiaValor);
             document.getElementById('recorde-melhor-semana').textContent = formatCurrency(melhorSemanaValor);
         };
-
+        
         const storeId = state.selectedStore.id;
         const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), where("storeId", "==", storeId));
         state.listeners.sales = onSnapshot(q, (snapshot) => {
@@ -1556,7 +1275,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderRanking() {
         if (state.listeners.sales) state.listeners.sales();
-
+        
         const view = document.getElementById('ranking-view');
         const podiumContainer = view.querySelector('#ranking-podium-container');
         const listContainer = view.querySelector('#ranking-list-container');
@@ -1583,12 +1302,12 @@ document.addEventListener('DOMContentLoaded', () => {
             startDate.setHours(0, 0, 0, 0);
 
             const filteredSales = sales.filter(s => s.date.toDate() >= startDate);
-
+            
             const salesBySeller = filteredSales.reduce((acc, sale) => {
                 acc[sale.vendedor] = (acc[sale.vendedor] || 0) + sale.total;
                 return acc;
             }, {});
-
+            
             const sellersFromUsers = state.db.users.filter(u => u.role === 'vendedor' && u.storeId === state.selectedStore.id);
             sellersFromUsers.forEach(seller => {
                 if (!salesBySeller[seller.name]) {
@@ -1607,47 +1326,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 podiumContainer.innerHTML = '<p class="text-center text-slate-500 dark:text-slate-400 col-span-full mt-12">Nenhum vendedor para classificar.</p>';
                 return;
             }
-
+            
             const top3 = rankedSellers.slice(0, 3);
             const others = rankedSellers.slice(3);
-
-            const podiumOrder = [1, 0, 2];
+            
+            // Podium
+            const podiumOrder = [1, 0, 2]; // 2nd, 1st, 3rd
             const podiumHTML = `
                 <div class="flex justify-center items-end gap-4">
                     ${podiumOrder.map(index => {
-                const seller = top3[index];
-                if (!seller) return '<div class="w-1/3"></div>';
+                        const seller = top3[index];
+                        if (!seller) return '<div class="w-1/3"></div>';
+                        
+                        const heightClasses = ['h-48', 'h-32', 'h-24'];
+                        const place = index + 1;
+                        const barHeight = place === 1 ? heightClasses[0] : (place === 2 ? heightClasses[1] : heightClasses[2]);
+                        const colorClasses = [
+                            'bg-amber-400 dark:bg-amber-500',
+                            'bg-slate-300 dark:bg-slate-400',
+                            'bg-yellow-600 dark:bg-yellow-700'
+                        ];
 
-                const place = index === 0 ? 2 : (index === 1 ? 1 : 3);
-                const barHeight = place === 1 ? 'h-48' : (place === 2 ? 'h-32' : 'h-24');
-                const colorClasses = [
-                    'bg-amber-400 dark:bg-amber-500',
-                    'bg-slate-300 dark:bg-slate-400',
-                    'bg-yellow-600 dark:bg-yellow-700'
-                ];
-                const rankColor = place === 1 ? 'border-amber-400' : (place === 2 ? 'border-slate-400' : 'border-yellow-600');
-
-                return `
-                            <div class="w-1/3 text-center flex flex-col items-center">
-                                <div class="relative mb-2">
-                                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-3xl sm:text-4xl font-bold border-4 ${rankColor}">
-                                        ${seller.name.charAt(0)}
-                                    </div>
-                                    <div class="absolute -top-2 -right-2 w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center text-sm font-bold border-2 border-white dark:border-slate-900">${place}</div>
+                        return `
+                        <div class="w-1/3 text-center flex flex-col items-center">
+                            <div class="relative mb-2">
+                                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-3xl sm:text-4xl font-bold border-4 ${place === 1 ? 'border-amber-400' : 'border-slate-400 dark:border-slate-500'}">
+                                    ${seller.name.charAt(0)}
                                 </div>
-                                <p class="font-bold text-slate-800 dark:text-white truncate w-full">${seller.name}</p>
-                                <p class="text-sm text-brand-primary font-semibold">${formatCurrency(seller.total)}</p>
-                                <div class="w-full ${barHeight} ${colorClasses[place - 1]} rounded-t-lg mt-2 flex items-center justify-center">
-                                      <i data-lucide="award" class="w-10 h-10 text-white/50"></i>
-                                </div>
+                                <div class="absolute -top-2 -right-2 w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center text-sm font-bold border-2 border-white dark:border-slate-900">${place}</div>
                             </div>
+                            <p class="font-bold text-slate-800 dark:text-white truncate w-full">${seller.name}</p>
+                            <p class="text-sm text-brand-primary font-semibold">${formatCurrency(seller.total)}</p>
+                            <div class="w-full ${barHeight} ${colorClasses[index]} rounded-t-lg mt-2 flex items-center justify-center">
+                                <i data-lucide="award" class="w-10 h-10 text-white/50"></i>
+                            </div>
+                        </div>
                         `;
-            }).join('').replace(/undefined/g, '')} 
+                    }).join('')}
                 </div>
             `;
             podiumContainer.innerHTML = podiumHTML;
 
-            if (others.length > 0) {
+
+            // List
+            if(others.length > 0) {
                 const listHTML = `
                     <ul class="space-y-2">
                         ${others.map((seller, index) => `
@@ -1665,17 +1387,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     </ul>
                 `;
                 listContainer.innerHTML = listHTML;
+            } else if (rankedSellers.length > 3) {
+                 listContainer.innerHTML = '<p class="text-center text-sm text-slate-500 p-4">...</p>';
             }
             window.lucide.createIcons();
         };
-
+        
         const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
         state.listeners.sales = onSnapshot(q, (snapshot) => {
             const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             updateRankingUI(allSales, currentPeriod);
         }, (error) => {
-            console.error("Erro ao carregar ranking:", error);
-            podiumContainer.innerHTML = '<p class="text-center text-red-500">Erro ao carregar dados do ranking.</p>';
+             console.error("Erro ao carregar ranking:", error);
+             podiumContainer.innerHTML = '<p class="text-center text-red-500">Erro ao carregar dados do ranking.</p>';
         });
 
         view.querySelectorAll('.ranking-period-btn').forEach(btn => {
@@ -1683,27 +1407,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentPeriod = e.target.dataset.period;
                 view.querySelectorAll('.ranking-period-btn').forEach(b => b.classList.remove('bg-white', 'dark:bg-slate-900', 'text-brand-primary', 'shadow'));
                 e.target.classList.add('bg-white', 'dark:bg-slate-900', 'text-brand-primary', 'shadow');
-
+                
+                // Re-fetch or re-filter data
                 const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
                 getDocs(q).then(snapshot => {
-                    const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    updateRankingUI(allSales, currentPeriod);
+                     const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                     updateRankingUI(allSales, currentPeriod);
                 });
             });
         });
     }
 
     function renderConfiguracoes() {
-        const c = document.getElementById('configuracoes-view');
-
-        let addUserForm = c.querySelector('#add-user-form');
-        addUserForm = cleanAndClone(addUserForm);
-
+        const c=document.getElementById('configuracoes-view');
         c.querySelector('#config-store-name').value = state.db.settings.storeName;
         c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
         c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
         c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
-
+        
         const enableBonusCheckbox = c.querySelector('#enable-bonus');
         const bonusValueContainer = c.querySelector('#bonus-value-container');
         const bonusValueInput = c.querySelector('#bonus-value');
@@ -1719,14 +1440,14 @@ document.addEventListener('DOMContentLoaded', () => {
         enableBonusCheckbox.addEventListener('change', () => {
             bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
         });
-
+        
         const exportVendedorSelect = c.querySelector('#export-vendedor-select');
         exportVendedorSelect.innerHTML = '<option value="Todos">Todos os Vendedores</option>';
         const vendedores = state.db.users.filter(u => u.role === 'vendedor' && u.storeId === state.selectedStore.id).map(u => u.name);
         vendedores.forEach(name => {
             exportVendedorSelect.innerHTML += `<option value="${name}">${name}</option>`;
         });
-
+        
         const handleExport = async (startDate, endDate, filename) => {
             const selectedVendedor = exportVendedorSelect.value;
             try {
@@ -1750,10 +1471,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Erro ao buscar dados para exportação.', 'error');
             }
         };
-
+        
         c.querySelector('#export-today-btn').addEventListener('click', () => {
-            const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
-            const todayEnd = new Date(new Date().setHours(23, 59, 59, 999));
+            const todayStart = new Date(new Date().setHours(0,0,0,0));
+            const todayEnd = new Date(new Date().setHours(23,59,59,999));
             const filename = `vendas_dia_${new Date().toISOString().split('T')[0]}_${exportVendedorSelect.value}`;
             handleExport(todayStart, todayEnd, filename);
         });
@@ -1764,7 +1485,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
             const weekStart = new Date(new Date(today.setDate(diff)).setHours(0, 0, 0, 0));
             const weekEnd = new Date(new Date(weekStart).setDate(weekStart.getDate() + 6));
-            weekEnd.setHours(23, 59, 59, 999);
+            weekEnd.setHours(23,59,59,999);
             const filename = `vendas_semana_${new Date().toISOString().split('T')[0]}_${exportVendedorSelect.value}`;
             handleExport(weekStart, weekEnd, filename);
         });
@@ -1773,7 +1494,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const today = new Date();
             const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
             const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-            monthEnd.setHours(23, 59, 59, 999);
+            monthEnd.setHours(23,59,59,999);
             const filename = `vendas_mes_${today.getFullYear()}_${today.getMonth() + 1}_${exportVendedorSelect.value}`;
             handleExport(monthStart, monthEnd, filename);
         });
@@ -1791,40 +1512,40 @@ document.addEventListener('DOMContentLoaded', () => {
             handleExport(startDate, endDate, filename);
         });
 
-        const updateUsersList = () => {
-            const list = c.querySelector('#users-list');
-            list.innerHTML = '';
+        const updateUsersList=()=>{
+            const list=c.querySelector('#users-list');
+            list.innerHTML='';
             const usersInStore = state.db.users.filter(u => u.storeId === state.selectedStore.id || u.role === 'superadmin');
-
-            if (usersInStore.length === 0) {
+            
+            if(usersInStore.length === 0){
                 list.innerHTML = '<p class="text-slate-500 text-sm text-center">Nenhum usuário cadastrado para esta loja.</p>';
                 return;
             }
 
-            usersInStore.forEach(v => {
-                const roleClass = v.role === 'superadmin'
+            usersInStore.forEach(v=>{
+                 const roleClass = v.role === 'superadmin'
                     ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
                     : v.role === 'gerente'
-                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
-                        : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
+                    : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
                 const roleText = v.role.charAt(0).toUpperCase() + v.role.slice(1);
 
-                list.innerHTML += `<li class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md">
-                        <div>
-                            <span>${v.name}</span>
-                            <span class="text-xs ml-2 px-2 py-0.5 rounded-full font-medium ${roleClass}">${roleText}</span>
-                        </div>
-                        <button data-userid="${v.id}" data-username="${v.name}" class="remove-user-btn text-red-500 hover:text-red-700 ${v.name === state.loggedInUser.name || v.role === 'superadmin' ? 'hidden' : ''}">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </li>`;
+                list.innerHTML+=`<li class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md">
+                    <div>
+                        <span>${v.name}</span>
+                        <span class="text-xs ml-2 px-2 py-0.5 rounded-full font-medium ${roleClass}">${roleText}</span>
+                    </div>
+                    <button data-userid="${v.id}" data-username="${v.name}" class="remove-user-btn text-red-500 hover:text-red-700 ${v.name === state.loggedInUser.name || v.role === 'superadmin' ? 'hidden' : ''}">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </li>`;
             });
             window.lucide.createIcons();
         };
-
+        
         updateUsersList();
 
-        addUserForm.addEventListener('submit', async e => {
+        c.querySelector('#add-user-form').addEventListener('submit', async e => {
             e.preventDefault();
             const n = c.querySelector('#user-name').value.trim();
             const p = c.querySelector('#user-password').value;
@@ -1871,15 +1592,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (removeBtn) {
                 const { userid, username } = removeBtn.dataset;
                 showConfirmModal(`Tem certeza que deseja remover o usuário "${username}"?`, async () => {
-                    try {
-                        await deleteDoc(doc(db, "users", userid));
-                        showToast(`Usuário "${username}" removido.`, 'success');
-                    } catch (error) { showToast('Erro ao remover usuário.', 'error'); }
+                   try {
+                       await deleteDoc(doc(db, "users", userid));
+                       showToast(`Usuário "${username}" removido.`, 'success');
+                   } catch (error) { showToast('Erro ao remover usuário.', 'error'); }
                 });
             }
         });
 
-        c.querySelector('#save-settings-button').addEventListener('click', async () => {
+        c.querySelector('#save-settings-button').addEventListener('click', async ()=> {
             const newStoreName = c.querySelector('#config-store-name').value;
             try {
                 await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName }, { merge: true });
@@ -1897,9 +1618,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 weekly: parseFloat(c.querySelector('#meta-semanal').value) || 0,
                 monthly: parseFloat(c.querySelector('#meta-mensal').value) || 0,
             };
-            const newBonusSystem = {
-                enabled: c.querySelector('#enable-bonus').checked,
-                value: parseFloat(c.querySelector('#bonus-value').value) || 80,
+             const newBonusSystem = {
+                  enabled: c.querySelector('#enable-bonus').checked,
+                  value: parseFloat(c.querySelector('#bonus-value').value) || 80,
             };
 
             try {
@@ -1910,25 +1631,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.db.settings.goals = newGoals;
                 state.db.settings.bonusSystem = newBonusSystem;
                 showToast('Metas e bônus salvos com sucesso!', 'success');
-            } catch (error) {
+            } catch(error) {
                 showToast('Erro ao salvar metas e bônus.', 'error');
             }
         });
-
-        c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
-            showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
-                try {
-                    const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-                    const salesSnapshot = await getDocs(q);
-                    if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
-                    const batch = writeBatch(db);
-                    salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-                    await batch.commit();
-                    showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
-                } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
-            });
-        });
-
+        
+         c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
+              showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
+                  try {
+                      const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
+                      const salesSnapshot = await getDocs(q);
+                      if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
+                      const batch = writeBatch(db);
+                      salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+                      await batch.commit();
+                      showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
+                  } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
+              });
+         });
+        
+        // Super Admin: Manage Stores
         const manageStoresSection = c.querySelector('#manage-stores-section');
         if (state.loggedInUser.role === 'superadmin') {
             manageStoresSection.classList.remove('hidden');
@@ -1955,16 +1677,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     newStoreNameInput.value = '';
                 } catch (error) { console.error("Erro ao criar loja:", error); showToast('Não foi possível criar a loja.', 'error'); }
             });
-
+            
             const renderStoresList = () => {
                 storesListEl.innerHTML = '';
                 state.db.stores.forEach(store => {
                     const li = document.createElement('li');
                     li.className = 'flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md';
                     li.innerHTML = `<span>${store.name}</span>
-                            <button data-store-id="${store.id}" data-store-name="${store.name}" class="remove-store-btn text-red-500 hover:text-red-700">
-                                <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
-                            </button>`;
+                        <button data-store-id="${store.id}" data-store-name="${store.name}" class="remove-store-btn text-red-500 hover:text-red-700">
+                            <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
+                        </button>`;
                     storesListEl.appendChild(li);
                 });
                 window.lucide.createIcons();
@@ -1983,12 +1705,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             const salesQuery = query(collection(db, "sales"), where("storeId", "==", storeId));
                             const usersQuery = query(collection(db, "users"), where("storeId", "==", storeId));
                             const [salesSnapshot, usersSnapshot] = await Promise.all([getDocs(salesQuery), getDocs(usersQuery)]);
-
+                            
                             salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
                             usersSnapshot.docs.forEach(doc => batch.delete(doc.ref));
                             batch.delete(doc(db, "settings", storeId));
                             batch.delete(doc(db, "stores", storeId));
-
+                            
                             await batch.commit();
                             showToast(`Loja "${storeName}" excluída.`, 'success');
                         } catch (error) { console.error("Erro ao deletar loja:", error); showToast('Erro ao deletar a loja.', 'error'); }
@@ -1999,10 +1721,11 @@ document.addEventListener('DOMContentLoaded', () => {
             manageStoresSection.classList.add('hidden');
         }
 
+        // Roleta
         const wheelConfigContainer = c.querySelector('#bonus-wheel-config-container');
         const enableWheelCheckbox = c.querySelector('#enable-bonus-wheel');
         let prizes = state.db.settings.bonusWheel?.prizes ? [...state.db.settings.bonusWheel.prizes] : [];
-
+        
         enableWheelCheckbox.checked = state.db.settings.bonusWheel?.enabled ?? false;
         wheelConfigContainer.classList.toggle('hidden', !enableWheelCheckbox.checked);
 
@@ -2059,7 +1782,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (prizes.length > 0 && totalProb !== 100) {
                 return showToast('A soma das probabilidades dos prêmios deve ser exatamente 100%.', 'error');
             }
-
+            
             const newWheelSettings = {
                 enabled: enableWheelCheckbox.checked,
                 prizes: prizes,
@@ -2081,20 +1804,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderRelatorios() {
         const c = document.getElementById('relatorios-view');
-        if (!c) return;
-
-        if (!state.db.settings.bonusSystem?.enabled) {
-            c.querySelector('#bonus-hoje-card')?.classList.add('hidden');
-            c.querySelector('#bonus-semana-card')?.classList.add('hidden');
-            c.querySelector('#bonus-mes-card')?.classList.add('hidden');
-        }
+        if(!c) return;
+        
+         if(!state.db.settings.bonusSystem?.enabled){
+              c.querySelector('#bonus-hoje-card')?.classList.add('hidden');
+              c.querySelector('#bonus-semana-card')?.classList.add('hidden');
+              c.querySelector('#bonus-mes-card')?.classList.add('hidden');
+         }
 
         const updateReports = (sales) => {
-            if (vendasChartInstance) {
+            if(vendasChartInstance) {
                 vendasChartInstance.destroy();
                 vendasChartInstance = null;
             }
-            if (pagamentoChartInstance) {
+            if(pagamentoChartInstance) {
                 pagamentoChartInstance.destroy();
                 pagamentoChartInstance = null;
             }
@@ -2113,19 +1836,19 @@ document.addEventListener('DOMContentLoaded', () => {
             c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + s.total, 0));
             c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + s.total, 0));
             c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
-
-            if (state.db.settings.bonusSystem?.enabled) {
-                c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
-                c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
-                c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
+            
+            if(state.db.settings.bonusSystem?.enabled){
+                 c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
+                 c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
+                 c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
             }
-
+            
             const salesLast7Days = {};
             for (let i = 6; i >= 0; i--) {
                 const d = new Date();
                 d.setHours(0, 0, 0, 0);
                 d.setDate(d.getDate() - i);
-                salesLast7Days[d.toISOString().split('T')[0]] = { label: d.toLocaleDateString('pt-BR', { weekday: 'short' }).slice(0, 3), total: 0 };
+                salesLast7Days[d.toISOString().split('T')[0]] = { label: d.toLocaleDateString('pt-BR', {weekday: 'short'}).slice(0,3), total: 0 };
             }
             sales.forEach(sale => {
                 const saleDate = sale.date.toDate();
@@ -2138,20 +1861,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const isDarkMode = document.documentElement.classList.contains('dark');
             const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
             const textColor = isDarkMode ? '#cbd5e1' : '#475569';
-
+            
             const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
-            if (vendasCtx) {
+            if(vendasCtx) {
                 const gradient = vendasCtx.createLinearGradient(0, 0, 0, vendasCtx.canvas.height);
                 gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
                 gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
-
+                
                 vendasChartInstance = new window.Chart(vendasCtx, {
                     type: 'line',
-                    data: {
-                        labels: Object.values(salesLast7Days).map(d => d.label),
-                        datasets: [{
-                            label: 'Vendas Diárias',
-                            data: Object.values(salesLast7Days).map(d => d.total),
+                    data: { 
+                        labels: Object.values(salesLast7Days).map(d => d.label), 
+                        datasets: [{ 
+                            label: 'Vendas Diárias', 
+                            data: Object.values(salesLast7Days).map(d => d.total), 
                             backgroundColor: gradient,
                             borderColor: '#3b82f6',
                             borderWidth: 2,
@@ -2159,46 +1882,46 @@ document.addEventListener('DOMContentLoaded', () => {
                             pointRadius: 4,
                             fill: true,
                             tension: 0.4
-                        }]
+                        }] 
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
                 });
             }
 
             const paymentData = sales.reduce((acc, sale) => {
-                (sale.paymentMethods || [{ method: sale.paymentMethod, amount: sale.total }]).forEach(p => {
+                (sale.paymentMethods || [{method: sale.paymentMethod, amount: sale.total}]).forEach(p => {
                     acc[p.method] = (acc[p.method] || 0) + p.amount;
                 });
                 return acc;
             }, {});
 
             const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
-            if (pagamentosCtx) {
+            if(pagamentosCtx) {
                 pagamentoChartInstance = new window.Chart(pagamentosCtx, {
                     type: 'doughnut',
-                    data: {
-                        labels: Object.keys(paymentData),
-                        datasets: [{
-                            data: Object.values(paymentData),
-                            backgroundColor: ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b'],
-                            borderColor: isDarkMode ? '#0f172a' : '#f1f5f9',
-                            borderWidth: 4
-                        }]
+                    data: { 
+                        labels: Object.keys(paymentData), 
+                        datasets: [{ 
+                            data: Object.values(paymentData), 
+                            backgroundColor: ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b'], 
+                            borderColor: isDarkMode ? '#0f172a' : '#f1f5f9', 
+                            borderWidth: 4 
+                        }] 
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
                 });
             }
         };
-
+        
         const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
         const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
-
+        
         let q = collection(db, "sales");
         const storeId = state.selectedStore.id;
-
+        
         let conditions = [where("storeId", "==", storeId)];
         if (state.loggedInUser.role === 'vendedor') {
-            conditions.push(where("vendedor", "==", state.loggedInUser.name));
+           conditions.push(where("vendedor", "==", state.loggedInUser.name));
         }
 
         q = query(q, ...conditions);
@@ -2208,22 +1931,22 @@ document.addEventListener('DOMContentLoaded', () => {
             allSales.sort((a, b) => b.date.seconds - a.date.seconds);
 
             state.db.sales = allSales;
-
+            
             if (isManager) {
                 vendedorSelectContainer.classList.remove('hidden');
                 const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
                 const vendedores = [...new Set(allSales.map(s => s.vendedor))];
                 vendedorSelect.innerHTML = '<option value="total">Relatório Total</option>';
                 vendedores.forEach(name => { vendedorSelect.innerHTML += `<option value="${name}">${name}</option>`; });
-
+                
                 const newSelect = vendedorSelect.cloneNode(true);
                 vendedorSelect.parentNode.replaceChild(newSelect, vendedorSelect);
-
+                
                 newSelect.addEventListener('change', (e) => {
                     const salesToReport = e.target.value === 'total' ? allSales : allSales.filter(s => s.vendedor === e.target.value);
                     updateReports(salesToReport);
                 });
-
+                
                 updateReports(allSales);
             } else {
                 updateReports(allSales);
