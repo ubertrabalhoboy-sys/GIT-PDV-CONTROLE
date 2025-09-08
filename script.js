@@ -372,12 +372,24 @@ document.addEventListener('DOMContentLoaded', () => {
         state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
             state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
-            // Log para depuração para garantir que os produtos estão sendo carregados
             console.log(`[LOG] Produtos carregados para a loja ${store.name}:`, state.db.products.length, "itens.");
 
-            if (state.currentView === 'produtos' && document.getElementById('produtos-view').classList.contains('active')) {
+            if (state.currentView === 'produtos' && document.getElementById('produtos-view')?.classList.contains('active')) {
                 renderProdutos();
             }
+            
+            // ****** INÍCIO DA CORREÇÃO ******
+            // Quando os produtos são carregados ou atualizados, habilita a barra de busca na tela do caixa
+            if (state.currentView === 'caixa') {
+                const caixaView = document.getElementById('caixa-view');
+                const searchInput = caixaView?.querySelector('#product-search');
+                if (searchInput) {
+                    searchInput.disabled = false;
+                    searchInput.placeholder = "Procurar Produto...";
+                }
+            }
+            // ****** FIM DA CORREÇÃO ******
+
         }, (error) => {
             console.error("Erro ao carregar produtos (verifique suas Regras de Segurança do Firestore):", error);
             showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
@@ -425,7 +437,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newStoreId = e.target.value;
                 state.selectedStore = state.db.stores.find(s => s.id === newStoreId);
                 
-                // Recarrega todas as configurações e listeners da nova loja
                 const settingsRef = doc(db, "settings", state.selectedStore.id);
                 const settingsSnap = await getDoc(settingsRef);
                 if (settingsSnap.exists()) {
@@ -433,7 +444,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
                 
-                // Reinicia os listeners para a nova loja
                 initializeAppUI(); 
                 switchView(state.currentView || 'pedidos');
             };
@@ -732,6 +742,14 @@ document.addEventListener('DOMContentLoaded', () => {
         productSearchInput = cleanAndClone(productSearchInput);
         searchResultsContainer = cleanAndClone(searchResultsContainer);
         finalizeBtn = cleanAndClone(finalizeBtn);
+
+        // ****** INÍCIO DA CORREÇÃO ******
+        // Desabilita o campo de busca enquanto os produtos não são carregados
+        if (productSearchInput) {
+            productSearchInput.disabled = true;
+            productSearchInput.placeholder = "Carregando produtos...";
+        }
+        // ****** FIM DA CORREÇÃO ******
 
         const totalEl = view.querySelector('#current-order-total');
         const modalContainer = document.getElementById('finalize-order-modal');
@@ -1263,7 +1281,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     storeId: state.selectedStore.id
                 });
                 showToast('Produto adicionado com sucesso!', 'success');
-                form.reset();
+                // ****** INÍCIO DA CORREÇÃO ******
+                // Usar e.target para garantir que o formulário correto seja limpo
+                e.target.reset();
+                // ****** FIM DA CORREÇÃO ******
             } catch (error) {
                 console.error("Erro ao adicionar produto:", error);
                 showToast('Erro ao adicionar produto.', 'error');
@@ -2223,3 +2244,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
+
