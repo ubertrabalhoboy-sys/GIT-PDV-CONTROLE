@@ -173,6 +173,7 @@
 
 <body class="text-slate-800 dark:text-slate-200">
 
+    <!-- Tela de Login -->
     <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-sm mx-auto">
               <div class="absolute top-5 right-5">
@@ -188,22 +189,26 @@
                 </div>
                 <h1 id="login-store-name" class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sistema de Vendas</h1>
 
+                <!-- First Run View -->
                 <div id="first-run-view" class="hidden text-left">
                      <p class="text-slate-600 dark:text-slate-400 mb-6 text-center">Configurando o sistema pela primeira vez...</p>
                      <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary mx-auto"></div>
                 </div>
 
+                <!-- Store Selection -->
                 <div id="store-selection-view" class="hidden">
                      <p class="text-slate-600 dark:text-slate-400 mb-8">Selecione a sua loja</p>
                      <div id="store-list" class="space-y-2"></div>
                 </div>
 
+                <!-- User Selection -->
                 <div id="user-selection-view" class="hidden">
                     <p class="text-slate-600 dark:text-slate-400 mb-8">Quem está acessando?</p>
                     <div id="user-list" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
                     <button id="back-to-stores" class="mt-6 text-sm text-slate-500 hover:text-brand-primary">Voltar para seleção de lojas</button>
                 </div>
 
+                <!-- Password View -->
                 <div id="password-view" class="hidden">
                     <div id="selected-user-info" class="mb-4"></div>
                     <form id="password-form">
@@ -220,6 +225,7 @@
     </div>
 
 
+    <!-- App Principal -->
     <div id="app" class="hidden">
         <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-dark-card border-r border-slate-800">
             <div class="h-full px-3 py-4 overflow-y-auto">
@@ -259,6 +265,7 @@
             <main class="p-4 md:p-6">
                 <div id="caixa-view" class="view"></div>
                 <div id="pedidos-view" class="view"></div>
+                <!-- NOVO: Ponto de montagem para a tela de Clientes -->
                 <div id="clientes-view" class="view"></div>
                 <div id="produtos-view" class="view"></div>
                 <div id="metas-view" class="view"></div>
@@ -269,8 +276,10 @@
         </div>
     </div>
     
+    <!-- Modals -->
     <div id="finalize-order-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="order-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
+    <!-- NOVO: Modal para detalhes do cliente -->
     <div id="client-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="whatsapp-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
     <div id="bonus-wheel-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
@@ -286,6 +295,7 @@
         </div>
     </div>
 
+    <!-- Templates -->
     <script type="text/html" id="caixa-template">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="custom-card p-6 rounded-lg shadow-md">
@@ -373,14 +383,14 @@
         </div>
     </script>
     
+    <!-- NOVO: Template para a tela de Clientes -->
     <script type="text/html" id="clientes-template">
         <div class="space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-1">
                     <div class="custom-card p-6 rounded-lg shadow-md">
-                        <h3 id="client-form-title" class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Cliente</h3>
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Cliente</h3>
                         <form id="add-client-form" class="space-y-4">
-                            <input type="hidden" id="client-form-id">
                             <div>
                                 <label for="client-form-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome Completo</label>
                                 <input type="text" id="client-form-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
@@ -397,12 +407,9 @@
                                 <label for="client-form-address" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Endereço</label>
                                 <textarea id="client-form-address" rows="3" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></textarea>
                             </div>
-                            <div class="flex gap-2">
-                                <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                                    <i data-lucide="user-plus" class="w-5 h-5"></i><span id="client-form-btn-text">Salvar Cliente</span>
-                                </button>
-                                <button type="reset" id="client-form-cancel" class="hidden w-1/3 bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600">Cancelar</button>
-                            </div>
+                            <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="user-plus" class="w-5 h-5"></i>Salvar Cliente
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -463,13 +470,13 @@
                 <div class="relative overflow-x-auto pt-4">
                      <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
                          <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50">
-                              <tr id="orders-table-header-row">
-                                   <th scope="col" class="px-6 py-3">Cliente</th>
-                                   <th scope="col" class="px-6 py-3">Data</th>
-                                   <th scope="col" class="px-6 py-3">Pagamento</th>
-                                   <th scope="col" class="px-6 py-3 text-right">Total</th>
-                                   <th scope="col" class="px-6 py-3 text-center">Ações</th>
-                              </tr>
+                             <tr id="orders-table-header-row">
+                                 <th scope="col" class="px-6 py-3">Cliente</th>
+                                 <th scope="col" class="px-6 py-3">Data</th>
+                                 <th scope="col" class="px-6 py-3">Pagamento</th>
+                                 <th scope="col" class="px-6 py-3 text-right">Total</th>
+                                 <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                             </tr>
                          </thead>
                          <tbody id="orders-table-body"></tbody>
                      </table>
@@ -484,6 +491,7 @@
             <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Meu Progresso</h3>
                 <div class="space-y-4">
+                    <!-- Meta Diária -->
                     <div>
                         <div class="flex justify-between mb-1">
                             <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Diária</span>
@@ -493,6 +501,7 @@
                             <div id="progresso-diario-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
                         </div>
                     </div>
+                    <!-- Meta Semanal -->
                     <div>
                         <div class="flex justify-between mb-1">
                             <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Semanal</span>
@@ -502,6 +511,7 @@
                             <div id="progresso-semanal-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
                         </div>
                     </div>
+                    <!-- Meta Mensal -->
                     <div>
                         <div class="flex justify-between mb-1">
                             <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Mensal</span>
@@ -545,11 +555,13 @@
             </div>
     
             <div id="ranking-podium-container" class="min-h-[350px]">
-                </div>
+                <!-- O pódio será renderizado aqui -->
+            </div>
     
             <div class="custom-card p-4 rounded-lg shadow-md">
                 <div id="ranking-list-container">
-                    </div>
+                    <!-- A lista de outros vendedores será renderizada aqui -->
+                </div>
             </div>
         </div>
     </script>
@@ -765,6 +777,7 @@
         </div>
     </script>
 
+    <!-- Firebase -->
     <script type="module" src="script.js"></script>
 
 </body>
