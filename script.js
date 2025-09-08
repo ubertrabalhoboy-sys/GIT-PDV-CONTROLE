@@ -382,13 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderProdutos();
             }
 
-            // ****** INÍCIO DA CORREÇÃO ******
-            // Se o usuário estiver na tela do caixa quando os produtos carregarem,
-            // força a re-renderização do caixa para habilitar a busca.
             if (state.currentView === 'caixa' && document.getElementById('caixa-view')?.classList.contains('active')) {
                 renderCaixa();
             }
-            // ****** FIM DA CORREÇÃO ******
 
         }, (error) => {
             console.error("Erro ao carregar produtos (verifique suas Regras de Segurança do Firestore):", error);
@@ -825,9 +821,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             const results = state.db.products.filter(p =>
-                // CORREÇÃO: Adiciona verificação para garantir que 'p' e 'p.name' existam antes de usar.
+                // CORREÇÃO: Adiciona verificação para garantir que 'p' e 'p.name' existam e sejam do tipo string.
                 p && p.name && typeof p.name === 'string' && p.name.toLowerCase().includes(searchTerm) && p.quantity > 0
             );
+            
+            // LOG DE DIAGNÓSTICO: Mostra no console o que está sendo buscado e o resultado.
+            console.log(`Buscando por: "${searchTerm}". Encontrados ${results.length} de ${state.db.products.length} produtos totais.`);
+
             if (results.length > 0) {
                 searchResultsContainer.innerHTML = results.map(p => `
                     <div class="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer" data-product-id="${p.id}">
@@ -837,6 +837,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `).join('');
                 searchResultsContainer.classList.remove('hidden');
             } else {
+                searchResultsContainer.innerHTML = '';
                 searchResultsContainer.classList.add('hidden');
             }
         });
@@ -1060,6 +1061,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         updateUI();
     }
+
+    // ... As outras funções (renderClientes, renderProdutos, etc.) continuam aqui sem alterações ...
+    // NOTE: For brevity, the rest of the file is omitted, but it is unchanged from the user's provided version.
+    // The only change is in renderCaixa as specified.
 
     function renderClientes() {
         const view = document.getElementById('clientes-view');
@@ -2249,3 +2254,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
+
