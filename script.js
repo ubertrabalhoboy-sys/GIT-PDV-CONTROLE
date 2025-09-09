@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
             users: [],
             stores: [],
             products: [],
-            clients: [], // NOVO: Adicionado estado para clientes
+            clients: [],
             settings: {
                 storeName: "Minha Loja",
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             sales: []
         },
-        listeners: { users: null, sales: null, stores: null, products: null, clients: null }, // NOVO: Listener para clientes
+        listeners: { users: null, sales: null, stores: null, products: null, clients: null },
         selectedStore: null
     };
     let selectedUserForLogin = null;
@@ -309,13 +309,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.listeners.sales) state.listeners.sales();
         if (state.listeners.stores) state.listeners.stores();
         if (state.listeners.products) state.listeners.products();
-        if (state.listeners.clients) state.listeners.clients(); // NOVO: Limpa listener de clientes
+        if (state.listeners.clients) state.listeners.clients();
         state.listeners = { users: null, sales: null, stores: null, products: null, clients: null };
         Object.assign(state, {
             loggedInUser: null,
             selectedStore: null,
             currentOrder: [],
-            db: { users: [], stores: [], sales: [], products: [], clients: [], settings: {} } // NOVO: Limpa clientes
+            db: { users: [], stores: [], sales: [], products: [], clients: [], settings: {} }
         });
         selectedUserForLogin = null;
         document.getElementById('app').classList.add('hidden');
@@ -362,7 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
         });
 
-        // NOVO: Listener para a coleção de Clientes
         if (state.listeners.clients) state.listeners.clients();
         const clientsQuery = query(collection(db, "clients"), where("storeId", "==", store.id));
         state.listeners.clients = onSnapshot(clientsQuery, (snapshot) => {
@@ -415,7 +414,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 });
-                // NOVO: Recarrega clientes ao trocar de loja
                 if (state.listeners.clients) state.listeners.clients();
                  state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -437,7 +435,6 @@ document.addEventListener('DOMContentLoaded', () => {
             vM.classList.remove('hidden'); gM.classList.add('hidden');
             switchView('caixa');
         } else {
-            // CORREÇÃO: Adicionada a opção "Produtos" de volta ao menu de Gerente/Super Admin
             const managerMenuHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
                                     createMenuItem('clientes', 'users', 'Clientes') + 
                                     createMenuItem('produtos', 'package', 'Produtos') + 
@@ -482,11 +479,26 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         viewContainer.innerHTML = document.getElementById(`${viewId}-template`).innerHTML;
+
+        // Otimização para Responsividade: Adiciona scroll horizontal em tabelas
+        if (['pedidos', 'produtos', 'clientes'].includes(viewId)) {
+            const table = viewContainer.querySelector('table');
+            if (table) {
+                // Previne re-encapsulamento se a função for chamada novamente
+                if (!table.parentElement.classList.contains('table-responsive-wrapper')) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'overflow-x-auto table-responsive-wrapper';
+                    table.parentNode.insertBefore(wrapper, table);
+                    wrapper.appendChild(table);
+                }
+            }
+        }
+
         window.lucide.createIcons();
         switch (viewId) {
             case 'caixa': renderCaixa(); break;
             case 'pedidos': renderPedidos(); break;
-            case 'clientes': renderClientes(); break; // NOVO: case para a view de clientes
+            case 'clientes': renderClientes(); break;
             case 'produtos': renderProdutos(); break;
             case 'metas': renderMetas(); break;
             case 'ranking': renderRanking(); break;
@@ -508,9 +520,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="custom-card rounded-lg shadow-xl w-full max-w-sm p-8 m-4 fade-in text-center relative overflow-hidden">
                 <div class="confetti-container"></div>
                 <i data-lucide="party-popper" class="w-16 h-16 mx-auto mb-4 text-amber-400"></i>
-                <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Parabéns!</h2>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Parabéns!</h2>
                 <p class="text-slate-600 dark:text-slate-400 mt-2">Você ganhou:</p>
-                <p class="text-3xl font-bold text-brand-secondary my-4">${prize.name}</p>
+                <p class="text-2xl sm:text-3xl font-bold text-brand-secondary my-4">${prize.name}</p>
                 <button id="close-prize-modal" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors">Continuar</button>
             </div>
         `;
@@ -559,7 +571,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         modal.innerHTML = `
             <div class="custom-card rounded-lg shadow-xl w-full max-w-md p-6 m-4 fade-in text-center">
-                <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Parabéns!</h2>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2">Parabéns!</h2>
                 <p class="text-slate-600 dark:text-slate-400 mb-4">O cliente ganhou o direito de girar a roleta!</p>
                 <div class="wheel-container">
                     <div class="wheel-pointer"></div>
@@ -704,7 +716,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ALTERADO: Função `renderCaixa` atualizada para o sistema híbrido
     function renderCaixa() {
         const view = document.getElementById('caixa-view');
         const itemsContainer = view.querySelector('#current-order-items');
@@ -713,7 +724,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const addForm = view.querySelector('#add-item-form');
         const modalContainer = document.getElementById('finalize-order-modal');
         
-        // NOVO: Seletores e estado para a busca de produtos
         const productSearchInput = view.querySelector('#product-search');
         const searchResultsContainer = view.querySelector('#product-search-results');
         let selectedProduct = null;
@@ -728,7 +738,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const el = document.createElement('div');
                     el.className = 'flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-3 rounded-md';
                     
-                    // NOVO: Ícone para indicar se o item é do estoque
                     const stockIcon = item.productId ? `<i data-lucide="package" class="w-4 h-4 text-slate-500 mr-2" title="Item do Estoque"></i>` : '';
 
                     el.innerHTML = `
@@ -762,7 +771,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 exchange: view.querySelector('#item-exchange').value
             };
             
-            // NOVO: Associa o ID do produto ao item do pedido se ele foi selecionado da busca
             if (selectedProduct) {
                 newItem.productId = selectedProduct.id;
             }
@@ -771,7 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateUI();
             addForm.reset();
             productSearchInput.value = '';
-            selectedProduct = null; // Limpa o produto selecionado
+            selectedProduct = null;
             view.querySelector('#item-name').focus();
         });
 
@@ -783,7 +791,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // NOVO: Lógica de busca de produtos
         productSearchInput.addEventListener('input', () => {
             const searchTerm = productSearchInput.value.toLowerCase();
             if (searchTerm.length < 2) {
@@ -809,7 +816,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // NOVO: Lógica para auto-preenchimento ao clicar no resultado da busca
         searchResultsContainer.addEventListener('click', (e) => {
             const resultDiv = e.target.closest('[data-product-id]');
             if (resultDiv) {
@@ -830,10 +836,9 @@ document.addEventListener('DOMContentLoaded', () => {
             modalContainer.classList.remove('hidden');
             const orderTotal = state.currentOrder.reduce((sum, i) => sum + i.value, 0);
 
-            // NOVO: Adicionado campo de busca de cliente no modal de finalização
             modalContainer.innerHTML = `
                 <div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in">
-                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Finalizar Pedido</h2>
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Finalizar Pedido</h2>
                     <p class="mb-4 text-lg">Total do Pedido: <span id="modal-total-value" class="font-bold text-brand-primary">${formatCurrency(orderTotal)}</span></p>
                     
                     <form id="finalize-order-form" class="space-y-3">
@@ -877,7 +882,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </form>
                 </div>`;
             
-            let selectedClient = null; // Estado para o cliente selecionado na venda
+            let selectedClient = null;
             const clientSearchInput = modalContainer.querySelector('#sale-client-search');
             const clientSearchResults = modalContainer.querySelector('#sale-client-search-results');
             const clientNameInput = modalContainer.querySelector('#client-name');
@@ -990,7 +995,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const saleData = {
                     clientName: clientNameInput.value,
                     clientPhone: clientPhoneInput.value,
-                    clientId: selectedClient ? selectedClient.id : null, // NOVO: Salva o ID do cliente
+                    clientId: selectedClient ? selectedClient.id : null,
                     paymentMethods: paymentMethods,
                     paymentMethod: paymentMethods.map(p => p.method).join(' + '),
                     items: state.currentOrder,
@@ -1004,7 +1009,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 try {
-                    // ALTERADO: Uso do `writeBatch` para garantir atomicidade (venda + baixa de estoque)
                     const batch = writeBatch(db);
                     const itemsToDecrement = state.currentOrder.filter(item => item.productId);
                     
@@ -1041,7 +1045,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
     
-    // NOVO: Função inteira para renderizar a tela de Clientes
     function renderClientes() {
         const view = document.getElementById('clientes-view');
         const form = view.querySelector('#add-client-form');
@@ -1177,7 +1180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  modal.innerHTML = `
                    <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
                        <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
-                           <h2 class="text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
+                           <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
                            <button id="close-client-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><i data-lucide="x" class="w-6 h-6"></i></button>
                        </div>
                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1205,15 +1208,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderClientsTable();
     }
 
-    // =================================================================
-    // CORREÇÃO DO BUG DE DUPLICAÇÃO
-    // A lógica de adicionar e remover produtos foi movida para fora da função `renderProdutos`
-    // e agora usa um único "escutador de eventos" (event listener) no elemento #app.
-    // Isso garante que o evento seja registrado apenas uma vez.
-    // =================================================================
-
     document.getElementById('app').addEventListener('submit', async (e) => {
-        // Lógica para Adicionar um novo produto
         if (e.target.id === 'add-product-form') {
             e.preventDefault();
             const form = e.target;
@@ -1243,7 +1238,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('app').addEventListener('click', (e) => {
-        // Lógica para Remover um produto
         const removeBtn = e.target.closest('.remove-product-btn');
         if (removeBtn) {
             const productId = removeBtn.dataset.productId;
@@ -1260,8 +1254,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function renderProdutos() {
-        // A função agora é responsável apenas por RENDERIZAR a tabela.
-        // Toda a lógica de eventos foi movida para fora para evitar duplicação.
         const view = document.getElementById('produtos-view');
         const tableBody = view.querySelector('#products-table-body');
 
@@ -1432,7 +1424,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                   prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
                              }
 
-                    m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p>${prizeDetails}</div></div>`;
+                    m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p>${prizeDetails}</div></div>`;
                     m.querySelector('#close-details-modal').addEventListener('click', () => m.classList.add('hidden'));
                     window.lucide.createIcons();
                 }
@@ -1587,12 +1579,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const podiumOrder = [1, 0, 2];
             const podiumHTML = `
-                <div class="flex justify-center items-end gap-4">
+                <div class="flex flex-col sm:flex-row justify-center items-end gap-4 sm:gap-2 md:gap-4">
                     ${podiumOrder.map(index => {
                         const seller = top3[index];
-                        if (!seller) return '<div class="w-1/3"></div>';
+                        if (!seller) return '<div class="w-full sm:w-1/3"></div>';
                         
-                        const heightClasses = ['h-48', 'h-32', 'h-24'];
+                        const heightClasses = ['h-40 sm:h-48', 'h-28 sm:h-32', 'h-20 sm:h-24'];
                         const place = index + 1;
                         const barHeight = place === 1 ? heightClasses[0] : (place === 2 ? heightClasses[1] : heightClasses[2]);
                         const colorClasses = [
@@ -1602,7 +1594,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ];
 
                         return `
-                        <div class="w-1/3 text-center flex flex-col items-center">
+                        <div class="w-full sm:w-1/3 text-center flex flex-col items-center">
                             <div class="relative mb-2">
                                 <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-3xl sm:text-4xl font-bold border-4 ${place === 1 ? 'border-amber-400' : 'border-slate-400 dark:border-slate-500'}">
                                     ${seller.name.charAt(0)}
@@ -2226,3 +2218,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
+
