@@ -998,6 +998,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     clientId: selectedClient ? selectedClient.id : null,
                     paymentMethods: paymentMethods,
                     paymentMethod: paymentMethods.map(p => p.method).join(' + '),
+                    paymentMethodTypes: paymentMethods.map(p => p.method), // Adicionado para filtro
                     items: state.currentOrder,
                     total: total,
                     bonus: bonus,
@@ -1368,7 +1369,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (paymentFilter && paymentFilter !== 'Todos') {
-                conditions.push(where("paymentMethod", "==", paymentFilter));
+                conditions.push(where("paymentMethodTypes", "array-contains", paymentFilter));
             }
 
             if (dateFilter) {
@@ -2218,4 +2219,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
+
 
