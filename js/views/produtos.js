@@ -1,74 +1,37 @@
-import { addDoc, collection, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db, state } from '../main.js';
-import { showToast, showConfirmModal, formatCurrency } from '../ui/utils.js';
+// js/views/produtos.js
+
+import { state } from '../state.js';
+import { formatCurrency } from '../utils/formatters.js';
 
 export function renderProdutos() {
     const view = document.getElementById('produtos-view');
+    if (!view) return;
     const tableBody = view.querySelector('#products-table-body');
-    const form = view.querySelector('#add-product-form');
+    if (!tableBody) return;
 
-    const renderProductsTable = () => {
-        tableBody.innerHTML = '';
-        if (state.db.products.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-slate-500">Nenhum produto cadastrado.</td></tr>`;
-            return;
-        }
+    tableBody.innerHTML = '';
+    if (state.db.products.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-slate-500">Nenhum produto cadastrado.</td></tr>`;
+        return;
+    }
 
-        const sortedProducts = [...state.db.products].sort((a, b) => a.name.localeCompare(b.name));
-        sortedProducts.forEach(product => {
-            const stockClass = product.quantity <= 5 ? 'text-red-500 font-bold' : (product.quantity <= 10 ? 'text-amber-500 font-semibold' : '');
-            const row = `
-                <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
-                    <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${product.name}</td>
-                    <td class="px-6 py-4 text-center ${stockClass}">${product.quantity}</td>
-                    <td class="px-6 py-4 text-right">${formatCurrency(product.price)}</td>
-                    <td class="px-6 py-4 text-center">
-                        <button data-product-id="${product.id}" class="remove-product-btn text-red-500 hover:text-red-700">
-                            <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-            tableBody.innerHTML += row;
-        });
-        window.lucide.createIcons();
-    };
+    const sortedProducts = [...state.db.products].sort((a, b) => a.name.localeCompare(b.name));
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = view.querySelector('#product-name').value;
-        const price = parseFloat(view.querySelector('#product-price').value);
-        const quantity = parseInt(view.querySelector('#product-quantity').value);
-
-        if (!name || isNaN(price) || isNaN(quantity)) {
-            return showToast('Por favor, preencha todos os campos corretamente.', 'error');
-        }
-
-        try {
-            await addDoc(collection(db, "products"), { name, price, quantity, storeId: state.selectedStore.id });
-            showToast('Produto adicionado com sucesso!', 'success');
-            form.reset();
-        } catch (error) {
-            console.error("Erro ao adicionar produto:", error);
-            showToast('Erro ao adicionar produto.', 'error');
-        }
+    sortedProducts.forEach(product => {
+        const stockClass = product.quantity <= 5 ? 'text-red-500 font-bold' : (product.quantity <= 10 ? 'text-amber-500 font-semibold' : '');
+        const row = document.createElement('tr');
+        row.className = 'bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50';
+        row.innerHTML = `
+            <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${product.name}</td>
+            <td class="px-6 py-4 text-center ${stockClass}">${product.quantity}</td>
+            <td class="px-6 py-4 text-right">${formatCurrency(product.price)}</td>
+            <td class="px-6 py-4 text-center">
+                <button data-product-id="${product.id}" class="remove-product-btn text-red-500 hover:text-red-700">
+                    <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
+                </button>
+            </td>
+        `;
+        tableBody.appendChild(row);
     });
-
-    tableBody.addEventListener('click', (e) => {
-        const removeBtn = e.target.closest('.remove-product-btn');
-        if(removeBtn){
-            const productId = removeBtn.dataset.productId;
-            showConfirmModal('Tem certeza que deseja remover este produto? A ação não pode ser desfeita.', async () => {
-                try {
-                    await deleteDoc(doc(db, "products", productId));
-                    showToast('Produto removido com sucesso!', 'success');
-                } catch (error) {
-                    console.error("Erro ao remover produto:", error);
-                    showToast('Erro ao remover produto.', 'error');
-                }
-            });
-        }
-    });
-
-    renderProductsTable();
+    window.lucide.createIcons();
 }
