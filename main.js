@@ -1,22 +1,22 @@
 // js/main.js
 
 import { state, uiState, resetState } from './state.js';
-import { loginUser, logoutUser, createAuthUser } from '.js/services/auth.js';
-import * as dataService from '.js/services/dataService.js';
-import { setupThemeToggle } from './utils/theme.js';
-import { formatCurrency, formatDate } from '.js/utils/formatters.js';
-import { showToast, showConfirmModal, showMobileMenu, exportToCSV } from '.js/utils/domUtils.js';
+import { loginUser, logoutUser, createAuthUser } from './js/services/auth.js';
+import * as dataService from './js/services/dataService.js';
+import { setupThemeToggle } from './js/utils/theme.js';
+import { formatCurrency, formatDate } from './js/utils/formatters.js';
+import { showToast, showConfirmModal, showMobileMenu, exportToCSV } from './js/utils/domUtils.js';
 
 // Importar todas as funções de renderização das views
-import { loadInitialData, handleStoreSelection, handleUserSelection } from '.js/views/login.js';
-import { renderCaixa } from './views/caixa.js';
+import { loadInitialData, handleStoreSelection, handleUserSelection } from './js/views/login.js';
+import { renderCaixa } from './js/views/caixa.js';
 import { renderClientes, handleClientSearch, prepareEditClient, getClientFormData, renderClientDetailsModal, resetClientForm } from './views/clientes.js';
-import { renderConfiguracoes, renderPrizes } from '.js/views/configuracoes.js';
-import { renderDashboard } from '.js/views/dashboard.js';
-import { renderMetas } from '.js/views/metas.js';
-import { renderPedidos } from '.js/views/pedidos.js';
-import { renderProdutos } from '.js/views/produtos.js';
-import { renderRanking } from '.js/views/ranking.js';
+import { renderConfiguracoes, renderPrizes } from './js/views/configuracoes.js';
+import { renderDashboard } from './js/views/dashboard.js';
+import { renderMetas } from './js/views/metas.js';
+import { renderPedidos } from './js/views/pedidos.js';
+import { renderProdutos } from './js/views/produtos.js';
+import { renderRanking } from './js/views/ranking.js';
 // (Importar outras funções das views se elas precisarem ser chamadas diretamente daqui)
 
 // Função principal de inicialização
