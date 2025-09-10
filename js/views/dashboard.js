@@ -1,5 +1,5 @@
 import { onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db, state } from '../main.js';
+import { db, state } from '../../main.js';
 import { formatCurrency } from '../ui/utils.js';
 
 let vendasChartInstance = null;

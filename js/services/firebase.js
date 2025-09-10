@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+// Your Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
     authDomain: "pdv-vendas-8a65a.firebaseapp.com",
@@ -12,6 +13,9 @@ const firebaseConfig = {
     measurementId: "G-7PYWX52SEG"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+export { db, auth };

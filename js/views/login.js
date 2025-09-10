@@ -1,6 +1,6 @@
 import { getDocs, collection, query, where, addDoc, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from '../config/firebase.js';
-import { state, updateState, initializeAppUI } from '../main.js';
+import { state, updateState, initializeAppUI } from '../../main.js';
 import { handleLogin } from '../services/auth.js';
 import { showToast } from '../ui/utils.js';
 

@@ -1,5 +1,5 @@
 import { collection, addDoc, setDoc, doc, deleteDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { db, state } from '../main.js';
+import { db, state } from '../../main.js';
 import { showToast, showConfirmModal, formatDate, formatCurrency } from '../ui/utils.js';
 
 export function renderClientes() {

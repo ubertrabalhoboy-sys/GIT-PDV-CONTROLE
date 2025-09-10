@@ -1,6 +1,6 @@
 import { doc, setDoc, getDocs, collection, query, where, writeBatch, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { db, auth, state, updateState } from '../main.js';
+import { db, auth, state, updateState } from '../../main.js';
 import { showToast, showConfirmModal, exportToCSV } from '../ui/utils.js';
 
 export function renderConfiguracoes() {
