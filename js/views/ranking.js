@@ -1,6 +1,6 @@
 // js/views/ranking.js
 
-import { state, uiState } from '../../state.js';
+import { state, uiState } from '../state.js';
 import { formatCurrency } from '../utils/formatters.js';
 
 export function renderRanking() {

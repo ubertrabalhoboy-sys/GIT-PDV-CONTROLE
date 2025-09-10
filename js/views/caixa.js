@@ -1,6 +1,6 @@
 // js/views/caixa.js
 
-import { state, uiState } from '../../state.js';
+import { state, uiState } from '../state.js';
 import { formatCurrency } from '../utils/formatters.js';
 
 export function renderCaixa() {

@@ -1,6 +1,6 @@
 // js/views/clientes.js
 
-import { state, uiState } from '../../state.js';
+import { state, uiState } from '../state.js';
 import { formatCurrency, formatDate } from '../utils/formatters.js';
 
 let currentFormState = {

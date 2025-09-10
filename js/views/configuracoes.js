@@ -1,6 +1,6 @@
 // js/views/configuracoes.js
 
-import { state, uiState } from '../../state.js';
+import { state, uiState } from '../state.js';
 
 function renderUsersList() {
     const list = document.getElementById('users-list');

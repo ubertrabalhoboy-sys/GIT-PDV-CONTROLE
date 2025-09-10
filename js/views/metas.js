@@ -1,6 +1,6 @@
 // js/views/metas.js
 
-import { state } from '../../state.js';
+import { state } from '../state.js';
 import { formatCurrency } from '../utils/formatters.js';
 
 function updateGoalsUI(sales) {
