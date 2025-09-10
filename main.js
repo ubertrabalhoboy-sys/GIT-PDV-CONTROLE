@@ -203,8 +203,6 @@ function initializeAppUI() {
 }
 
 // --- Event Listeners Globais e Delegados ---
-// COLE ESTA FUNÇÃO CORRIGIDA NO SEU main.js
-
 function setupEventListeners() {
     // Sidebar e Menu Mobile
     document.getElementById('sidebar').addEventListener('click', e => {
