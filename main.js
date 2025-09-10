@@ -10,7 +10,7 @@ import { showToast, showConfirmModal, showMobileMenu, exportToCSV } from './js/u
 // Importar todas as funções de renderização das views
 import { loadInitialData, handleStoreSelection, handleUserSelection } from './js/views/login.js';
 import { renderCaixa } from './js/views/caixa.js';
-import { renderClientes, handleClientSearch, prepareEditClient, getClientFormData, renderClientDetailsModal, resetClientForm } from './views/clientes.js';
+import { renderClientes, handleClientSearch, prepareEditClient, getClientFormData, renderClientDetailsModal, resetClientForm } from './js/views/clientes.js';
 import { renderConfiguracoes, renderPrizes } from './js/views/configuracoes.js';
 import { renderDashboard } from './js/views/dashboard.js';
 import { renderMetas } from './js/views/metas.js';
@@ -204,6 +204,7 @@ function initializeAppUI() {
 
 // --- Event Listeners Globais e Delegados ---
 function setupEventListeners() {
+    
     // Sidebar e Menu Mobile
     document.getElementById('sidebar').addEventListener('click', e => {
         const link = e.target.closest('a[data-view]');
