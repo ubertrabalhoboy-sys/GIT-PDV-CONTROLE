@@ -1,22 +1,22 @@
 // js/main.js
 
 import { state, uiState, resetState } from './state.js';
-import { loginUser, logoutUser, createAuthUser } from './services/auth.js';
-import * as dataService from './services/dataService.js';
+import { loginUser, logoutUser, createAuthUser } from '.js/services/auth.js';
+import * as dataService from '.js/services/dataService.js';
 import { setupThemeToggle } from './utils/theme.js';
-import { formatCurrency, formatDate } from './utils/formatters.js';
-import { showToast, showConfirmModal, showMobileMenu, exportToCSV } from './utils/domUtils.js';
+import { formatCurrency, formatDate } from '.js/utils/formatters.js';
+import { showToast, showConfirmModal, showMobileMenu, exportToCSV } from '.js/utils/domUtils.js';
 
 // Importar todas as funções de renderização das views
-import { loadInitialData, handleStoreSelection, handleUserSelection } from './views/login.js';
+import { loadInitialData, handleStoreSelection, handleUserSelection } from '.js/views/login.js';
 import { renderCaixa } from './views/caixa.js';
 import { renderClientes, handleClientSearch, prepareEditClient, getClientFormData, renderClientDetailsModal, resetClientForm } from './views/clientes.js';
-import { renderConfiguracoes, renderPrizes } from './views/configuracoes.js';
-import { renderDashboard } from './views/dashboard.js';
-import { renderMetas } from './views/metas.js';
-import { renderPedidos } from './views/pedidos.js';
-import { renderProdutos } from './views/produtos.js';
-import { renderRanking } from './views/ranking.js';
+import { renderConfiguracoes, renderPrizes } from '.js/views/configuracoes.js';
+import { renderDashboard } from '.js/views/dashboard.js';
+import { renderMetas } from '.js/views/metas.js';
+import { renderPedidos } from '.js/views/pedidos.js';
+import { renderProdutos } from '.js/views/produtos.js';
+import { renderRanking } from '.js/views/ranking.js';
 // (Importar outras funções das views se elas precisarem ser chamadas diretamente daqui)
 
 // Função principal de inicialização
