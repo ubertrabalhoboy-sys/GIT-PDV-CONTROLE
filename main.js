@@ -1,6 +1,6 @@
 // js/main.js
 
-import { state, uiState, resetState } from './state.js';
+import { state, uiState, resetState } from './js/state.js';
 import { loginUser, logoutUser, createAuthUser } from './js/services/auth.js';
 import * as dataService from './js/services/dataService.js';
 import { setupThemeToggle } from './js/utils/theme.js';
