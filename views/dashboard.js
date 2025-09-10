@@ -1,6 +1,6 @@
 // js/views/dashboard.js
 
-import { state, uiState } from '../state.js';
+import { state, uiState } from '../../state.js';
 import { formatCurrency } from '../utils/formatters.js';
 
 function generateIntelligentInsights(salesData, allStoreSales) {

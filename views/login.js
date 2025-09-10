@@ -1,6 +1,6 @@
 // js/views/login.js
 
-import { state, uiState } from '../state.js';
+import { state, uiState } from '../../state.js';
 import { getStores, getUsersForStore, getSettings, createDefaultSettings } from '../services/dataService.js';
 import { showToast } from '../utils/domUtils.js';
 

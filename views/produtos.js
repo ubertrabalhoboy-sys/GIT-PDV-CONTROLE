@@ -1,6 +1,6 @@
 // js/views/produtos.js
 
-import { state } from '../state.js';
+import { state } from '../../state.js';
 import { formatCurrency } from '../utils/formatters.js';
 
 export function renderProdutos() {
