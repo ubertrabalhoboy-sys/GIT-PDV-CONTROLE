@@ -1,7 +1,6 @@
-// js/main.js (VERSÃO CORRIGIDA E MELHORADA)
+// js/main.js (VERSÃO CORRIGIDA)
 
 import { state, uiState, resetState } from './state.js';
-// CORREÇÃO: Removido o prefixo 'js/' dos caminhos de importação.
 import { loginUser, logoutUser, createAuthUser } from './services/auth.js';
 import * as dataService from './services/dataService.js';
 import { setupThemeToggle } from './utils/theme.js';
@@ -86,6 +85,7 @@ function renderViewContent(viewId) {
     window.lucide.createIcons();
 }
 
+
 // --- Lógica Principal da Aplicação ---
 async function handleLogout() {
     await logoutUser();
@@ -126,6 +126,7 @@ function initializeAppUI() {
         document.getElementById('store-switcher-container').classList.add('hidden');
     }
     
+    // Listeners do Firestore são configurados após a UI inicial
     // setupFirestoreListeners();
 }
 
@@ -185,14 +186,14 @@ function setupEventListeners() {
         }
     });
     
-    // --- Delegação de eventos para as VIEWS (escuta no #app) ---
+    // --- Delegação de eventos para as VIEWS ---
     const appContainer = document.getElementById('app');
 
+    // Eventos para a VIEW de Clientes
     appContainer.addEventListener('submit', async e => {
-        e.preventDefault(); // <-- CORREÇÃO GLOBAL PARA TODOS OS FORMULÁRIOS
-
         // Formulário de adicionar/editar cliente
         if (e.target.id === 'add-client-form') {
+            e.preventDefault(); // <-- CORREÇÃO
             const { id, data } = getClientFormData(e.target);
             try {
                 if (id) {
@@ -207,7 +208,8 @@ function setupEventListeners() {
         }
         
         // Formulário de adicionar produto
-        else if (e.target.id === 'add-product-form') {
+        if (e.target.id === 'add-product-form') {
+            e.preventDefault(); // <-- CORREÇÃO
             const form = e.target;
             const name = form.querySelector('#product-name').value;
             const price = parseFloat(form.querySelector('#product-price').value);
@@ -224,14 +226,9 @@ function setupEventListeners() {
         }
         
         // Formulário de filtro de pedidos
-        else if (e.target.id === 'filter-form') {
-            // Lógica de filtro será chamada aqui no futuro
-            showToast('Filtro aplicado!', 'success');
-        }
-        
-        // Formulário de adicionar usuário (Configurações)
-        else if (e.target.id === 'add-user-form') {
-            // ... lógica para adicionar usuário ...
+        if (e.target.id === 'filter-form') {
+            e.preventDefault(); // <-- CORREÇÃO
+            // setupSalesListener com os filtros da UI
         }
     });
 
@@ -249,27 +246,8 @@ function setupEventListeners() {
                 }
             });
         }
-
-        // Botões na view de Clientes
-        const clientBtn = e.target.closest('button[data-client-id]');
-        if (clientBtn) {
-            const clientId = clientBtn.dataset.clientId;
-            const client = state.db.clients.find(c => c.id === clientId);
-            if (!client) return;
-
-            if (clientBtn.classList.contains('edit-client-btn')) {
-                prepareEditClient(client);
-            } else if (clientBtn.classList.contains('remove-client-btn')) {
-                showConfirmModal('Tem certeza que quer remover este cliente?', async () => {
-                   await dataService.deleteDocument('clients', clientId);
-                   showToast('Cliente removido.');
-                });
-            } else if (clientBtn.classList.contains('view-client-btn')) {
-                // Lógica para ver detalhes do cliente
-            }
-        }
     });
 }
 
-// Inicia a aplicação quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', init);
+// Inicia a aplicação
+init();
