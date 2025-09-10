@@ -10,10 +10,22 @@ export const getUsersForStore = (storeId) => {
     const superAdminQuery = query(collection(db, "users"), where("role", "==", "superadmin"));
     return Promise.all([getDocs(usersQuery), getDocs(superAdminQuery)]);
 };
-export const listenToCollection = (collectionName, callback, conditions = []) => {
+
+/**
+ * Listens to a Firestore collection and handles updates, with added error logging.
+ * @param {string} collectionName The name of the collection.
+ * @param {Function} onNext Callback function for successful data snapshots.
+ * @param {Function} onError Callback function for errors.
+ * @param {Array} conditions Firestore query conditions.
+ * @returns {Function} The unsubscribe function from Firestore.
+ */
+export const listenToCollection = (collectionName, onNext, onError, conditions = []) => {
+    console.log(`[dataService] Subscribing to collection: "${collectionName}" with conditions:`, conditions.map(c => c.toString()));
     const q = query(collection(db, collectionName), ...conditions);
-    return onSnapshot(q, callback);
+    // The second argument to onSnapshot is the error handler, which we now pass to our onError callback.
+    return onSnapshot(q, onNext, onError);
 };
+
 
 // --- Write Operations ---
 

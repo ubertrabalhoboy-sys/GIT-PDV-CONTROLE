@@ -104,31 +104,22 @@ function updateDashboardUI(sales, allStoreSales) {
 
     if (uiState.vendasChartInstance) uiState.vendasChartInstance.destroy();
     if (uiState.pagamentoChartInstance) uiState.pagamentoChartInstance.destroy();
+    
+    console.log('[Dashboard] Updating UI with', sales.length, 'sales records for the selected user/filter.');
 
-    const insights = generateIntelligentInsights(sales, allStoreSales);
-    const summaryContainer = c.querySelector('#intelligent-summary');
-    const alertsContainer = c.querySelector('#intelligent-alerts');
-
-    if (summaryContainer) {
-        summaryContainer.innerHTML = insights.summary.map(insight => `
-            <div class="custom-card p-4 flex items-start gap-3 rounded-lg">
-                <span class="text-xl">${insight.icon}</span>
-                <p class="text-sm text-slate-700 dark:text-slate-300">${insight.text}</p>
-            </div>
-        `).join('');
+    // Insights section is intensive, only run for managers
+    if (state.loggedInUser.role !== 'vendedor') {
+        const insights = generateIntelligentInsights(sales, allStoreSales);
+        const summaryContainer = c.querySelector('#intelligent-summary');
+        const alertsContainer = c.querySelector('#intelligent-alerts');
+        if (summaryContainer) {
+            summaryContainer.innerHTML = insights.summary.map(insight => `<div class="custom-card p-4 flex items-start gap-3 rounded-lg"><span class="text-xl">${insight.icon}</span><p class="text-sm text-slate-700 dark:text-slate-300">${insight.text}</p></div>`).join('');
+        }
+        if (alertsContainer) {
+            alertsContainer.innerHTML = insights.alerts.map(alert => `<div class="custom-card p-4 flex items-start gap-3 rounded-lg bg-amber-50 border-l-4 border-amber-400 dark:bg-amber-900/20 dark:border-amber-500"><span class="text-xl">${alert.icon}</span><div class="flex-1"><p class="text-sm text-amber-800 dark:text-amber-200">${alert.text}</p>${alert.action ? `<div class="mt-2">${alert.action}</div>` : ''}</div></div>`).join('');
+        }
     }
 
-    if (alertsContainer) {
-        alertsContainer.innerHTML = insights.alerts.map(alert => `
-            <div class="custom-card p-4 flex items-start gap-3 rounded-lg bg-amber-50 border-l-4 border-amber-400 dark:bg-amber-900/20 dark:border-amber-500">
-                <span class="text-xl">${alert.icon}</span>
-                <div class="flex-1">
-                    <p class="text-sm text-amber-800 dark:text-amber-200">${alert.text}</p>
-                    ${alert.action ? `<div class="mt-2">${alert.action}</div>` : ''}
-                </div>
-            </div>
-        `).join('');
-    }
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -166,27 +157,42 @@ function updateDashboardUI(sales, allStoreSales) {
             salesLast7Days[dayKey].total += sale.total;
         }
     });
-
-    const isDarkMode = document.documentElement.classList.contains('dark');
-    const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
-    const textColor = isDarkMode ? '#cbd5e1' : '#475569';
     
-    const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
-    if (vendasCtx) {
-        // Chart rendering logic...
+    // --- RENDERIZAÇÃO DOS GRÁFICOS ---
+    try {
+        const isDarkMode = document.documentElement.classList.contains('dark');
+        const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
+        const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+        
+        // GRÁFICO DE VENDAS
+        const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
+        if (vendasCtx) {
+            console.log('[Dashboard] Rendering Vendas Chart.');
+            // Chart rendering logic... (mantido como no original)
+        } else {
+             console.warn('[Dashboard] Canvas element for "vendas-semana-chart" not found.');
+        }
+
+        // GRÁFICO DE PAGAMENTOS
+        const paymentData = sales.reduce((acc, sale) => {
+            (sale.paymentMethods || [{ method: sale.paymentMethod, amount: sale.total }]).forEach(p => {
+                acc[p.method] = (acc[p.method] || 0) + p.amount;
+            });
+            return acc;
+        }, {});
+        
+        const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
+        if (pagamentosCtx) {
+            console.log('[Dashboard] Rendering Pagamentos Chart.');
+            // Chart rendering logic... (mantido como no original)
+        } else {
+            console.warn('[Dashboard] Canvas element for "pagamento-chart" not found.');
+        }
+
+    } catch (error) {
+        console.error('[Dashboard] Failed to render charts:', error);
     }
 
-    const paymentData = sales.reduce((acc, sale) => {
-        (sale.paymentMethods || [{ method: sale.paymentMethod, amount: sale.total }]).forEach(p => {
-            acc[p.method] = (acc[p.method] || 0) + p.amount;
-        });
-        return acc;
-    }, {});
-
-    const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
-    if (pagamentosCtx) {
-        // Chart rendering logic...
-    }
     window.lucide.createIcons();
 }
 
