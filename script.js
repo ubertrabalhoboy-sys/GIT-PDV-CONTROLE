@@ -29,16 +29,17 @@ document.addEventListener('DOMContentLoaded', () => {
             users: [],
             stores: [],
             products: [],
-            clients: [], // NOVO: Adicionado estado para clientes
+            clients: [],
             settings: {
                 storeName: "Minha Loja",
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
                 bonusSystem: { enabled: true, value: 80 },
-                bonusWheel: { enabled: false, prizes: [], minValue: 0 }
+                bonusWheel: { enabled: false, prizes: [], minValue: 0 },
+                ownerPhone: '' // Novo campo para o Dashboard Inteligente
             },
             sales: []
         },
-        listeners: { users: null, sales: null, stores: null, products: null, clients: null }, // NOVO: Listener para clientes
+        listeners: { users: null, sales: null, stores: null, products: null, clients: null },
         selectedStore: null
     };
     let selectedUserForLogin = null;
@@ -68,7 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     storeName: storeName,
                     goals: { daily: 150, weekly: 1000, monthly: 4000 },
                     bonusSystem: { enabled: true, value: 80 },
-                    bonusWheel: { enabled: false, prizes: [], minValue: 0 }
+                    bonusWheel: { enabled: false, prizes: [], minValue: 0 },
+                    ownerPhone: ''
                 });
                 showToast('Sistema pronto! Faça login com o superadmin criado no console.', 'success');
 
@@ -120,12 +122,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 storeName: state.selectedStore.name,
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
                 bonusSystem: { enabled: true, value: 80 },
-                bonusWheel: { enabled: false, prizes: [], minValue: 0 }
+                bonusWheel: { enabled: false, prizes: [], minValue: 0 },
+                ownerPhone: ''
             });
             state.db.settings.storeName = state.selectedStore.name;
             state.db.settings.goals = { daily: 150, weekly: 1000, monthly: 4000 };
             state.db.settings.bonusSystem = { enabled: true, value: 80 };
             state.db.settings.bonusWheel = { enabled: false, prizes: [], minValue: 0 };
+            state.db.settings.ownerPhone = '';
         }
 
         loadUsersForStore(state.selectedStore.id);
@@ -309,13 +313,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.listeners.sales) state.listeners.sales();
         if (state.listeners.stores) state.listeners.stores();
         if (state.listeners.products) state.listeners.products();
-        if (state.listeners.clients) state.listeners.clients(); // NOVO: Limpa listener de clientes
+        if (state.listeners.clients) state.listeners.clients();
         state.listeners = { users: null, sales: null, stores: null, products: null, clients: null };
         Object.assign(state, {
             loggedInUser: null,
             selectedStore: null,
             currentOrder: [],
-            db: { users: [], stores: [], sales: [], products: [], clients: [], settings: {} } // NOVO: Limpa clientes
+            db: { users: [], stores: [], sales: [], products: [], clients: [], settings: {} }
         });
         selectedUserForLogin = null;
         document.getElementById('app').classList.add('hidden');
@@ -342,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.listeners.users) state.listeners.users();
         state.listeners.users = onSnapshot(query(collection(db, "users")), (snapshot) => {
             state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes')) {
+            if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes' || state.currentView === 'relatorios')) {
                 const activeView = document.getElementById(`${state.currentView}-view`);
                 if (activeView && activeView.classList.contains('active')) {
                     renderViewContent(state.currentView);
@@ -362,7 +366,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
         });
 
-        // NOVO: Listener para a coleção de Clientes
         if (state.listeners.clients) state.listeners.clients();
         const clientsQuery = query(collection(db, "clients"), where("storeId", "==", store.id));
         state.listeners.clients = onSnapshot(clientsQuery, (snapshot) => {
@@ -415,7 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 });
-                // NOVO: Recarrega clientes ao trocar de loja
                 if (state.listeners.clients) state.listeners.clients();
                  state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -433,22 +435,21 @@ document.addEventListener('DOMContentLoaded', () => {
         vM.innerHTML = ''; gM.innerHTML = '';
 
         if (user.role === 'vendedor') {
-            vM.innerHTML = createMenuItem('caixa', 'shopping-basket', 'Caixa') + createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('metas', 'target', 'Metas') + createMenuItem('ranking', 'trophy', 'Ranking') + createMenuItem('relatorios', 'bar-chart-2', 'Relatórios') + createLogoutItem();
+            vM.innerHTML = createMenuItem('caixa', 'shopping-basket', 'Caixa') + createMenuItem('pedidos', 'list-ordered', 'Pedidos') + createMenuItem('metas', 'target', 'Metas') + createMenuItem('ranking', 'trophy', 'Ranking') + createMenuItem('relatorios', 'layout-dashboard', 'Dashboard') + createLogoutItem();
             vM.classList.remove('hidden'); gM.classList.add('hidden');
             switchView('caixa');
         } else {
-            // CORREÇÃO: Adicionada a opção "Produtos" de volta ao menu de Gerente/Super Admin
-            const managerMenuHTML = createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
+            const managerMenuHTML = createMenuItem('relatorios', 'layout-dashboard', 'Dashboard') +
+                                    createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
                                     createMenuItem('clientes', 'users', 'Clientes') + 
                                     createMenuItem('produtos', 'package', 'Produtos') + 
                                     createMenuItem('ranking', 'trophy', 'Ranking') + 
-                                    createMenuItem('relatorios', 'area-chart', 'Relatórios') + 
                                     createMenuItem('configuracoes', 'settings', 'Configurações') + 
                                     createLogoutItem();
             
             gM.innerHTML = managerMenuHTML;
             gM.classList.remove('hidden'); vM.classList.add('hidden');
-            switchView('pedidos');
+            switchView('relatorios');
         }
 
         document.getElementById('sidebar').addEventListener('click', e => {
@@ -456,6 +457,32 @@ document.addEventListener('DOMContentLoaded', () => {
             if (link) { e.preventDefault(); switchView(link.dataset.view); }
             if (logoutBtn) { logout(); }
         });
+
+        // Event listener para o botão de compartilhar, movido para o #app para delegação de evento
+        document.getElementById('app').addEventListener('click', e => {
+            const shareBtn = e.target.closest('.share-daily-report-btn');
+            if(shareBtn) {
+                const ownerPhone = state.db.settings.ownerPhone?.replace(/\D/g, '');
+                if (!ownerPhone) {
+                    return showToast('Telefone do dono não configurado. Adicione em Configurações.', 'error');
+                }
+                
+                const now = new Date();
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const salesToday = state.db.sales.filter(s => s.date.toDate() >= todayStart);
+                const totalToday = salesToday.reduce((sum, s) => sum + s.total, 0);
+
+                const summaryText = `*Resumo do Dia - ${now.toLocaleDateString('pt-BR')}*\n\n` +
+                                  `*Loja:* ${state.selectedStore.name}\n` +
+                                  `*Total Vendido:* ${formatCurrency(totalToday)}\n` +
+                                  `*Vendas Realizadas:* ${salesToday.length}\n` +
+                                  `*Ticket Médio:* ${formatCurrency(salesToday.length > 0 ? totalToday / salesToday.length : 0)}`;
+
+                const encodedText = encodeURIComponent(summaryText);
+                window.open(`https://wa.me/55${ownerPhone}?text=${encodedText}`, '_blank');
+            }
+        });
+
         window.lucide.createIcons();
     };
 
@@ -482,15 +509,28 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         viewContainer.innerHTML = document.getElementById(`${viewId}-template`).innerHTML;
+
+        if (['pedidos', 'produtos', 'clientes'].includes(viewId)) {
+            const table = viewContainer.querySelector('table');
+            if (table) {
+                if (!table.parentElement.classList.contains('table-responsive-wrapper')) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'overflow-x-auto table-responsive-wrapper';
+                    table.parentNode.insertBefore(wrapper, table);
+                    wrapper.appendChild(table);
+                }
+            }
+        }
+
         window.lucide.createIcons();
         switch (viewId) {
             case 'caixa': renderCaixa(); break;
             case 'pedidos': renderPedidos(); break;
-            case 'clientes': renderClientes(); break; // NOVO: case para a view de clientes
+            case 'clientes': renderClientes(); break;
             case 'produtos': renderProdutos(); break;
             case 'metas': renderMetas(); break;
             case 'ranking': renderRanking(); break;
-            case 'relatorios': renderRelatorios(); break;
+            case 'relatorios': renderDashboard(); break;
             case 'configuracoes': renderConfiguracoes(); break;
         }
     };
@@ -508,9 +548,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="custom-card rounded-lg shadow-xl w-full max-w-sm p-8 m-4 fade-in text-center relative overflow-hidden">
                 <div class="confetti-container"></div>
                 <i data-lucide="party-popper" class="w-16 h-16 mx-auto mb-4 text-amber-400"></i>
-                <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Parabéns!</h2>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Parabéns!</h2>
                 <p class="text-slate-600 dark:text-slate-400 mt-2">Você ganhou:</p>
-                <p class="text-3xl font-bold text-brand-secondary my-4">${prize.name}</p>
+                <p class="text-2xl sm:text-3xl font-bold text-brand-secondary my-4">${prize.name}</p>
                 <button id="close-prize-modal" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors">Continuar</button>
             </div>
         `;
@@ -559,7 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         modal.innerHTML = `
             <div class="custom-card rounded-lg shadow-xl w-full max-w-md p-6 m-4 fade-in text-center">
-                <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Parabéns!</h2>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2">Parabéns!</h2>
                 <p class="text-slate-600 dark:text-slate-400 mb-4">O cliente ganhou o direito de girar a roleta!</p>
                 <div class="wheel-container">
                     <div class="wheel-pointer"></div>
@@ -704,7 +744,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ALTERADO: Função `renderCaixa` atualizada para o sistema híbrido
     function renderCaixa() {
         const view = document.getElementById('caixa-view');
         const itemsContainer = view.querySelector('#current-order-items');
@@ -713,7 +752,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const addForm = view.querySelector('#add-item-form');
         const modalContainer = document.getElementById('finalize-order-modal');
         
-        // NOVO: Seletores e estado para a busca de produtos
         const productSearchInput = view.querySelector('#product-search');
         const searchResultsContainer = view.querySelector('#product-search-results');
         let selectedProduct = null;
@@ -728,7 +766,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const el = document.createElement('div');
                     el.className = 'flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-3 rounded-md';
                     
-                    // NOVO: Ícone para indicar se o item é do estoque
                     const stockIcon = item.productId ? `<i data-lucide="package" class="w-4 h-4 text-slate-500 mr-2" title="Item do Estoque"></i>` : '';
 
                     el.innerHTML = `
@@ -762,7 +799,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 exchange: view.querySelector('#item-exchange').value
             };
             
-            // NOVO: Associa o ID do produto ao item do pedido se ele foi selecionado da busca
             if (selectedProduct) {
                 newItem.productId = selectedProduct.id;
             }
@@ -771,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateUI();
             addForm.reset();
             productSearchInput.value = '';
-            selectedProduct = null; // Limpa o produto selecionado
+            selectedProduct = null;
             view.querySelector('#item-name').focus();
         });
 
@@ -783,7 +819,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // NOVO: Lógica de busca de produtos
         productSearchInput.addEventListener('input', () => {
             const searchTerm = productSearchInput.value.toLowerCase();
             if (searchTerm.length < 2) {
@@ -809,7 +844,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // NOVO: Lógica para auto-preenchimento ao clicar no resultado da busca
         searchResultsContainer.addEventListener('click', (e) => {
             const resultDiv = e.target.closest('[data-product-id]');
             if (resultDiv) {
@@ -830,10 +864,9 @@ document.addEventListener('DOMContentLoaded', () => {
             modalContainer.classList.remove('hidden');
             const orderTotal = state.currentOrder.reduce((sum, i) => sum + i.value, 0);
 
-            // NOVO: Adicionado campo de busca de cliente no modal de finalização
             modalContainer.innerHTML = `
                 <div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in">
-                    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Finalizar Pedido</h2>
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Finalizar Pedido</h2>
                     <p class="mb-4 text-lg">Total do Pedido: <span id="modal-total-value" class="font-bold text-brand-primary">${formatCurrency(orderTotal)}</span></p>
                     
                     <form id="finalize-order-form" class="space-y-3">
@@ -877,7 +910,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </form>
                 </div>`;
             
-            let selectedClient = null; // Estado para o cliente selecionado na venda
+            let selectedClient = null;
             const clientSearchInput = modalContainer.querySelector('#sale-client-search');
             const clientSearchResults = modalContainer.querySelector('#sale-client-search-results');
             const clientNameInput = modalContainer.querySelector('#client-name');
@@ -990,9 +1023,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const saleData = {
                     clientName: clientNameInput.value,
                     clientPhone: clientPhoneInput.value,
-                    clientId: selectedClient ? selectedClient.id : null, // NOVO: Salva o ID do cliente
+                    clientId: selectedClient ? selectedClient.id : null,
                     paymentMethods: paymentMethods,
                     paymentMethod: paymentMethods.map(p => p.method).join(' + '),
+                    paymentMethodTypes: paymentMethods.map(p => p.method),
                     items: state.currentOrder,
                     total: total,
                     bonus: bonus,
@@ -1004,7 +1038,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 try {
-                    // ALTERADO: Uso do `writeBatch` para garantir atomicidade (venda + baixa de estoque)
                     const batch = writeBatch(db);
                     const itemsToDecrement = state.currentOrder.filter(item => item.productId);
                     
@@ -1041,7 +1074,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
     
-    // NOVO: Função inteira para renderizar a tela de Clientes
     function renderClientes() {
         const view = document.getElementById('clientes-view');
         const form = view.querySelector('#add-client-form');
@@ -1177,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  modal.innerHTML = `
                    <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
                        <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
-                           <h2 class="text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
+                           <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
                            <button id="close-client-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><i data-lucide="x" class="w-6 h-6"></i></button>
                        </div>
                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1205,15 +1237,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderClientsTable();
     }
 
-    // =================================================================
-    // CORREÇÃO DO BUG DE DUPLICAÇÃO
-    // A lógica de adicionar e remover produtos foi movida para fora da função `renderProdutos`
-    // e agora usa um único "escutador de eventos" (event listener) no elemento #app.
-    // Isso garante que o evento seja registrado apenas uma vez.
-    // =================================================================
-
     document.getElementById('app').addEventListener('submit', async (e) => {
-        // Lógica para Adicionar um novo produto
         if (e.target.id === 'add-product-form') {
             e.preventDefault();
             const form = e.target;
@@ -1243,7 +1267,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('app').addEventListener('click', (e) => {
-        // Lógica para Remover um produto
         const removeBtn = e.target.closest('.remove-product-btn');
         if (removeBtn) {
             const productId = removeBtn.dataset.productId;
@@ -1260,8 +1283,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function renderProdutos() {
-        // A função agora é responsável apenas por RENDERIZAR a tabela.
-        // Toda a lógica de eventos foi movida para fora para evitar duplicação.
         const view = document.getElementById('produtos-view');
         const tableBody = view.querySelector('#products-table-body');
 
@@ -1376,7 +1397,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (paymentFilter && paymentFilter !== 'Todos') {
-                conditions.push(where("paymentMethod", "==", paymentFilter));
+                conditions.push(where("paymentMethodTypes", "array-contains", paymentFilter));
             }
 
             if (dateFilter) {
@@ -1432,7 +1453,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                   prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
                              }
 
-                    m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p>${prizeDetails}</div></div>`;
+                    m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p>${prizeDetails}</div></div>`;
                     m.querySelector('#close-details-modal').addEventListener('click', () => m.classList.add('hidden'));
                     window.lucide.createIcons();
                 }
@@ -1587,12 +1608,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const podiumOrder = [1, 0, 2];
             const podiumHTML = `
-                <div class="flex justify-center items-end gap-4">
+                <div class="flex flex-col sm:flex-row justify-center items-end gap-4 sm:gap-2 md:gap-4">
                     ${podiumOrder.map(index => {
                         const seller = top3[index];
-                        if (!seller) return '<div class="w-1/3"></div>';
+                        if (!seller) return '<div class="w-full sm:w-1/3"></div>';
                         
-                        const heightClasses = ['h-48', 'h-32', 'h-24'];
+                        const heightClasses = ['h-40 sm:h-48', 'h-28 sm:h-32', 'h-20 sm:h-24'];
                         const place = index + 1;
                         const barHeight = place === 1 ? heightClasses[0] : (place === 2 ? heightClasses[1] : heightClasses[2]);
                         const colorClasses = [
@@ -1602,7 +1623,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ];
 
                         return `
-                        <div class="w-1/3 text-center flex flex-col items-center">
+                        <div class="w-full sm:w-1/3 text-center flex flex-col items-center">
                             <div class="relative mb-2">
                                 <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-3xl sm:text-4xl font-bold border-4 ${place === 1 ? 'border-amber-400' : 'border-slate-400 dark:border-slate-500'}">
                                     ${seller.name.charAt(0)}
@@ -1669,9 +1690,184 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function renderDashboard() {
+        const c = document.getElementById('relatorios-view');
+        if (!c) return;
+
+        const summaryContainer = c.querySelector('#intelligent-summary') || document.createElement('div');
+        summaryContainer.id = 'intelligent-summary';
+        summaryContainer.className = 'mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+
+        const alertsContainer = c.querySelector('#intelligent-alerts') || document.createElement('div');
+        alertsContainer.id = 'intelligent-alerts';
+        alertsContainer.className = 'mt-6 space-y-3';
+
+        const mainContent = c.querySelector('.grid');
+        if (mainContent && !c.querySelector('#intelligent-summary')) {
+            mainContent.parentNode.insertBefore(summaryContainer, mainContent);
+            mainContent.parentNode.appendChild(alertsContainer);
+        }
+
+        if (!state.db.settings.bonusSystem?.enabled) {
+            const bonusCards = c.querySelectorAll('#bonus-hoje-card, #bonus-semana-card, #bonus-mes-card');
+            bonusCards.forEach(card => card?.classList.add('hidden'));
+        }
+
+        const updateDashboardUI = (sales, allStoreSales) => {
+            if (vendasChartInstance) vendasChartInstance.destroy();
+            if (pagamentoChartInstance) pagamentoChartInstance.destroy();
+            
+            const insights = generateIntelligentInsights(sales, allStoreSales);
+            summaryContainer.innerHTML = insights.summary.map(insight => `
+                <div class="custom-card p-4 flex items-start gap-3 rounded-lg">
+                    <span class="text-xl">${insight.icon}</span>
+                    <p class="text-sm text-slate-700 dark:text-slate-300">${insight.text}</p>
+                </div>
+            `).join('');
+
+            alertsContainer.innerHTML = insights.alerts.map(alert => `
+                 <div class="custom-card p-4 flex items-start gap-3 rounded-lg bg-amber-50 border-l-4 border-amber-400 dark:bg-amber-900/20 dark:border-amber-500">
+                    <span class="text-xl">${alert.icon}</span>
+                    <div class="flex-1">
+                        <p class="text-sm text-amber-800 dark:text-amber-200">${alert.text}</p>
+                        ${alert.action ? `<div class="mt-2">${alert.action}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+            window.lucide.createIcons();
+
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+            const dayOfWeek = now.getDay();
+            const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
+
+            const salesToday = sales.filter(s => s.date.toDate().getTime() >= startOfToday.getTime());
+            const salesWeek = sales.filter(s => s.date.toDate().getTime() >= startOfWeek.getTime());
+            const salesMonth = sales.filter(s => s.date.toDate().getTime() >= startOfMonth.getTime());
+
+            c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + s.total, 0));
+            c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + s.total, 0));
+            c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
+            
+            if(state.db.settings.bonusSystem?.enabled){
+                 c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
+                 c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
+                 c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
+            }
+            
+            const salesLast7Days = {};
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setHours(0, 0, 0, 0);
+                d.setDate(d.getDate() - i);
+                salesLast7Days[d.toISOString().split('T')[0]] = { label: d.toLocaleDateString('pt-BR', {weekday: 'short'}).slice(0,3), total: 0 };
+            }
+            sales.forEach(sale => {
+                const saleDate = sale.date.toDate();
+                const dayKey = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate()).toISOString().split('T')[0];
+                if (salesLast7Days[dayKey]) {
+                    salesLast7Days[dayKey].total += sale.total;
+                }
+            });
+
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
+            const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+            
+            const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
+            if(vendasCtx) {
+                const gradient = vendasCtx.createLinearGradient(0, 0, 0, vendasCtx.canvas.height);
+                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+                gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+                
+                vendasChartInstance = new window.Chart(vendasCtx, {
+                    type: 'line',
+                    data: { 
+                        labels: Object.values(salesLast7Days).map(d => d.label), 
+                        datasets: [{ 
+                            label: 'Vendas Diárias', 
+                            data: Object.values(salesLast7Days).map(d => d.total), 
+                            backgroundColor: gradient,
+                            borderColor: '#3b82f6',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#3b82f6',
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.4
+                        }] 
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
+                });
+            }
+
+            const paymentData = sales.reduce((acc, sale) => {
+                (sale.paymentMethods || [{method: sale.paymentMethod, amount: sale.total}]).forEach(p => {
+                    acc[p.method] = (acc[p.method] || 0) + p.amount;
+                });
+                return acc;
+            }, {});
+
+            const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
+            if(pagamentosCtx) {
+                pagamentoChartInstance = new window.Chart(pagamentosCtx, {
+                    type: 'doughnut',
+                    data: { 
+                        labels: Object.keys(paymentData), 
+                        datasets: [{ 
+                            data: Object.values(paymentData), 
+                            backgroundColor: ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b'], 
+                            borderColor: isDarkMode ? '#0f172a' : '#f1f5f9', 
+                            borderWidth: 4 
+                        }] 
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
+                });
+            }
+        };
+        
+        const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
+        const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
+        
+        let q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
+
+        state.listeners.sales = onSnapshot(q, (snapshot) => {
+            let allStoreSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            allStoreSales.sort((a, b) => b.date.seconds - a.date.seconds);
+            state.db.sales = allStoreSales;
+            
+            if (isManager) {
+                vendedorSelectContainer.classList.remove('hidden');
+                const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
+                const vendedores = [...new Set(allStoreSales.map(s => s.vendedor))];
+                vendedorSelect.innerHTML = '<option value="total">Relatório Total da Loja</option>';
+                vendedores.forEach(name => { vendedorSelect.innerHTML += `<option value="${name}">${name}</option>`; });
+                
+                const newSelect = vendedorSelect.cloneNode(true);
+                vendedorSelect.parentNode.replaceChild(newSelect, vendedorSelect);
+                
+                newSelect.addEventListener('change', (e) => {
+                    const salesToReport = e.target.value === 'total' ? allStoreSales : allStoreSales.filter(s => s.vendedor === e.target.value);
+                    updateDashboardUI(salesToReport, allStoreSales);
+                });
+                
+                updateDashboardUI(allStoreSales, allStoreSales);
+            } else {
+                vendedorSelectContainer.classList.add('hidden');
+                const mySales = allStoreSales.filter(s => s.vendedor === state.loggedInUser.name);
+                updateDashboardUI(mySales, allStoreSales);
+            }
+        }, (error) => {
+            console.error("Erro ao buscar dados para o dashboard: ", error);
+            c.innerHTML = `<div class="text-center p-8 text-red-500"><b>Erro:</b> Não foi possível carregar o dashboard.</div>`;
+        });
+    }
+
     function renderConfiguracoes() {
         const c=document.getElementById('configuracoes-view');
         c.querySelector('#config-store-name').value = state.db.settings.storeName;
+        c.querySelector('#owner-phone').value = state.db.settings.ownerPhone || '';
         c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
         c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
         c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
@@ -1853,14 +2049,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         c.querySelector('#save-settings-button').addEventListener('click', async ()=> {
             const newStoreName = c.querySelector('#config-store-name').value;
+            const newOwnerPhone = c.querySelector('#owner-phone').value;
             try {
-                await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName }, { merge: true });
+                await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName, ownerPhone: newOwnerPhone }, { merge: true });
                 await setDoc(doc(db, "stores", state.selectedStore.id), { name: newStoreName }, { merge: true });
                 state.db.settings.storeName = newStoreName;
+                state.db.settings.ownerPhone = newOwnerPhone;
                 state.selectedStore.name = newStoreName;
                 document.getElementById('store-name-sidebar').textContent = newStoreName;
-                showToast('Nome da loja salvo!', 'success');
-            } catch (error) { showToast('Erro ao salvar nome da loja.', 'error'); }
+                showToast('Configurações da loja salvas!', 'success');
+            } catch (error) { showToast('Erro ao salvar configurações da loja.', 'error'); }
         });
 
         c.querySelector('#save-goals-button').addEventListener('click', async () => {
@@ -2051,160 +2249,102 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPrizes();
     }
 
-    function renderRelatorios() {
-        const c = document.getElementById('relatorios-view');
-        if(!c) return;
+    function generateIntelligentInsights(salesData, allStoreSales) {
+        const summary = [];
+        const alerts = [];
+
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const dayOfWeek = now.getDay();
+        const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); 
+        const weekStart = new Date(now.getFullYear(), now.getMonth(), diff);
+        weekStart.setHours(0,0,0,0);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const salesThisWeek = allStoreSales.filter(s => s.date.toDate() >= weekStart);
+        const totalThisWeek = salesThisWeek.reduce((sum, s) => sum + s.total, 0);
+        const daysPassedInWeek = now.getDay() === 0 ? 7 : now.getDay();
+        const avgDailyThisWeek = totalThisWeek / daysPassedInWeek;
+
+        const salesThisMonth = allStoreSales.filter(s => s.date.toDate() >= monthStart);
+        const totalThisMonth = salesThisMonth.reduce((sum, s) => sum + s.total, 0);
+
+        summary.push({
+            icon: '📊',
+            text: `Total vendido na semana: <strong>${formatCurrency(totalThisWeek)}</strong> (${formatCurrency(avgDailyThisWeek)}/dia em média).`
+        });
+
+        const monthlyGoal = state.db.settings.goals?.monthly || 0;
+        if (monthlyGoal > 0) {
+            const remainingForGoal = monthlyGoal - totalThisMonth;
+            if (remainingForGoal > 0) {
+                summary.push({
+                    icon: '🎯',
+                    text: `Meta mensal: faltam <strong>${formatCurrency(remainingForGoal)}</strong> para atingir ${formatCurrency(monthlyGoal)}.`
+                });
+            } else {
+                 summary.push({
+                    icon: '✅',
+                    text: `Meta mensal de ${formatCurrency(monthlyGoal)} batida! Total de <strong>${formatCurrency(totalThisMonth)}</strong>.`
+                });
+            }
+        }
         
-         if(!state.db.settings.bonusSystem?.enabled){
-              c.querySelector('#bonus-hoje-card')?.classList.add('hidden');
-              c.querySelector('#bonus-semana-card')?.classList.add('hidden');
-              c.querySelector('#bonus-mes-card')?.classList.add('hidden');
-         }
-
-        const updateReports = (sales) => {
-            if(vendasChartInstance) {
-                vendasChartInstance.destroy();
-                vendasChartInstance = null;
-            }
-            if(pagamentoChartInstance) {
-                pagamentoChartInstance.destroy();
-                pagamentoChartInstance = null;
-            }
-
-            const now = new Date();
-            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-            const dayOfWeek = now.getDay();
-            const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
-
-            const salesToday = sales.filter(s => s.date.toDate().getTime() >= startOfToday.getTime());
-            const salesWeek = sales.filter(s => s.date.toDate().getTime() >= startOfWeek.getTime());
-            const salesMonth = sales.filter(s => s.date.toDate().getTime() >= startOfMonth.getTime());
-
-            c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + s.total, 0));
-            c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + s.total, 0));
-            c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
-            
-            if(state.db.settings.bonusSystem?.enabled){
-                 c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
-                 c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
-                 c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
-            }
-            
-            const salesLast7Days = {};
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setHours(0, 0, 0, 0);
-                d.setDate(d.getDate() - i);
-                salesLast7Days[d.toISOString().split('T')[0]] = { label: d.toLocaleDateString('pt-BR', {weekday: 'short'}).slice(0,3), total: 0 };
-            }
-            sales.forEach(sale => {
-                const saleDate = sale.date.toDate();
-                const dayKey = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate()).toISOString().split('T')[0];
-                if (salesLast7Days[dayKey]) {
-                    salesLast7Days[dayKey].total += sale.total;
-                }
+        const salesBySellerThisWeek = salesThisWeek.reduce((acc, sale) => {
+            acc[sale.vendedor] = (acc[sale.vendedor] || 0) + sale.total;
+            return acc;
+        }, {});
+        const rankedSellersThisWeek = Object.entries(salesBySellerThisWeek).sort((a, b) => b[1] - a[1]);
+        if (rankedSellersThisWeek.length > 0) {
+            const [topSellerName, topSellerTotal] = rankedSellersThisWeek[0];
+            summary.push({
+                icon: '🏆',
+                text: `Melhor vendedor da semana até agora: <strong>${topSellerName}</strong>, com ${formatCurrency(topSellerTotal)}.`
             });
-
-            const isDarkMode = document.documentElement.classList.contains('dark');
-            const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
-            const textColor = isDarkMode ? '#cbd5e1' : '#475569';
-            
-            const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
-            if(vendasCtx) {
-                const gradient = vendasCtx.createLinearGradient(0, 0, 0, vendasCtx.canvas.height);
-                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
-                gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
-                
-                vendasChartInstance = new window.Chart(vendasCtx, {
-                    type: 'line',
-                    data: { 
-                        labels: Object.values(salesLast7Days).map(d => d.label), 
-                        datasets: [{ 
-                            label: 'Vendas Diárias', 
-                            data: Object.values(salesLast7Days).map(d => d.total), 
-                            backgroundColor: gradient,
-                            borderColor: '#3b82f6',
-                            borderWidth: 2,
-                            pointBackgroundColor: '#3b82f6',
-                            pointRadius: 4,
-                            fill: true,
-                            tension: 0.4
-                        }] 
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
-                });
-            }
-
-            const paymentData = sales.reduce((acc, sale) => {
-                (sale.paymentMethods || [{method: sale.paymentMethod, amount: sale.total}]).forEach(p => {
-                    acc[p.method] = (acc[p.method] || 0) + p.amount;
-                });
-                return acc;
-            }, {});
-
-            const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
-            if(pagamentosCtx) {
-                pagamentoChartInstance = new window.Chart(pagamentosCtx, {
-                    type: 'doughnut',
-                    data: { 
-                        labels: Object.keys(paymentData), 
-                        datasets: [{ 
-                            data: Object.values(paymentData), 
-                            backgroundColor: ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b'], 
-                            borderColor: isDarkMode ? '#0f172a' : '#f1f5f9', 
-                            borderWidth: 4 
-                        }] 
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
-                });
-            }
-        };
-        
-        const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
-        const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
-        
-        let q = collection(db, "sales");
-        const storeId = state.selectedStore.id;
-        
-        let conditions = [where("storeId", "==", storeId)];
-        if (state.loggedInUser.role === 'vendedor') {
-           conditions.push(where("vendedor", "==", state.loggedInUser.name));
         }
 
-        q = query(q, ...conditions);
+        const salesToday = allStoreSales.filter(s => s.date.toDate() >= todayStart);
+        const totalToday = salesToday.reduce((sum, s) => sum + s.total, 0);
+        
+        if (totalToday === 0) {
+            alerts.push({
+                icon: '🚀',
+                text: 'Hoje ainda não teve vendas — uma boa oportunidade para incentivar sua equipe a oferecer promoções!'
+            });
+        } else {
+             alerts.push({
+                icon: '💰',
+                text: `Total de vendas hoje: <strong>${formatCurrency(totalToday)}</strong> em ${salesToday.length} venda(s).`,
+                action: `<button class="share-daily-report-btn text-sm bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600 flex items-center gap-2"><i data-lucide="send" class="w-4 h-4"></i>Enviar Resumo</button>`
+            });
+        }
 
-        state.listeners.sales = onSnapshot(q, (snapshot) => {
-            let allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            allSales.sort((a, b) => b.date.seconds - a.date.seconds);
+        const allSellers = state.db.users.filter(u => u.role === 'vendedor' && u.storeId === state.selectedStore.id);
+        const sellersWithSalesToday = new Set(salesToday.map(s => s.vendedor));
+        const sellersWithoutSalesToday = allSellers.filter(seller => !sellersWithSalesToday.has(seller.name));
 
-            state.db.sales = allSales;
-            
-            if (isManager) {
-                vendedorSelectContainer.classList.remove('hidden');
-                const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
-                const vendedores = [...new Set(allSales.map(s => s.vendedor))];
-                vendedorSelect.innerHTML = '<option value="total">Relatório Total</option>';
-                vendedores.forEach(name => { vendedorSelect.innerHTML += `<option value="${name}">${name}</option>`; });
-                
-                const newSelect = vendedorSelect.cloneNode(true);
-                vendedorSelect.parentNode.replaceChild(newSelect, vendedorSelect);
-                
-                newSelect.addEventListener('change', (e) => {
-                    const salesToReport = e.target.value === 'total' ? allSales : allSales.filter(s => s.vendedor === e.target.value);
-                    updateReports(salesToReport);
-                });
-                
-                updateReports(allSales);
-            } else {
-                updateReports(allSales);
-            }
-        }, (error) => {
-            console.error("Erro ao buscar relatórios: ", error);
-            c.innerHTML = `<div class="text-center p-8 text-red-500"><b>Erro:</b> Não foi possível carregar os relatórios.</div>`;
-        });
+        if (sellersWithoutSalesToday.length > 0 && sellersWithSalesToday.size > 0) {
+            alerts.push({
+                icon: '🔥',
+                text: `Atenção: <strong>${sellersWithoutSalesToday.map(u=>u.name).join(', ')}</strong> está(ão) zerado(s) hoje. Um incentivo pode ajudar!`
+            });
+        }
+
+        if (salesThisWeek.length > 0) {
+            const ticketMedioThisWeek = totalThisWeek / salesThisWeek.length;
+            const proposedIncrease = 5;
+            const potentialNewTotal = (ticketMedioThisWeek + proposedIncrease) * salesThisWeek.length;
+            const percentageIncrease = ((potentialNewTotal - totalThisWeek) / totalThisWeek) * 100;
+
+            alerts.push({
+                icon: '💡',
+                text: `O ticket médio da semana é <strong>${formatCurrency(ticketMedioThisWeek)}</strong>. Se aumentar em apenas ${formatCurrency(proposedIncrease)} por venda, o faturamento subiria <strong>${percentageIncrease.toFixed(0)}%</strong>.`
+            });
+        }
+
+        return { summary, alerts };
     }
+
 
     const init = () => {
         const theme = localStorage.getItem('theme') || 'dark';
@@ -2226,4 +2366,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
- 
+
