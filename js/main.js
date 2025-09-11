@@ -1,10 +1,12 @@
 // js/main.js
-// Orquestrador principal — importa firebase, views e helpers.
-// Preserva a lógica original de autenticação, onSnapshot, writeBatch e roteamento.
-// Base: trechos extraídos de scriptoficial.js (mantive lógica idêntica) :contentReference[oaicite:2]{index=2}.
+// Orquestrador principal — versão com onSnapshot para dados em tempo real.
+// Mantém a lógica original de autenticação, writeBatch, roleta e relatórios.
+// Base: scriptoficial.js original  .
 
 import { app, db, auth } from './firebase.js';
-import { onSnapshot, collection, query, where, getDocs, writeBatch, doc, setDoc, addDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  onSnapshot, collection, query, where, orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { renderCaixa } from './views/caixa.js';
@@ -12,10 +14,9 @@ import { renderClientes } from './views/clientes.js';
 import { renderProdutos } from './views/produtos.js';
 import { renderPedidos } from './views/pedidos.js';
 
-import { showBonusWheelModal, showWhatsAppModal } from './ui.js';
 import { showToast, exportToCSV } from './utils.js';
 
-// --- Estado global (idêntico ao usado originalmente) ---
+// --- Estado global ---
 const state = {
   loggedInUser: null,
   selectedStore: null,
@@ -27,10 +28,10 @@ const state = {
     settings: {},
     sales: []
   },
-  currentOrder: [] // caixa
+  currentOrder: []
 };
 
-// --- Helpers de UI / roteamento ---
+// --- UI / Views ---
 function hideAllViews() {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
 }
@@ -40,64 +41,59 @@ function switchView(viewId) {
   const v = document.getElementById(viewId);
   if (v) v.classList.add('active');
 
-  // atualiza conteúdo da view
   if (viewId === 'caixa-view') renderCaixa(state);
   if (viewId === 'clientes-view') renderClientes(state);
   if (viewId === 'produtos-view') renderProdutos(state);
   if (viewId === 'pedidos-view') renderPedidos(state);
 }
 
-// --- Observadores / sincronização Firestore ---
-// Esses onSnapshot/queries reproduzem os que estavam no scriptoficial.js
-// (mantive as coleções e comportamento idênticos) :contentReference[oaicite:3]{index=3}.
-
-function subscribeStores() {
-  const storesCol = collection(db, "stores");
-  // snapshot em main não estático no exemplo original — aqui fazemos um simple onSnapshot-like manual via getDocs + refresh
-  // Para simplicidade e compatibilidade offline use getDocs (se quiser onSnapshot realtime, substitua por onSnapshot)
-  getDocs(storesCol).then(snap => {
-    state.db.stores = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderStoreSelection();
-  }).catch(err => console.error(err));
-}
-
-async function loadInitialDataForStore(storeId) {
-  state.selectedStore = state.db.stores.find(s => s.id === storeId) || null;
-
-  // products
-  const productsSnap = await getDocs(query(collection(db, "products"), where("storeId", "==", storeId)));
-  state.db.products = productsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-  // clients
-  const clientsSnap = await getDocs(query(collection(db, "clients"), where("storeId", "==", storeId)));
-  state.db.clients = clientsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-  // users for this store (admins / vendedores)
-  const usersSnap = await getDocs(query(collection(db, "users"), where("storeId", "==", storeId)));
-  state.db.users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-  // settings (single doc "settings" per store id)
-  try {
-    const settingsSnap = await getDocs(query(collection(db, "settings"), where("__name__", "==", storeId)));
-    if (!settingsSnap.empty) {
-      const docData = settingsSnap.docs[0].data();
-      state.db.settings = docData;
-    } else {
-      state.db.settings = { storeName: state.selectedStore?.name || '', bonusSystem: { enabled: true, value: 80 } };
+// --- Observadores (onSnapshot) ---
+// Atualização em tempo real para cada coleção da loja selecionada
+function subscribeStoreData(storeId) {
+  // Products
+  const productsQ = query(collection(db, "products"), where("storeId", "==", storeId));
+  onSnapshot(productsQ, snap => {
+    state.db.products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (document.getElementById('produtos-view')?.classList.contains('active')) {
+      renderProdutos(state);
     }
-  } catch (err) { console.error("Erro carregando settings:", err); }
+  });
 
-  // sales
-  const salesSnap = await getDocs(query(collection(db, "sales"), where("storeId", "==", storeId), orderBy("date", "desc")));
-  state.db.sales = salesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Clients
+  const clientsQ = query(collection(db, "clients"), where("storeId", "==", storeId));
+  onSnapshot(clientsQ, snap => {
+    state.db.clients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (document.getElementById('clientes-view')?.classList.contains('active')) {
+      renderClientes(state);
+    }
+  });
 
-  // Rende a view atual para que as views peguem os dados do state
-  const active = document.querySelector('.view.active')?.id || 'caixa-view';
-  switchView(active);
+  // Users
+  const usersQ = query(collection(db, "users"), where("storeId", "==", storeId));
+  onSnapshot(usersQ, snap => {
+    state.db.users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (document.getElementById('user-selection-view') && !state.loggedInUser) {
+      renderUserSelection();
+    }
+  });
+
+  // Settings (um doc por loja, id = storeId)
+  onSnapshot(collection(db, "settings"), snap => {
+    const docData = snap.docs.find(d => d.id === storeId)?.data();
+    if (docData) state.db.settings = docData;
+  });
+
+  // Sales
+  const salesQ = query(collection(db, "sales"), where("storeId", "==", storeId), orderBy("date", "desc"));
+  onSnapshot(salesQ, snap => {
+    state.db.sales = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (document.getElementById('pedidos-view')?.classList.contains('active')) {
+      renderPedidos(state);
+    }
+  });
 }
 
-// --- UI para seleção de loja / usuário (cópia adaptada do indexoficial.js) ---
-// renderStoreSelection renderiza botões de lojas e ligações para loadInitialDataForStore
+// --- Seleção de loja e usuário ---
 function renderStoreSelection() {
   const container = document.getElementById('store-selection-list');
   if (!container) return;
@@ -109,19 +105,18 @@ function renderStoreSelection() {
     btn.dataset.storeId = store.id;
     container.appendChild(btn);
   });
-  container.addEventListener('click', async (e) => {
+  container.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
     const id = btn.dataset.storeId;
-    await loadInitialDataForStore(id);
-    // mostra seleção de usuário
+    state.selectedStore = state.db.stores.find(s => s.id === id);
     document.getElementById('store-selection-view').classList.add('hidden');
     document.getElementById('user-selection-view').classList.remove('hidden');
+    subscribeStoreData(id);
     renderUserSelection();
   });
 }
 
-// renderUserSelection: botões de usuário (baseado no original)
 function renderUserSelection() {
   const ul = document.getElementById('user-selection-list');
   if (!ul) return;
@@ -136,7 +131,6 @@ function renderUserSelection() {
     const b = e.target.closest('button');
     if (!b) return;
     const username = b.dataset.username;
-    // armazena usuário selecionado temporariamente para o fluxo de senha (igual original)
     document.getElementById('user-selection-view').classList.add('hidden');
     document.getElementById('password-view').classList.remove('hidden');
     document.getElementById('login-username-display').textContent = username;
@@ -144,7 +138,7 @@ function renderUserSelection() {
   });
 }
 
-// login com email+senha (mantive signInWithEmailAndPassword do original)
+// --- Login ---
 document.getElementById('login-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('login-username-display')?.dataset?.email || document.getElementById('login-email')?.value;
@@ -153,12 +147,11 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
 
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    // procura usuário no state.db.users
     const user = state.db.users.find(u => u.email === email) || { name: cred.user.email, role: 'vendedor' };
     state.loggedInUser = user;
     document.getElementById('login-screen')?.classList.add('hidden');
     document.getElementById('app')?.classList.remove('hidden');
-    document.getElementById('user-name-display') && (document.getElementById('user-name-display').textContent = user.name);
+    document.getElementById('user-name-display').textContent = user.name;
     switchView('caixa-view');
     showToast('Login efetuado!', 'success');
   } catch (err) {
@@ -167,7 +160,7 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
   }
 });
 
-// logout
+// --- Logout ---
 document.getElementById('logout-btn')?.addEventListener('click', async () => {
   try {
     await signOut(auth);
@@ -175,32 +168,29 @@ document.getElementById('logout-btn')?.addEventListener('click', async () => {
     document.getElementById('app')?.classList.add('hidden');
     document.getElementById('login-screen')?.classList.remove('hidden');
     showToast('Desconectado.', 'success');
-  } catch (err) { showToast('Erro ao sair.', 'error'); }
+  } catch (err) {
+    showToast('Erro ao sair.', 'error');
+  }
 });
 
-// --- Export CSV (usa helper exportToCSV) ---
+// --- Exportação CSV ---
 document.getElementById('export-sales-btn')?.addEventListener('click', () => {
   exportToCSV(state.db.sales || [], `vendas_${state.selectedStore?.name || 'store'}`);
 });
 
 // --- Inicialização ---
-(async function init() {
-  try {
-    await subscribeStores();
-    // se houver apenas 1 loja, já selecionar automaticamente (comportamento inspirado no original)
+(function init() {
+  // Lojas em tempo real
+  onSnapshot(collection(db, "stores"), snap => {
+    state.db.stores = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (state.db.stores.length === 1) {
-      await loadInitialDataForStore(state.db.stores[0].id);
+      state.selectedStore = state.db.stores[0];
       document.getElementById('store-selection-view').classList.add('hidden');
       document.getElementById('user-selection-view').classList.remove('hidden');
+      subscribeStoreData(state.selectedStore.id);
       renderUserSelection();
     } else {
-      // render lista
       renderStoreSelection();
     }
-    // inicial view padrão
-    switchView('caixa-view');
-  } catch (err) {
-    console.error("Init error:", err);
-    showToast('Erro na inicialização do app.', 'error');
-  }
+  });
 })();
