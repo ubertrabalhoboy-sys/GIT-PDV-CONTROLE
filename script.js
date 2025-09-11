@@ -1717,6 +1717,98 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderDashboard() {
+        
+        function renderDashboard() {
+    const c = document.getElementById('relatorios-view');
+    if (!c) return;
+    const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
+
+    // Bloco ÚNICO e CORRIGIDO para a seção de Análise com IA
+    const aiSection = c.querySelector('#ai-analysis-section');
+    if (aiSection) {
+        // 1. Controla a visibilidade da seção inteira baseado na função do usuário
+        aiSection.classList.toggle('hidden', !isManager);
+
+        // 2. Adiciona o listener do botão apenas se a seção for visível
+        if (isManager) {
+            const generateAiBtn = aiSection.querySelector('#generate-ai-analysis-btn');
+            const aiResultContainer = aiSection.querySelector('#ai-analysis-result-container');
+
+            if (generateAiBtn && aiResultContainer) {
+                // Remove listener antigo para evitar duplicação em re-renderizações
+                generateAiBtn.replaceWith(generateAiBtn.cloneNode(true));
+                const newGenerateAiBtn = aiSection.querySelector('#generate-ai-analysis-btn');
+
+                newGenerateAiBtn.addEventListener('click', () => {
+                    const selectedVendedor = isManager ? c.querySelector('#relatorios-vendedor-select')?.value : 'total';
+                    const salesData = selectedVendedor === 'total' || !isManager
+                        ? state.db.sales
+                        : state.db.sales.filter(s => s.vendedor === selectedVendedor);
+
+                    if (salesData.length === 0) {
+                        aiResultContainer.innerHTML = `<p class="text-amber-600 dark:text-amber-400">Não há dados de vendas suficientes para gerar uma análise.</p>`;
+                        return;
+                    }
+
+                    newGenerateAiBtn.disabled = true;
+                    aiResultContainer.innerHTML = `
+                        <div class="flex items-center gap-2 text-slate-500">
+                            <div class="w-5 h-5 border-2 border-dashed rounded-full animate-spin border-brand-primary"></div>
+                            Analisando dados e gerando insights...
+                        </div>
+                    `;
+
+                    setTimeout(() => {
+                        const totalSales = salesData.reduce((sum, s) => sum + s.total, 0);
+                        const numOrders = salesData.length;
+                        const avgTicket = totalSales / numOrders;
+                        const salesByDay = salesData.reduce((acc, s) => {
+                            const day = s.date.toDate().toLocaleDateString('pt-BR');
+                            acc[day] = (acc[day] || 0) + s.total;
+                            return acc;
+                        }, {});
+                        const bestDay = Object.entries(salesByDay).sort((a, b) => b[1] - a[1])[0];
+                        const paymentMethods = salesData.flatMap(s => s.paymentMethods || [{ method: s.paymentMethod }])
+                            .reduce((acc, p) => { acc[p.method] = (acc[p.method] || 0) + 1; return acc; }, {});
+                        const mostUsedPayment = Object.entries(paymentMethods).sort((a, b) => b[1] - a[1])[0];
+
+                        const analysisHTML = `
+                            <h4>Resumo do Período:</h4>
+                            <ul class="list-disc pl-5 space-y-1">
+                                <li><strong>Total de Vendas:</strong> ${formatCurrency(totalSales)} em ${numOrders} pedido(s).</li>
+                                <li><strong>Ticket Médio:</strong> ${formatCurrency(avgTicket)} por pedido.</li>
+                                ${bestDay ? `<li><strong>Dia de Maior Movimento:</strong> ${bestDay[0]} com ${formatCurrency(bestDay[1])}.</li>` : ''}
+                                ${mostUsedPayment ? `<li><strong>Forma de Pagamento Mais Usada:</strong> ${mostUsedPayment[0]}.</li>` : ''}
+                            </ul>
+                            <p class="mt-3 text-xs text-slate-400">*Análise gerada automaticamente com base nos dados disponíveis.</p>
+                        `;
+                        
+                        aiResultContainer.innerHTML = analysisHTML;
+                        newGenerateAiBtn.disabled = false;
+                    }, 1500);
+                });
+            }
+        }
+    }
+
+    const summaryContainer = c.querySelector('#intelligent-summary') || document.createElement('div');
+    summaryContainer.id = 'intelligent-summary';
+    summaryContainer.className = 'mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+    const alertsContainer = c.querySelector('#intelligent-alerts') || document.createElement('div');
+    alertsContainer.id = 'intelligent-alerts';
+    alertsContainer.className = 'mt-6 space-y-3';
+    const mainContent = c.querySelector('.grid');
+    if (mainContent && !c.querySelector('#intelligent-summary')) {
+        mainContent.parentNode.insertBefore(summaryContainer, mainContent);
+        mainContent.parentNode.appendChild(alertsContainer);
+    }
+    if (!state.db.settings.bonusSystem?.enabled) {
+        const bonusCards = c.querySelectorAll('#bonus-hoje-card, #bonus-semana-card, #bonus-mes-card');
+        bonusCards.forEach(card => card?.classList.add('hidden'));
+    }
+
+    // ... (resto da função continua igual)
+}
         const c = document.getElementById('relatorios-view');
         if (!c) return;
         const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
