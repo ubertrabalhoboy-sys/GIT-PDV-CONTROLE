@@ -1,16 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR" class="dark">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDV de Vendas</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PDV de Vendas</title>
+
+  <!-- Tailwind, Lucide, Chart.js, Tone.js (mesmas inclusões do original) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+
+  <!-- Seus estilos (copiados do indexoficial.js original) -->
+  <style>
+       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         body {
             font-family: 'Inter', sans-serif;
@@ -151,8 +154,8 @@
             30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
-    </style>
-    <script>
+  </style>
+  script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -170,10 +173,8 @@
         }
     </script>
 </head>
-
 <body class="text-slate-800 dark:text-slate-200">
-
-    <!-- Tela de Login -->
+<!-- Tela de Login -->
     <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-sm mx-auto">
               <div class="absolute top-5 right-5">
@@ -776,8 +777,6 @@
             </div>
         </div>
     </script>
-
-    <script type="module" src="main.js"></script>
-
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
