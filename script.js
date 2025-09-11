@@ -414,16 +414,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
                 }
                 document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
-
-                // CORREÇÃO APLICADA: Desinscreve dos listeners antigos ANTES de criar novos para evitar vazamento de memória.
                 if (state.listeners.products) state.listeners.products();
-                if (state.listeners.clients) state.listeners.clients();
-
                 state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 });
-                
-                state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
+                if (state.listeners.clients) state.listeners.clients();
+                 state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 });
                 switchView(state.currentView);
@@ -548,29 +544,50 @@ document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById('prize-won-modal');
         modal.classList.remove('hidden');
 
-        modal.innerHTML = `
-            <div class="custom-card rounded-lg shadow-xl w-full max-w-sm p-8 m-4 fade-in text-center relative overflow-hidden">
+        // CORREÇÃO 2 INÍCIO: Lógica para prêmios "sem ganho".
+        const isWinner = !prize.name.toLowerCase().includes('tente novamente') && !prize.name.toLowerCase().includes('não foi dessa vez');
+        
+        let modalContent;
+        if (isWinner) {
+            modalContent = `
                 <div class="confetti-container"></div>
                 <i data-lucide="party-popper" class="w-16 h-16 mx-auto mb-4 text-amber-400"></i>
                 <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Parabéns!</h2>
                 <p class="text-slate-600 dark:text-slate-400 mt-2">Você ganhou:</p>
                 <p class="text-2xl sm:text-3xl font-bold text-brand-secondary my-4">${prize.name}</p>
+            `;
+        } else {
+            modalContent = `
+                <i data-lucide="meh" class="w-16 h-16 mx-auto mb-4 text-slate-500"></i>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Resultado da Roleta</h2>
+                <p class="text-slate-600 dark:text-slate-400 mt-2">O resultado foi:</p>
+                <p class="text-2xl sm:text-3xl font-bold text-slate-600 dark:text-slate-300 my-4">${prize.name}</p>
+            `;
+        }
+
+        modal.innerHTML = `
+            <div class="custom-card rounded-lg shadow-xl w-full max-w-sm p-8 m-4 fade-in text-center relative overflow-hidden">
+                ${modalContent}
                 <button id="close-prize-modal" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors">Continuar</button>
             </div>
         `;
+        // CORREÇÃO 2 FIM.
+        
         window.lucide.createIcons();
-
-        const confettiContainer = modal.querySelector('.confetti-container');
-        for (let i = 0; i < 50; i++) {
-            const confetti = document.createElement('div');
-            confetti.className = 'confetti';
-            const colors = ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b', '#8b5cf6'];
-            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            confetti.style.left = `${Math.random() * 100}%`;
-            confetti.style.animationDelay = `${Math.random() * 3}s`;
-            confetti.style.width = `${Math.random() * 8 + 5}px`;
-            confetti.style.height = confetti.style.width;
-            confettiContainer.appendChild(confetti);
+        
+        if (isWinner) {
+            const confettiContainer = modal.querySelector('.confetti-container');
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                const colors = ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b', '#8b5cf6'];
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.animationDelay = `${Math.random() * 3}s`;
+                confetti.style.width = `${Math.random() * 8 + 5}px`;
+                confetti.style.height = confetti.style.width;
+                confettiContainer.appendChild(confetti);
+            }
         }
 
         modal.querySelector('#close-prize-modal').addEventListener('click', () => {
@@ -704,10 +721,15 @@ document.addEventListener('DOMContentLoaded', () => {
             paymentText = `- ${saleData.paymentMethod}: ${formatCurrency(saleData.total)}`;
         }
 
+        // CORREÇÃO 2 INÍCIO: Lógica condicional para mensagem do prêmio no WhatsApp.
         let prizeText = '';
         if (saleData.prizeWon) {
-            prizeText = `\n\n🎁 *Prêmio Ganho na Roleta!*\nParabéns! Você ganhou: *${saleData.prizeWon}*`;
+            const isWinner = !saleData.prizeWon.toLowerCase().includes('tente novamente') && !saleData.prizeWon.toLowerCase().includes('não foi dessa vez');
+            if (isWinner) {
+                prizeText = `\n\n🎁 *Prêmio Ganho na Roleta!*\nParabéns! Você ganhou: *${saleData.prizeWon}*`;
+            }
         }
+        // CORREÇÃO 2 FIM.
 
 
         const couponText = `🧾 *Comprovante de Venda* 🧾\n\n*${storeName}*\n\n*Data:* ${saleDate}\n*Cliente:* ${saleData.clientName}\n\n*Itens:*\n${itemsText}\n\n*Pagamento:*\n${paymentText}\n\n*Total:* *${formatCurrency(saleData.total)}*\n*Vendedor:* ${saleData.vendedor}${prizeText}\n\nObrigado pela sua compra!`;
@@ -1155,8 +1177,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // CORREÇÃO APLICADA: Simplificado o event listener de reset, que agora funciona com o novo botão "Cancelar" (type="reset").
-        form.addEventListener('reset', resetForm);
+        form.addEventListener('reset', () => setTimeout(resetForm, 0));
 
         tableBody.addEventListener('click', async (e) => {
             const btn = e.target.closest('button');
@@ -1698,6 +1719,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderDashboard() {
         const c = document.getElementById('relatorios-view');
         if (!c) return;
+        const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
+
+        // CORREÇÃO 3 INÍCIO: Oculta a seção de análise de IA para vendedores.
+        const aiSection = c.querySelector('#ai-analysis-section');
+        if (aiSection) {
+            aiSection.classList.toggle('hidden', !isManager);
+        }
+        // CORREÇÃO 3 FIM.
 
         const summaryContainer = c.querySelector('#intelligent-summary') || document.createElement('div');
         summaryContainer.id = 'intelligent-summary';
@@ -1722,24 +1751,31 @@ document.addEventListener('DOMContentLoaded', () => {
             if (vendasChartInstance) vendasChartInstance.destroy();
             if (pagamentoChartInstance) pagamentoChartInstance.destroy();
             
-            const insights = generateIntelligentInsights(sales, allStoreSales);
-            summaryContainer.innerHTML = insights.summary.map(insight => `
-                <div class="custom-card p-4 flex items-start gap-3 rounded-lg">
-                    <span class="text-xl">${insight.icon}</span>
-                    <p class="text-sm text-slate-700 dark:text-slate-300">${insight.text}</p>
-                </div>
-            `).join('');
-
-            alertsContainer.innerHTML = insights.alerts.map(alert => `
-                 <div class="custom-card p-4 flex items-start gap-3 rounded-lg bg-amber-50 border-l-4 border-amber-400 dark:bg-amber-900/20 dark:border-amber-500">
-                    <span class="text-xl">${alert.icon}</span>
-                    <div class="flex-1">
-                        <p class="text-sm text-amber-800 dark:text-amber-200">${alert.text}</p>
-                        ${alert.action ? `<div class="mt-2">${alert.action}</div>` : ''}
+            // CORREÇÃO 3 INÍCIO: Gera e exibe insights apenas para gerentes/admins.
+            if (isManager) {
+                const insights = generateIntelligentInsights(sales, allStoreSales);
+                summaryContainer.innerHTML = insights.summary.map(insight => `
+                    <div class="custom-card p-4 flex items-start gap-3 rounded-lg">
+                        <span class="text-xl">${insight.icon}</span>
+                        <p class="text-sm text-slate-700 dark:text-slate-300">${insight.text}</p>
                     </div>
-                </div>
-            `).join('');
-            window.lucide.createIcons();
+                `).join('');
+
+                alertsContainer.innerHTML = insights.alerts.map(alert => `
+                     <div class="custom-card p-4 flex items-start gap-3 rounded-lg bg-amber-50 border-l-4 border-amber-400 dark:bg-amber-900/20 dark:border-amber-500">
+                        <span class="text-xl">${alert.icon}</span>
+                        <div class="flex-1">
+                            <p class="text-sm text-amber-800 dark:text-amber-200">${alert.text}</p>
+                            ${alert.action ? `<div class="mt-2">${alert.action}</div>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+                window.lucide.createIcons();
+            } else {
+                summaryContainer.innerHTML = '';
+                alertsContainer.innerHTML = '';
+            }
+            // CORREÇÃO 3 FIM.
 
             const now = new Date();
             const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -1832,7 +1868,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
         
-        const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
         const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
         
         let q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
@@ -1872,7 +1907,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderConfiguracoes() {
         const c=document.getElementById('configuracoes-view');
         c.querySelector('#config-store-name').value = state.db.settings.storeName;
-        c.querySelector('#owner-phone').value = state.db.settings.ownerPhone || '';
+        // CORREÇÃO: Removida referência a #owner-phone que não existe no HTML. Se for adicionar, o input deve estar presente no template.
+        // c.querySelector('#owner-phone').value = state.db.settings.ownerPhone || '';
         c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
         c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
         c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
@@ -1998,7 +2034,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUsersList();
 
         c.querySelector('#add-user-form').addEventListener('submit', async e => {
+            // CORREÇÃO 1 INÍCIO: Prevenir recarregamento da página.
             e.preventDefault();
+            // CORREÇÃO 1 FIM.
             const n = c.querySelector('#user-name').value.trim();
             const p = c.querySelector('#user-password').value;
             const isManager = c.querySelector('#create-as-manager').checked;
@@ -2027,6 +2065,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 showToast('Usuário cadastrado com sucesso!', 'success');
                 e.target.reset();
+                // CORREÇÃO 1 INÍCIO: Atualizar a lista de usuários após o cadastro.
+                updateUsersList();
+                // CORREÇÃO 1 FIM.
             } catch (error) {
                 console.error("Erro ao criar usuário:", error);
                 if (error.code === 'auth/email-already-in-use') {
@@ -2054,12 +2095,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         c.querySelector('#save-settings-button').addEventListener('click', async ()=> {
             const newStoreName = c.querySelector('#config-store-name').value;
-            const newOwnerPhone = c.querySelector('#owner-phone').value;
+            // const newOwnerPhone = c.querySelector('#owner-phone').value; // Removido pois o campo não existe no HTML.
             try {
-                await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName, ownerPhone: newOwnerPhone }, { merge: true });
+                await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName /*, ownerPhone: newOwnerPhone*/ }, { merge: true });
                 await setDoc(doc(db, "stores", state.selectedStore.id), { name: newStoreName }, { merge: true });
                 state.db.settings.storeName = newStoreName;
-                state.db.settings.ownerPhone = newOwnerPhone;
+                // state.db.settings.ownerPhone = newOwnerPhone;
                 state.selectedStore.name = newStoreName;
                 document.getElementById('store-name-sidebar').textContent = newStoreName;
                 showToast('Configurações da loja salvas!', 'success');
@@ -2279,21 +2320,26 @@ document.addEventListener('DOMContentLoaded', () => {
             text: `Total vendido na semana: <strong>${formatCurrency(totalThisWeek)}</strong> (${formatCurrency(avgDailyThisWeek)}/dia em média).`
         });
 
-        const monthlyGoal = state.db.settings.goals?.monthly || 0;
+        // CORREÇÃO 4 INÍCIO: Cálculo da meta mensal consolidada para gerentes.
+        const sellerCount = state.db.users.filter(u => u.storeId === state.selectedStore.id && u.role === 'vendedor').length || 1;
+        const individualMonthlyGoal = state.db.settings.goals?.monthly || 0;
+        const monthlyGoal = individualMonthlyGoal * sellerCount;
+
         if (monthlyGoal > 0) {
             const remainingForGoal = monthlyGoal - totalThisMonth;
             if (remainingForGoal > 0) {
                 summary.push({
                     icon: '🎯',
-                    text: `Meta mensal: faltam <strong>${formatCurrency(remainingForGoal)}</strong> para atingir ${formatCurrency(monthlyGoal)}.`
+                    text: `Meta mensal da equipe: faltam <strong>${formatCurrency(remainingForGoal)}</strong> para atingir ${formatCurrency(monthlyGoal)}.`
                 });
             } else {
                  summary.push({
                     icon: '✅',
-                    text: `Meta mensal de ${formatCurrency(monthlyGoal)} batida! Total de <strong>${formatCurrency(totalThisMonth)}</strong>.`
+                    text: `Meta mensal da equipe de ${formatCurrency(monthlyGoal)} batida! Total de <strong>${formatCurrency(totalThisMonth)}</strong>.`
                 });
             }
         }
+        // CORREÇÃO 4 FIM.
         
         const salesBySellerThisWeek = salesThisWeek.reduce((acc, sale) => {
             acc[sale.vendedor] = (acc[sale.vendedor] || 0) + sale.total;
