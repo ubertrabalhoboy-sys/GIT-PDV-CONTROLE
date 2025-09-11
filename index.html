@@ -408,9 +408,31 @@
                 </div>
                 <div class="lg:col-span-2">
                     <div class="custom-card p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Clientes Cadastrados</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Clientes Cadastrados</h3>
+                            <div id="client-count" class="text-sm text-slate-500"></div>
+                        </div>
+                        
+                        <form id="client-filter-form" class="mb-4 p-4 bg-slate-200/50 dark:bg-slate-800/50 rounded-lg space-y-4">
+                            <h4 class="text-sm font-semibold">Filtros Avançados</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="filter-last-purchase" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Comprou no dia</label>
+                                    <input type="date" id="filter-last-purchase" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                                </div>
+                                <div>
+                                    <label for="filter-product-purchased" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Comprou o produto</label>
+                                    <input type="text" id="filter-product-purchased" placeholder="Nome do produto..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                                </div>
+                            </div>
+                             <div class="flex gap-2">
+                                <button type="submit" class="w-full sm:w-auto bg-brand-primary text-white p-2 rounded-md flex items-center justify-center gap-2 text-sm"><i data-lucide="search" class="w-4 h-4"></i>Filtrar</button>
+                                <button type="reset" class="w-full sm:w-auto bg-slate-500 hover:bg-slate-600 text-white p-2 rounded-md flex items-center justify-center gap-2 text-sm"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Limpar</button>
+                            </div>
+                        </form>
+                        
                         <div class="mb-4">
-                             <input type="text" id="client-search" placeholder="Buscar cliente por nome ou telefone..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                             <input type="text" id="client-search" placeholder="Buscar por nome ou telefone..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                         </div>
                         <div class="relative overflow-y-auto max-h-[60vh]">
                             <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
@@ -418,11 +440,12 @@
                                     <tr>
                                         <th scope="col" class="px-6 py-3">Nome</th>
                                         <th scope="col" class="px-6 py-3">Telefone</th>
+                                        <th scope="col" class="px-6 py-3 text-center">Contato</th>
                                         <th scope="col" class="px-6 py-3 text-center">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody id="clients-table-body">
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
