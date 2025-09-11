@@ -414,12 +414,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
                 }
                 document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
+                
                 if (state.listeners.products) state.listeners.products();
+                if (state.listeners.clients) state.listeners.clients();
+
                 state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 });
-                if (state.listeners.clients) state.listeners.clients();
-                 state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
+                
+                state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 });
                 switchView(state.currentView);
@@ -544,7 +547,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById('prize-won-modal');
         modal.classList.remove('hidden');
 
-        // CORREÇÃO 2 INÍCIO: Lógica para prêmios "sem ganho".
         const isWinner = !prize.name.toLowerCase().includes('tente novamente') && !prize.name.toLowerCase().includes('não foi dessa vez');
         
         let modalContent;
@@ -571,7 +573,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button id="close-prize-modal" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors">Continuar</button>
             </div>
         `;
-        // CORREÇÃO 2 FIM.
         
         window.lucide.createIcons();
         
@@ -721,7 +722,6 @@ document.addEventListener('DOMContentLoaded', () => {
             paymentText = `- ${saleData.paymentMethod}: ${formatCurrency(saleData.total)}`;
         }
 
-        // CORREÇÃO 2 INÍCIO: Lógica condicional para mensagem do prêmio no WhatsApp.
         let prizeText = '';
         if (saleData.prizeWon) {
             const isWinner = !saleData.prizeWon.toLowerCase().includes('tente novamente') && !saleData.prizeWon.toLowerCase().includes('não foi dessa vez');
@@ -729,8 +729,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 prizeText = `\n\n🎁 *Prêmio Ganho na Roleta!*\nParabéns! Você ganhou: *${saleData.prizeWon}*`;
             }
         }
-        // CORREÇÃO 2 FIM.
-
 
         const couponText = `🧾 *Comprovante de Venda* 🧾\n\n*${storeName}*\n\n*Data:* ${saleDate}\n*Cliente:* ${saleData.clientName}\n\n*Itens:*\n${itemsText}\n\n*Pagamento:*\n${paymentText}\n\n*Total:* *${formatCurrency(saleData.total)}*\n*Vendedor:* ${saleData.vendedor}${prizeText}\n\nObrigado pela sua compra!`;
 
@@ -1177,7 +1175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        form.addEventListener('reset', () => setTimeout(resetForm, 0));
+        form.addEventListener('reset', resetForm);
 
         tableBody.addEventListener('click', async (e) => {
             const btn = e.target.closest('button');
@@ -1717,108 +1715,77 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderDashboard() {
-        
-        function renderDashboard() {
-    const c = document.getElementById('relatorios-view');
-    if (!c) return;
-    const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
-
-    // Bloco ÚNICO e CORRIGIDO para a seção de Análise com IA
-    const aiSection = c.querySelector('#ai-analysis-section');
-    if (aiSection) {
-        // 1. Controla a visibilidade da seção inteira baseado na função do usuário
-        aiSection.classList.toggle('hidden', !isManager);
-
-        // 2. Adiciona o listener do botão apenas se a seção for visível
-        if (isManager) {
-            const generateAiBtn = aiSection.querySelector('#generate-ai-analysis-btn');
-            const aiResultContainer = aiSection.querySelector('#ai-analysis-result-container');
-
-            if (generateAiBtn && aiResultContainer) {
-                // Remove listener antigo para evitar duplicação em re-renderizações
-                generateAiBtn.replaceWith(generateAiBtn.cloneNode(true));
-                const newGenerateAiBtn = aiSection.querySelector('#generate-ai-analysis-btn');
-
-                newGenerateAiBtn.addEventListener('click', () => {
-                    const selectedVendedor = isManager ? c.querySelector('#relatorios-vendedor-select')?.value : 'total';
-                    const salesData = selectedVendedor === 'total' || !isManager
-                        ? state.db.sales
-                        : state.db.sales.filter(s => s.vendedor === selectedVendedor);
-
-                    if (salesData.length === 0) {
-                        aiResultContainer.innerHTML = `<p class="text-amber-600 dark:text-amber-400">Não há dados de vendas suficientes para gerar uma análise.</p>`;
-                        return;
-                    }
-
-                    newGenerateAiBtn.disabled = true;
-                    aiResultContainer.innerHTML = `
-                        <div class="flex items-center gap-2 text-slate-500">
-                            <div class="w-5 h-5 border-2 border-dashed rounded-full animate-spin border-brand-primary"></div>
-                            Analisando dados e gerando insights...
-                        </div>
-                    `;
-
-                    setTimeout(() => {
-                        const totalSales = salesData.reduce((sum, s) => sum + s.total, 0);
-                        const numOrders = salesData.length;
-                        const avgTicket = totalSales / numOrders;
-                        const salesByDay = salesData.reduce((acc, s) => {
-                            const day = s.date.toDate().toLocaleDateString('pt-BR');
-                            acc[day] = (acc[day] || 0) + s.total;
-                            return acc;
-                        }, {});
-                        const bestDay = Object.entries(salesByDay).sort((a, b) => b[1] - a[1])[0];
-                        const paymentMethods = salesData.flatMap(s => s.paymentMethods || [{ method: s.paymentMethod }])
-                            .reduce((acc, p) => { acc[p.method] = (acc[p.method] || 0) + 1; return acc; }, {});
-                        const mostUsedPayment = Object.entries(paymentMethods).sort((a, b) => b[1] - a[1])[0];
-
-                        const analysisHTML = `
-                            <h4>Resumo do Período:</h4>
-                            <ul class="list-disc pl-5 space-y-1">
-                                <li><strong>Total de Vendas:</strong> ${formatCurrency(totalSales)} em ${numOrders} pedido(s).</li>
-                                <li><strong>Ticket Médio:</strong> ${formatCurrency(avgTicket)} por pedido.</li>
-                                ${bestDay ? `<li><strong>Dia de Maior Movimento:</strong> ${bestDay[0]} com ${formatCurrency(bestDay[1])}.</li>` : ''}
-                                ${mostUsedPayment ? `<li><strong>Forma de Pagamento Mais Usada:</strong> ${mostUsedPayment[0]}.</li>` : ''}
-                            </ul>
-                            <p class="mt-3 text-xs text-slate-400">*Análise gerada automaticamente com base nos dados disponíveis.</p>
-                        `;
-                        
-                        aiResultContainer.innerHTML = analysisHTML;
-                        newGenerateAiBtn.disabled = false;
-                    }, 1500);
-                });
-            }
-        }
-    }
-
-    const summaryContainer = c.querySelector('#intelligent-summary') || document.createElement('div');
-    summaryContainer.id = 'intelligent-summary';
-    summaryContainer.className = 'mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
-    const alertsContainer = c.querySelector('#intelligent-alerts') || document.createElement('div');
-    alertsContainer.id = 'intelligent-alerts';
-    alertsContainer.className = 'mt-6 space-y-3';
-    const mainContent = c.querySelector('.grid');
-    if (mainContent && !c.querySelector('#intelligent-summary')) {
-        mainContent.parentNode.insertBefore(summaryContainer, mainContent);
-        mainContent.parentNode.appendChild(alertsContainer);
-    }
-    if (!state.db.settings.bonusSystem?.enabled) {
-        const bonusCards = c.querySelectorAll('#bonus-hoje-card, #bonus-semana-card, #bonus-mes-card');
-        bonusCards.forEach(card => card?.classList.add('hidden'));
-    }
-
-    // ... (resto da função continua igual)
-}
         const c = document.getElementById('relatorios-view');
         if (!c) return;
         const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
 
-        // CORREÇÃO 3 INÍCIO: Oculta a seção de análise de IA para vendedores.
+        // Bloco ÚNICO e CORRIGIDO para a seção de Análise com IA
         const aiSection = c.querySelector('#ai-analysis-section');
         if (aiSection) {
+            // 1. Controla a visibilidade da seção inteira baseado na função do usuário
             aiSection.classList.toggle('hidden', !isManager);
+
+            // 2. Adiciona o listener do botão apenas se a seção for visível
+            if (isManager) {
+                const generateAiBtn = aiSection.querySelector('#generate-ai-analysis-btn');
+                const aiResultContainer = aiSection.querySelector('#ai-analysis-result-container');
+
+                if (generateAiBtn && aiResultContainer) {
+                    // Remove listener antigo para evitar duplicação em re-renderizações
+                    const newGenerateAiBtn = generateAiBtn.cloneNode(true);
+                    generateAiBtn.parentNode.replaceChild(newGenerateAiBtn, generateAiBtn);
+
+                    newGenerateAiBtn.addEventListener('click', () => {
+                        const selectedVendedor = isManager ? c.querySelector('#relatorios-vendedor-select')?.value : 'total';
+                        const salesData = selectedVendedor === 'total' || !isManager
+                            ? state.db.sales
+                            : state.db.sales.filter(s => s.vendedor === selectedVendedor);
+
+                        if (salesData.length === 0) {
+                            aiResultContainer.innerHTML = `<p class="text-amber-600 dark:text-amber-400">Não há dados de vendas suficientes para gerar uma análise.</p>`;
+                            return;
+                        }
+
+                        newGenerateAiBtn.disabled = true;
+                        aiResultContainer.innerHTML = `
+                            <div class="flex items-center gap-2 text-slate-500">
+                                <div class="w-5 h-5 border-2 border-dashed rounded-full animate-spin border-brand-primary"></div>
+                                Analisando dados e gerando insights...
+                            </div>
+                        `;
+
+                        setTimeout(() => {
+                            const totalSales = salesData.reduce((sum, s) => sum + s.total, 0);
+                            const numOrders = salesData.length;
+                            const avgTicket = totalSales / numOrders;
+                            const salesByDay = salesData.reduce((acc, s) => {
+                                const day = s.date.toDate().toLocaleDateString('pt-BR');
+                                acc[day] = (acc[day] || 0) + s.total;
+                                return acc;
+                            }, {});
+                            const bestDay = Object.entries(salesByDay).sort((a, b) => b[1] - a[1])[0];
+                            const paymentMethods = salesData.flatMap(s => s.paymentMethods || [{ method: s.paymentMethod }])
+                                .reduce((acc, p) => { acc[p.method] = (acc[p.method] || 0) + 1; return acc; }, {});
+                            const mostUsedPayment = Object.entries(paymentMethods).sort((a, b) => b[1] - a[1])[0];
+
+                            const analysisHTML = `
+                                <h4>Resumo do Período:</h4>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li><strong>Total de Vendas:</strong> ${formatCurrency(totalSales)} em ${numOrders} pedido(s).</li>
+                                    <li><strong>Ticket Médio:</strong> ${formatCurrency(avgTicket)} por pedido.</li>
+                                    ${bestDay ? `<li><strong>Dia de Maior Movimento:</strong> ${bestDay[0]} com ${formatCurrency(bestDay[1])}.</li>` : ''}
+                                    ${mostUsedPayment ? `<li><strong>Forma de Pagamento Mais Usada:</strong> ${mostUsedPayment[0]}.</li>` : ''}
+                                </ul>
+                                <p class="mt-3 text-xs text-slate-400">*Análise gerada automaticamente com base nos dados disponíveis.</p>
+                            `;
+                            
+                            aiResultContainer.innerHTML = analysisHTML;
+                            newGenerateAiBtn.disabled = false;
+                        }, 1500);
+                    });
+                }
+            }
         }
-        // CORREÇÃO 3 FIM.
 
         const summaryContainer = c.querySelector('#intelligent-summary') || document.createElement('div');
         summaryContainer.id = 'intelligent-summary';
@@ -1843,7 +1810,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (vendasChartInstance) vendasChartInstance.destroy();
             if (pagamentoChartInstance) pagamentoChartInstance.destroy();
             
-            // CORREÇÃO 3 INÍCIO: Gera e exibe insights apenas para gerentes/admins.
             if (isManager) {
                 const insights = generateIntelligentInsights(sales, allStoreSales);
                 summaryContainer.innerHTML = insights.summary.map(insight => `
@@ -1867,7 +1833,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 summaryContainer.innerHTML = '';
                 alertsContainer.innerHTML = '';
             }
-            // CORREÇÃO 3 FIM.
 
             const now = new Date();
             const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -1999,8 +1964,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderConfiguracoes() {
         const c=document.getElementById('configuracoes-view');
         c.querySelector('#config-store-name').value = state.db.settings.storeName;
-        // CORREÇÃO: Removida referência a #owner-phone que não existe no HTML. Se for adicionar, o input deve estar presente no template.
-        // c.querySelector('#owner-phone').value = state.db.settings.ownerPhone || '';
         c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
         c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
         c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
@@ -2126,9 +2089,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUsersList();
 
         c.querySelector('#add-user-form').addEventListener('submit', async e => {
-            // CORREÇÃO 1 INÍCIO: Prevenir recarregamento da página.
             e.preventDefault();
-            // CORREÇÃO 1 FIM.
             const n = c.querySelector('#user-name').value.trim();
             const p = c.querySelector('#user-password').value;
             const isManager = c.querySelector('#create-as-manager').checked;
@@ -2157,9 +2118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 showToast('Usuário cadastrado com sucesso!', 'success');
                 e.target.reset();
-                // CORREÇÃO 1 INÍCIO: Atualizar a lista de usuários após o cadastro.
                 updateUsersList();
-                // CORREÇÃO 1 FIM.
             } catch (error) {
                 console.error("Erro ao criar usuário:", error);
                 if (error.code === 'auth/email-already-in-use') {
@@ -2187,12 +2146,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         c.querySelector('#save-settings-button').addEventListener('click', async ()=> {
             const newStoreName = c.querySelector('#config-store-name').value;
-            // const newOwnerPhone = c.querySelector('#owner-phone').value; // Removido pois o campo não existe no HTML.
             try {
-                await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName /*, ownerPhone: newOwnerPhone*/ }, { merge: true });
+                await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName }, { merge: true });
                 await setDoc(doc(db, "stores", state.selectedStore.id), { name: newStoreName }, { merge: true });
                 state.db.settings.storeName = newStoreName;
-                // state.db.settings.ownerPhone = newOwnerPhone;
                 state.selectedStore.name = newStoreName;
                 document.getElementById('store-name-sidebar').textContent = newStoreName;
                 showToast('Configurações da loja salvas!', 'success');
@@ -2402,7 +2359,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const salesThisWeek = allStoreSales.filter(s => s.date.toDate() >= weekStart);
         const totalThisWeek = salesThisWeek.reduce((sum, s) => sum + s.total, 0);
         const daysPassedInWeek = now.getDay() === 0 ? 7 : now.getDay();
-        const avgDailyThisWeek = totalThisWeek / daysPassedInWeek;
+        const avgDailyThisWeek = totalThisWeek > 0 ? totalThisWeek / daysPassedInWeek : 0;
 
         const salesThisMonth = allStoreSales.filter(s => s.date.toDate() >= monthStart);
         const totalThisMonth = salesThisMonth.reduce((sum, s) => sum + s.total, 0);
@@ -2412,7 +2369,6 @@ document.addEventListener('DOMContentLoaded', () => {
             text: `Total vendido na semana: <strong>${formatCurrency(totalThisWeek)}</strong> (${formatCurrency(avgDailyThisWeek)}/dia em média).`
         });
 
-        // CORREÇÃO 4 INÍCIO: Cálculo da meta mensal consolidada para gerentes.
         const sellerCount = state.db.users.filter(u => u.storeId === state.selectedStore.id && u.role === 'vendedor').length || 1;
         const individualMonthlyGoal = state.db.settings.goals?.monthly || 0;
         const monthlyGoal = individualMonthlyGoal * sellerCount;
@@ -2431,7 +2387,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         }
-        // CORREÇÃO 4 FIM.
         
         const salesBySellerThisWeek = salesThisWeek.reduce((acc, sale) => {
             acc[sale.vendedor] = (acc[sale.vendedor] || 0) + sale.total;
@@ -2477,7 +2432,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const ticketMedioThisWeek = totalThisWeek / salesThisWeek.length;
             const proposedIncrease = 5;
             const potentialNewTotal = (ticketMedioThisWeek + proposedIncrease) * salesThisWeek.length;
-            const percentageIncrease = ((potentialNewTotal - totalThisWeek) / totalThisWeek) * 100;
+            const percentageIncrease = totalThisWeek > 0 ? ((potentialNewTotal - totalThisWeek) / totalThisWeek) * 100 : 0;
 
             alerts.push({
                 icon: '💡',
