@@ -414,12 +414,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
                 }
                 document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
+
+                // CORREÇÃO APLICADA: Desinscreve dos listeners antigos ANTES de criar novos para evitar vazamento de memória.
                 if (state.listeners.products) state.listeners.products();
+                if (state.listeners.clients) state.listeners.clients();
+
                 state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 });
-                if (state.listeners.clients) state.listeners.clients();
-                 state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
+                
+                state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 });
                 switchView(state.currentView);
@@ -1151,7 +1155,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        form.addEventListener('reset', () => setTimeout(resetForm, 0));
+        // CORREÇÃO APLICADA: Simplificado o event listener de reset, que agora funciona com o novo botão "Cancelar" (type="reset").
+        form.addEventListener('reset', resetForm);
 
         tableBody.addEventListener('click', async (e) => {
             const btn = e.target.closest('button');
@@ -2366,4 +2371,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
-
