@@ -378,6 +378,15 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Erro ao carregar clientes.', 'error');
         });
 
+        // NOVO: Listener geral de vendas para alimentar os filtros de clientes.
+        if (state.listeners.sales) state.listeners.sales();
+        const salesQuery = query(collection(db, "sales"), where("storeId", "==", store.id));
+        state.listeners.sales = onSnapshot(salesQuery, (snapshot) => {
+            state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }, (error) => {
+            console.error("Erro ao carregar dados de vendas:", error);
+        });
+
 
         const switcherContainer = document.getElementById('store-switcher-container');
         if (user.role === 'superadmin') {
@@ -417,6 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (state.listeners.products) state.listeners.products();
                 if (state.listeners.clients) state.listeners.clients();
+                if (state.listeners.sales) state.listeners.sales();
 
                 state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -424,6 +434,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
                     state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                });
+
+                state.listeners.sales = onSnapshot(query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
+                    state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 });
                 switchView(state.currentView);
             };
@@ -461,7 +475,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (logoutBtn) { logout(); }
         });
 
-        // Event listener para o botão de compartilhar, movido para o #app para delegação de evento
         document.getElementById('app').addEventListener('click', e => {
             const shareBtn = e.target.closest('.share-daily-report-btn');
             if(shareBtn) {
@@ -546,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showPrizeWonModal(prize, saleData) {
         const modal = document.getElementById('prize-won-modal');
         modal.classList.remove('hidden');
-
+        
         const isWinner = !prize.name.toLowerCase().includes('tente novamente') && !prize.name.toLowerCase().includes('não foi dessa vez');
         
         let modalContent;
@@ -1098,11 +1111,21 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
     
+    // ====================================================================================================
+    // FUNÇÃO renderClientes TOTALMENTE REFEITA PARA INCLUIR FILTROS E BOTÃO WHATSAPP
+    // ====================================================================================================
     function renderClientes() {
         const view = document.getElementById('clientes-view');
         const form = view.querySelector('#add-client-form');
         const tableBody = view.querySelector('#clients-table-body');
         const searchInput = view.querySelector('#client-search');
+        const clientCountEl = view.querySelector('#client-count');
+        
+        // Novos elementos do filtro
+        const clientFilterForm = view.querySelector('#client-filter-form');
+        const filterDateInput = view.querySelector('#filter-last-purchase');
+        const filterProductInput = view.querySelector('#filter-product-purchased');
+
         let currentEditingId = null;
 
         const resetForm = () => {
@@ -1112,14 +1135,16 @@ document.addEventListener('DOMContentLoaded', () => {
             view.querySelector('#client-form-btn-text').textContent = 'Salvar Cliente';
             view.querySelector('#client-form-cancel').classList.add('hidden');
             currentEditingId = null;
-        }
+        };
 
         const renderClientsTable = (clients) => {
             tableBody.innerHTML = '';
             const clientsToRender = clients || state.db.clients;
+            
+            clientCountEl.textContent = `${clientsToRender.length} cliente(s) encontrado(s).`;
 
             if (clientsToRender.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="3" class="text-center p-8 text-slate-500">Nenhum cliente cadastrado.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-slate-500">Nenhum cliente encontrado.</td></tr>`;
                 return;
             }
 
@@ -1130,6 +1155,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
                         <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${client.name}</td>
                         <td class="px-6 py-4">${client.phone || 'N/A'}</td>
+                        <td class="px-6 py-4 text-center">
+                            ${client.phone ? `<button data-client-id="${client.id}" data-client-phone="${client.phone}" class="whatsapp-client-btn text-green-500 hover:text-green-700" title="Enviar WhatsApp"><i class="w-5 h-5 pointer-events-none" data-lucide="message-circle"></i></button>` : `<span class="text-xs text-slate-400">Sem Tel.</span>`}
+                        </td>
                         <td class="px-6 py-4 text-center space-x-2">
                             <button data-client-id="${client.id}" class="view-client-btn text-blue-500 hover:text-blue-700" title="Ver Detalhes"><i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i></button>
                             <button data-client-id="${client.id}" class="edit-client-btn text-amber-500 hover:text-amber-700" title="Editar"><i data-lucide="edit-2" class="w-4 h-4 pointer-events-none"></i></button>
@@ -1142,14 +1170,63 @@ document.addEventListener('DOMContentLoaded', () => {
             window.lucide.createIcons();
         };
 
+        // Lógica de busca simples (nome/telefone)
         searchInput.addEventListener('input', () => {
             const term = searchInput.value.toLowerCase();
+            clientFilterForm.reset(); // Limpa os filtros avançados ao usar a busca simples
+            if (term.length === 0) {
+                renderClientsTable(state.db.clients);
+                return;
+            }
             const filteredClients = state.db.clients.filter(c => 
                 c.name.toLowerCase().includes(term) || (c.phone && c.phone.includes(term))
             );
             renderClientsTable(filteredClients);
         });
 
+        // Lógica dos Filtros Avançados
+        clientFilterForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const dateValue = filterDateInput.value;
+            const productValue = filterProductInput.value.toLowerCase().trim();
+
+            if (!dateValue && !productValue) {
+                showToast('Preencha ao menos um campo para filtrar.', 'error');
+                return;
+            }
+
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-slate-500">Filtrando clientes...</td></tr>`;
+            searchInput.value = '';
+
+            let filteredSales = state.db.sales;
+
+            if (dateValue) {
+                const startDate = new Date(dateValue + 'T00:00:00');
+                const endDate = new Date(dateValue + 'T23:59:59');
+                filteredSales = filteredSales.filter(sale => {
+                    const saleDate = sale.date.toDate();
+                    return saleDate >= startDate && saleDate <= endDate;
+                });
+            }
+
+            if (productValue) {
+                filteredSales = filteredSales.filter(sale => 
+                    sale.items.some(item => item.name.toLowerCase().includes(productValue))
+                );
+            }
+
+            const clientIdsFromSales = [...new Set(filteredSales.map(sale => sale.clientId).filter(id => id))];
+            
+            const finalClients = state.db.clients.filter(client => clientIdsFromSales.includes(client.id));
+            
+            renderClientsTable(finalClients);
+        });
+        
+        clientFilterForm.addEventListener('reset', () => {
+            renderClientsTable(state.db.clients);
+        });
+
+        // Lógica do formulário de Adicionar/Editar Cliente
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const clientData = {
@@ -1177,13 +1254,19 @@ document.addEventListener('DOMContentLoaded', () => {
         
         form.addEventListener('reset', resetForm);
 
+        // Lógica dos botões na tabela (Detalhes, Editar, Excluir, WhatsApp)
         tableBody.addEventListener('click', async (e) => {
             const btn = e.target.closest('button');
             if (!btn) return;
             
             const clientId = btn.dataset.clientId;
 
-            if (btn.classList.contains('remove-client-btn')) {
+            if (btn.classList.contains('whatsapp-client-btn')) {
+                const phone = btn.dataset.clientPhone.replace(/\D/g, '');
+                const client = state.db.clients.find(c => c.id === clientId);
+                const message = encodeURIComponent(`Olá, ${client.name}! Temos uma novidade para você na ${state.db.settings.storeName}.`);
+                window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+            } else if (btn.classList.contains('remove-client-btn')) {
                 showConfirmModal('Tem certeza que deseja remover este cliente? A ação não pode ser desfeita.', async () => {
                     try {
                         await deleteDoc(doc(db, "clients", clientId));
@@ -1206,9 +1289,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (btn.classList.contains('view-client-btn')) {
                  const client = state.db.clients.find(c => c.id === clientId);
-                 const salesQuery = query(collection(db, "sales"), where("clientId", "==", clientId));
-                 const salesSnapshot = await getDocs(salesQuery);
-                 const clientSales = salesSnapshot.docs.map(doc => doc.data());
+                 const clientSales = state.db.sales.filter(sale => sale.clientId === clientId);
 
                  const modal = document.getElementById('client-details-modal');
                  modal.classList.remove('hidden');
@@ -1260,7 +1341,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         renderClientsTable();
     }
-
+    
     document.getElementById('app').addEventListener('submit', async (e) => {
         if (e.target.id === 'add-product-form') {
             e.preventDefault();
@@ -1404,7 +1485,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         const applyFiltersAndFetchSales = () => {
-            if (state.listeners.sales) state.listeners.sales();
+            // Este listener agora é mais específico para a tela de pedidos.
+            const ordersListener = () => {};
+            if (state.listeners.orders) state.listeners.orders();
 
             const dateFilter = c.querySelector('#filter-date').value;
             const paymentFilter = c.querySelector('#filter-payment').value;
@@ -1433,10 +1516,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const finalQuery = query(collection(db, "sales"), ...conditions);
 
-            state.listeners.sales = onSnapshot(finalQuery, (snapshot) => {
+            state.listeners.orders = onSnapshot(finalQuery, (snapshot) => {
                 let sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 sales.sort((a, b) => b.date.seconds - a.date.seconds);
-                state.db.sales = sales;
                 renderTable(sales);
                 if (!isGerente) {
                     updateDashboard(sales);
@@ -1562,10 +1644,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const storeId = state.selectedStore.id;
         const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), where("storeId", "==", storeId));
-        state.listeners.sales = onSnapshot(q, (snapshot) => {
+        state.listeners.metas = onSnapshot(q, (snapshot) => {
             const mySales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             mySales.sort((a, b) => b.date.seconds - a.date.seconds);
-            state.db.sales = mySales;
             updateGoalsUI(mySales);
         }, (error) => {
             console.error("Erro ao buscar metas: ", error);
@@ -1574,7 +1655,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderRanking() {
-        if (state.listeners.sales) state.listeners.sales();
+        if (state.listeners.ranking) state.listeners.ranking();
         
         const view = document.getElementById('ranking-view');
         const podiumContainer = view.querySelector('#ranking-podium-container');
@@ -1691,7 +1772,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-        state.listeners.sales = onSnapshot(q, (snapshot) => {
+        state.listeners.ranking = onSnapshot(q, (snapshot) => {
             const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             updateRankingUI(allSales, currentPeriod);
         }, (error) => {
@@ -1929,10 +2010,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
 
-        state.listeners.sales = onSnapshot(q, (snapshot) => {
+        state.listeners.relatorios = onSnapshot(q, (snapshot) => {
             let allStoreSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             allStoreSales.sort((a, b) => b.date.seconds - a.date.seconds);
-            state.db.sales = allStoreSales;
             
             if (isManager) {
                 vendedorSelectContainer.classList.remove('hidden');
