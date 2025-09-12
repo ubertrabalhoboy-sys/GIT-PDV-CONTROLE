@@ -5,9 +5,6 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 
 document.addEventListener('DOMContentLoaded', () => {
     // A configuração do Firebase permanece aqui.
-    // ATENÇÃO: Esta chave de API está exposta. Em um ambiente de produção,
-    // é crucial restringir o uso da chave no console do Google Cloud/Firebase
-    // para evitar abusos.
     const firebaseConfig = {
         apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
         authDomain: "pdv-vendas-8a65a.firebaseapp.com",
@@ -38,13 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
                 bonusSystem: { enabled: true, value: 80 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
-                ownerPhone: ''
+                ownerPhone: '' // Novo campo para o Dashboard Inteligente
             },
-            sales: [],
-            expenses: []
+            sales: []
         },
-        // CORREÇÃO: Listeners específicos de views adicionados para controle
-        listeners: { users: null, sales: null, stores: null, products: null, clients: null, expenses: null, orders: null, metas: null, ranking: null, relatorios: null },
+        listeners: { users: null, sales: null, stores: null, products: null, clients: null },
         selectedStore: null
     };
     let selectedUserForLogin = null;
@@ -67,7 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('first-run-view').innerHTML = '<p class="text-slate-500 dark:text-slate-400 mb-6 text-center">Configurando o sistema pela primeira vez, por favor aguarde...</p><div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary mx-auto"></div>';
 
                 const storeName = "Loja Principal";
+
                 const storeRef = await addDoc(collection(db, "stores"), { name: storeName });
+
                 await setDoc(doc(db, "settings", storeRef.id), {
                     storeName: storeName,
                     goals: { daily: 150, weekly: 1000, monthly: 4000 },
@@ -111,23 +108,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const storeButton = e.target.closest('button');
         if (!storeButton) return;
 
-        state.selectedStore = { id: storeButton.dataset.storeId, name: storeButton.dataset.storeName };
+        state.selectedStore = {
+            id: storeButton.dataset.storeId,
+            name: storeButton.dataset.storeName
+        };
 
         const settingsRef = doc(db, "settings", state.selectedStore.id);
         const settingsSnap = await getDoc(settingsRef);
         if (settingsSnap.exists()) {
             state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
         } else {
-            const defaultSettings = {
+            await setDoc(settingsRef, {
                 storeName: state.selectedStore.name,
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
                 bonusSystem: { enabled: true, value: 80 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
-            };
-            await setDoc(settingsRef, defaultSettings);
-            Object.assign(state.db.settings, defaultSettings);
+            });
+            state.db.settings.storeName = state.selectedStore.name;
+            state.db.settings.goals = { daily: 150, weekly: 1000, monthly: 4000 };
+            state.db.settings.bonusSystem = { enabled: true, value: 80 };
+            state.db.settings.bonusWheel = { enabled: false, prizes: [], minValue: 0 };
+            state.db.settings.ownerPhone = '';
         }
+
         loadUsersForStore(state.selectedStore.id);
     });
 
@@ -138,9 +142,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const superAdminQ = query(usersRef, where("role", "==", "superadmin"));
 
             const [usersSnapshot, superAdminSnapshot] = await Promise.all([getDocs(q), getDocs(superAdminQ)]);
+
             const usersMap = new Map();
-            usersSnapshot.docs.forEach(doc => usersMap.set(doc.id, { id: doc.id, ...doc.data() }));
-            superAdminSnapshot.docs.forEach(doc => usersMap.set(doc.id, { id: doc.id, ...doc.data() }));
+
+            usersSnapshot.docs.forEach(doc => {
+                usersMap.set(doc.id, { id: doc.id, ...doc.data() });
+            });
+
+            superAdminSnapshot.docs.forEach(doc => {
+                usersMap.set(doc.id, { id: doc.id, ...doc.data() });
+            });
+
             state.db.users = Array.from(usersMap.values());
 
             const userList = document.getElementById('user-list');
@@ -171,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.db.users = [];
     });
 
+
     const applyTheme = (t) => {
         const h = document.documentElement;
         const isDark = t === 'dark';
@@ -180,7 +193,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const formatCurrency = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
     const formatDate = d => {
-        if (d && d.toDate) return d.toDate().toLocaleDateString('pt-BR');
+        if (d && d.toDate) {
+            return d.toDate().toLocaleDateString('pt-BR');
+        }
         return new Date(d).toLocaleDateString('pt-BR');
     };
     const showToast = (m, t = 'success') => { const e = document.createElement('div'); e.className = `fixed bottom-5 right-5 ${t === 'success' ? 'bg-brand-primary' : 'bg-red-600'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 3000) };
@@ -191,16 +206,48 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Nenhuma venda encontrada para exportar.', 'error');
             return;
         }
-        const headers = ["Data da Compra", "ID da Venda", "Nome do Cliente", "Telefone do Cliente", "Vendedor", "Itens Vendidos", "Forma de Pagamento", "Total da Venda", "Bônus da Venda"];
-        const formatItemsForCSV = (items) => !Array.isArray(items) ? '' : items.map(item => `${item.name} (Valor: ${formatCurrency(item.value)}, Troca: ${item.exchange})`).join(' | ');
+
+        const headers = [
+            "Data da Compra", "ID da Venda", "Nome do Cliente", "Telefone do Cliente", "Vendedor",
+            "Itens Vendidos", "Forma de Pagamento", "Total da Venda", "Bônus da Venda"
+        ];
+
+        const formatItemsForCSV = (items) => {
+            if (!Array.isArray(items)) return '';
+            return items.map(item =>
+                `${item.name} (Valor: ${formatCurrency(item.value)}, Troca: ${item.exchange})`
+            ).join(' | ');
+        };
+
         const formatPaymentsForCSV = (payments) => {
             if (Array.isArray(payments) && payments.length > 0) {
-                return payments.map(p => `${p.method}: ${formatCurrency(p.amount)}${p.installments ? ` (em ${p.installments})` : ''}`).join(' | ');
+                return payments.map(p => {
+                    let paymentString = `${p.method}: ${formatCurrency(p.amount)}`;
+                    if (p.installments) {
+                        paymentString += ` (em ${p.installments})`;
+                    }
+                    return paymentString;
+                }).join(' | ');
             }
             return payments || '';
         };
-        const rows = data.map(sale => [new Date(sale.date.seconds * 1000).toLocaleString('pt-BR'), sale.id, sale.clientName, sale.clientPhone || '', sale.vendedor, formatItemsForCSV(sale.items), formatPaymentsForCSV(sale.paymentMethods || sale.paymentMethod), (sale.total || 0).toFixed(2).replace('.', ','), sale.bonus]);
-        let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers.join(",") + "\n" + rows.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+
+        const rows = data.map(sale => [
+            new Date(sale.date.seconds * 1000).toLocaleString('pt-BR'),
+            sale.id,
+            sale.clientName,
+            sale.clientPhone || '',
+            sale.vendedor,
+            formatItemsForCSV(sale.items),
+            formatPaymentsForCSV(sale.paymentMethods || sale.paymentMethod),
+            (sale.total || 0).toFixed(2).replace('.', ','),
+            sale.bonus
+        ]);
+
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -232,14 +279,18 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
         const passwordInput = document.getElementById('password');
+
         if (!user) {
             showToast('Usuário não encontrado.', 'error');
             return;
         }
+
         const email = `${user.name.toLowerCase().replace(/\s+/g, '')}@pdv-app.com`;
+
         try {
             await signInWithEmailAndPassword(auth, email, passwordInput.value);
             state.loggedInUser = user;
+
             if (user.role !== 'superadmin' && !state.selectedStore) {
                 state.selectedStore = state.db.stores.find(s => s.id === user.storeId);
             }
@@ -258,18 +309,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const logout = () => {
         signOut(auth);
-        // CORREÇÃO: Garante que todos os listeners (incluindo os de views) sejam limpos.
-        Object.values(state.listeners).forEach(listener => {
-            if (typeof listener === 'function') {
-                listener();
-            }
-        });
-        state.listeners = { users: null, sales: null, stores: null, products: null, clients: null, expenses: null, orders: null, metas: null, ranking: null, relatorios: null };
+        if (state.listeners.users) state.listeners.users();
+        if (state.listeners.sales) state.listeners.sales();
+        if (state.listeners.stores) state.listeners.stores();
+        if (state.listeners.products) state.listeners.products();
+        if (state.listeners.clients) state.listeners.clients();
+        state.listeners = { users: null, sales: null, stores: null, products: null, clients: null };
         Object.assign(state, {
             loggedInUser: null,
             selectedStore: null,
             currentOrder: [],
-            db: { users: [], stores: [], sales: [], products: [], clients: [], expenses: [], settings: {} }
+            db: { users: [], stores: [], sales: [], products: [], clients: [], settings: {} }
         });
         selectedUserForLogin = null;
         document.getElementById('app').classList.add('hidden');
@@ -283,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const store = state.selectedStore;
 
         if (!user || !user.role) {
-            console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida.");
+            console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida. Fazendo logout forçado.");
             showToast("Erro de autenticação, por favor faça login novamente.", "error");
             logout();
             return;
@@ -293,51 +343,108 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('username-sidebar').textContent = user.name;
         document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
 
-        // CORREÇÃO: Limpa listeners antigos antes de registrar novos
-        Object.values(state.listeners).forEach(listener => {
-            if (typeof listener === 'function') {
-                listener();
+        if (state.listeners.users) state.listeners.users();
+        state.listeners.users = onSnapshot(query(collection(db, "users")), (snapshot) => {
+            state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes' || state.currentView === 'relatorios')) {
+                const activeView = document.getElementById(`${state.currentView}-view`);
+                if (activeView && activeView.classList.contains('active')) {
+                    renderViewContent(state.currentView);
+                }
             }
         });
+        
+        if (state.listeners.products) state.listeners.products();
+        const productsQuery = query(collection(db, "products"), where("storeId", "==", store.id));
+        state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
+            state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (state.currentView === 'produtos' && document.getElementById('produtos-view').classList.contains('active')) {
+                renderProdutos();
+            }
+        }, (error) => {
+            console.error("Erro ao carregar produtos (verifique suas Regras de Segurança do Firestore):", error);
+            showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
+        });
 
-        const commonQueries = {
-            users: query(collection(db, "users")),
-            products: query(collection(db, "products"), where("storeId", "==", store.id)),
-            clients: query(collection(db, "clients"), where("storeId", "==", store.id)),
-            sales: query(collection(db, "sales"), where("storeId", "==", store.id)),
-            expenses: query(collection(db, "expenses"), where("storeId", "==", store.id))
-        };
+        if (state.listeners.clients) state.listeners.clients();
+        const clientsQuery = query(collection(db, "clients"), where("storeId", "==", store.id));
+        state.listeners.clients = onSnapshot(clientsQuery, (snapshot) => {
+            state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (state.currentView === 'clientes' && document.getElementById('clientes-view').classList.contains('active')) {
+                renderClientes();
+            }
+        }, (error) => {
+            console.error("Erro ao carregar clientes:", error);
+            showToast('Erro ao carregar clientes.', 'error');
+        });
 
-        state.listeners.users = onSnapshot(commonQueries.users, s => state.db.users = s.docs.map(d => ({ id: d.id, ...d.data() })));
-        state.listeners.products = onSnapshot(commonQueries.products, s => state.db.products = s.docs.map(d => ({ id: d.id, ...d.data() })));
-        state.listeners.clients = onSnapshot(commonQueries.clients, s => state.db.clients = s.docs.map(d => ({ id: d.id, ...d.data() })));
-        state.listeners.sales = onSnapshot(commonQueries.sales, s => state.db.sales = s.docs.map(d => ({ id: d.id, ...d.data() })));
-        state.listeners.expenses = onSnapshot(commonQueries.expenses, s => state.db.expenses = s.docs.map(d => ({ id: d.id, ...d.data() })));
+        // NOVO: Listener geral de vendas para alimentar os filtros de clientes.
+        if (state.listeners.sales) state.listeners.sales();
+        const salesQuery = query(collection(db, "sales"), where("storeId", "==", store.id));
+        state.listeners.sales = onSnapshot(salesQuery, (snapshot) => {
+            state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }, (error) => {
+            console.error("Erro ao carregar dados de vendas:", error);
+        });
+
 
         const switcherContainer = document.getElementById('store-switcher-container');
         if (user.role === 'superadmin') {
-            state.listeners.stores = onSnapshot(query(collection(db, "stores")), snapshot => {
+            if (state.listeners.stores) state.listeners.stores();
+            state.listeners.stores = onSnapshot(query(collection(db, "stores")), (snapshot) => {
                 state.db.stores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const select = document.getElementById('store-switcher-select');
                 if (select) {
-                    select.innerHTML = state.db.stores.map(s => `<option value="${s.id}" ${s.id === store.id ? 'selected' : ''}>${s.name}</option>`).join('');
+                    const currentStoreId = state.selectedStore ? state.selectedStore.id : state.db.stores[0].id;
+                    select.innerHTML = '';
+                    state.db.stores.forEach(s => {
+                        select.innerHTML += `<option value="${s.id}" ${s.id === currentStoreId ? 'selected' : ''}>${s.name}</option>`;
+                    });
+                    if (!state.db.stores.some(s => s.id === currentStoreId)) {
+                        if (state.db.stores.length > 0) {
+                            state.selectedStore = state.db.stores[0];
+                            initializeAppUI();
+                            switchView(state.currentView || 'pedidos');
+                        } else {
+                            logout();
+                        }
+                    }
                 }
             });
 
             switcherContainer.classList.remove('hidden');
             const select = document.getElementById('store-switcher-select');
             select.onchange = async (e) => {
-                state.selectedStore = state.db.stores.find(s => s.id === e.target.value);
+                const newStoreId = e.target.value;
+                state.selectedStore = state.db.stores.find(s => s.id === newStoreId);
                 const settingsRef = doc(db, "settings", state.selectedStore.id);
                 const settingsSnap = await getDoc(settingsRef);
-                if (settingsSnap.exists()) state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
-                initializeAppUI();
-                switchView(state.currentView || 'relatorios');
+                if (settingsSnap.exists()) {
+                    state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
+                }
+                document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
+                
+                if (state.listeners.products) state.listeners.products();
+                if (state.listeners.clients) state.listeners.clients();
+                if (state.listeners.sales) state.listeners.sales();
+
+                state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
+                    state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                });
+                
+                state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
+                    state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                });
+
+                state.listeners.sales = onSnapshot(query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
+                    state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                });
+                switchView(state.currentView);
             };
         } else {
             switcherContainer.classList.add('hidden');
         }
-        
+
         const createMenuItem = (v, i, t) => `<li><a href="#" data-view="${v}" class="flex items-center p-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white group transition-colors"><i data-lucide="${i}" class="w-5 h-5"></i><span class="ml-3">${t}</span></a></li>`;
         const createLogoutItem = () => `<li class="pt-2 mt-2 border-t border-slate-700"><button data-action="logout" class="w-full flex items-center p-2 text-red-400 rounded-lg hover:bg-red-500 hover:text-white group transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i><span class="ml-3">Sair</span></button></li>`;
 
@@ -350,22 +457,48 @@ document.addEventListener('DOMContentLoaded', () => {
             switchView('caixa');
         } else {
             const managerMenuHTML = createMenuItem('relatorios', 'layout-dashboard', 'Dashboard') +
-                                  createMenuItem('financeiro', 'trending-up', 'Financeiro') + 
-                                  createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
-                                  createMenuItem('clientes', 'users', 'Clientes') + 
-                                  createMenuItem('produtos', 'package', 'Produtos') + 
-                                  createMenuItem('ranking', 'trophy', 'Ranking') + 
-                                  createMenuItem('configuracoes', 'settings', 'Configurações') + 
-                                  createLogoutItem();
+                                    createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
+                                    createMenuItem('clientes', 'users', 'Clientes') + 
+                                    createMenuItem('produtos', 'package', 'Produtos') + 
+                                    createMenuItem('ranking', 'trophy', 'Ranking') + 
+                                    createMenuItem('configuracoes', 'settings', 'Configurações') + 
+                                    createLogoutItem();
             
             gM.innerHTML = managerMenuHTML;
             gM.classList.remove('hidden'); vM.classList.add('hidden');
             switchView('relatorios');
         }
 
-        // CORREÇÃO: O listener do sidebar é adicionado apenas uma vez.
-        // O handler foi movido para fora, para a função init().
-        
+        document.getElementById('sidebar').addEventListener('click', e => {
+            const link = e.target.closest('a[data-view]'), logoutBtn = e.target.closest('button[data-action="logout"]');
+            if (link) { e.preventDefault(); switchView(link.dataset.view); }
+            if (logoutBtn) { logout(); }
+        });
+
+        document.getElementById('app').addEventListener('click', e => {
+            const shareBtn = e.target.closest('.share-daily-report-btn');
+            if(shareBtn) {
+                const ownerPhone = state.db.settings.ownerPhone?.replace(/\D/g, '');
+                if (!ownerPhone) {
+                    return showToast('Telefone do dono não configurado. Adicione em Configurações.', 'error');
+                }
+                
+                const now = new Date();
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const salesToday = state.db.sales.filter(s => s.date.toDate() >= todayStart);
+                const totalToday = salesToday.reduce((sum, s) => sum + s.total, 0);
+
+                const summaryText = `*Resumo do Dia - ${now.toLocaleDateString('pt-BR')}*\n\n` +
+                                  `*Loja:* ${state.selectedStore.name}\n` +
+                                  `*Total Vendido:* ${formatCurrency(totalToday)}\n` +
+                                  `*Vendas Realizadas:* ${salesToday.length}\n` +
+                                  `*Ticket Médio:* ${formatCurrency(salesToday.length > 0 ? totalToday / salesToday.length : 0)}`;
+
+                const encodedText = encodeURIComponent(summaryText);
+                window.open(`https://wa.me/55${ownerPhone}?text=${encodedText}`, '_blank');
+            }
+        });
+
         window.lucide.createIcons();
     };
 
@@ -395,11 +528,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (['pedidos', 'produtos', 'clientes'].includes(viewId)) {
             const table = viewContainer.querySelector('table');
-            if (table && !table.parentElement.classList.contains('table-responsive-wrapper')) {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'overflow-x-auto table-responsive-wrapper';
-                table.parentNode.insertBefore(wrapper, table);
-                wrapper.appendChild(table);
+            if (table) {
+                if (!table.parentElement.classList.contains('table-responsive-wrapper')) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'overflow-x-auto table-responsive-wrapper';
+                    table.parentNode.insertBefore(wrapper, table);
+                    wrapper.appendChild(table);
+                }
             }
         }
 
@@ -413,12 +548,11 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'ranking': renderRanking(); break;
             case 'relatorios': renderDashboard(); break;
             case 'configuracoes': renderConfiguracoes(); break;
-            case 'financeiro': renderFinanceiro(); break;
         }
     };
 
     const sidebar = document.getElementById('sidebar'), overlay = document.getElementById('sidebar-overlay');
-    const showMobileMenu = s => { s ? (sidebar.classList.remove('-translate-x-full'), overlay.classList.remove('hidden')) : (sidebar.classList.add('-translate-x-full'), overlay.classList.add('hidden')) };
+    const showMobileMenu = s => { if (s) { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden') } else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden') } };
     document.getElementById('mobile-menu-button').addEventListener('click', () => showMobileMenu(true));
     overlay.addEventListener('click', () => showMobileMenu(false));
 
@@ -923,10 +1057,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     bonus = Math.floor(total / bonusConfig.value) * 2;
                 }
 
-                // CORREÇÃO: Adiciona a propriedade 'saleMonth' para o relatório financeiro
-                const saleDate = new Date();
-                const saleMonth = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`;
-
                 const saleData = {
                     clientName: clientNameInput.value,
                     clientPhone: clientPhoneInput.value,
@@ -937,8 +1067,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     items: state.currentOrder,
                     total: total,
                     bonus: bonus,
-                    date: Timestamp.fromDate(saleDate),
-                    saleMonth: saleMonth, // <-- CAMPO ADICIONADO
+                    date: Timestamp.now(),
                     vendedor: state.loggedInUser.name,
                     status: 'Finalizado',
                     storeId: state.selectedStore.id,
@@ -982,6 +1111,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
     
+    // ====================================================================================================
+    // FUNÇÃO renderClientes TOTALMENTE REFEITA PARA INCLUIR FILTROS E BOTÃO WHATSAPP
+    // ====================================================================================================
     function renderClientes() {
         const view = document.getElementById('clientes-view');
         const form = view.querySelector('#add-client-form');
@@ -989,6 +1121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchInput = view.querySelector('#client-search');
         const clientCountEl = view.querySelector('#client-count');
         
+        // Novos elementos do filtro
         const clientFilterForm = view.querySelector('#client-filter-form');
         const filterDateInput = view.querySelector('#filter-last-purchase');
         const filterProductInput = view.querySelector('#filter-product-purchased');
@@ -1005,6 +1138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const renderClientsTable = (clients) => {
+            tableBody.innerHTML = '';
             const clientsToRender = clients || state.db.clients;
             
             clientCountEl.textContent = `${clientsToRender.length} cliente(s) encontrado(s).`;
@@ -1015,11 +1149,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const sortedClients = [...clientsToRender].sort((a, b) => a.name.localeCompare(b.name));
-            
-            // CORREÇÃO: Constrói o HTML em uma string antes de injetar no DOM
-            let tableHTML = '';
+
             sortedClients.forEach(client => {
-                tableHTML += `
+                const row = `
                     <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
                         <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${client.name}</td>
                         <td class="px-6 py-4">${client.phone || 'N/A'}</td>
@@ -1033,14 +1165,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         </td>
                     </tr>
                 `;
+                tableBody.innerHTML += row;
             });
-            tableBody.innerHTML = tableHTML;
             window.lucide.createIcons();
         };
 
+        // Lógica de busca simples (nome/telefone)
         searchInput.addEventListener('input', () => {
             const term = searchInput.value.toLowerCase();
-            clientFilterForm.reset(); 
+            clientFilterForm.reset(); // Limpa os filtros avançados ao usar a busca simples
             if (term.length === 0) {
                 renderClientsTable(state.db.clients);
                 return;
@@ -1051,6 +1184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderClientsTable(filteredClients);
         });
 
+        // Lógica dos Filtros Avançados
         clientFilterForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const dateValue = filterDateInput.value;
@@ -1092,6 +1226,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderClientsTable(state.db.clients);
         });
 
+        // Lógica do formulário de Adicionar/Editar Cliente
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const clientData = {
@@ -1119,6 +1254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         form.addEventListener('reset', resetForm);
 
+        // Lógica dos botões na tabela (Detalhes, Editar, Excluir, WhatsApp)
         tableBody.addEventListener('click', async (e) => {
             const btn = e.target.closest('button');
             if (!btn) return;
@@ -1176,27 +1312,27 @@ document.addEventListener('DOMContentLoaded', () => {
                  }
 
                  modal.innerHTML = `
-                  <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
-                      <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
-                          <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
-                          <button id="close-client-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><i data-lucide="x" class="w-6 h-6"></i></button>
-                      </div>
-                      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                              <h4 class="font-bold mb-2">Informações de Contato</h4>
-                              <p><strong class="font-medium">Telefone:</strong> ${client.phone || 'N/A'}</p>
-                              <p><strong class="font-medium">Email:</strong> ${client.email || 'N/A'}</p>
-                              <p><strong class="font-medium">Endereço:</strong> ${client.address || 'N/A'}</p>
-                              <hr class="my-3 dark:border-slate-700">
-                              <h4 class="font-bold">Total Gasto na Loja:</h4>
-                              <p class="text-xl font-bold text-brand-primary">${formatCurrency(totalSpent)}</p>
-                          </div>
-                          <div>
-                              <h4 class="font-bold mb-2">Histórico de Compras (${clientSales.length})</h4>
-                              ${salesHTML}
-                          </div>
-                      </div>
-                  </div>
+                   <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
+                       <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
+                           <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
+                           <button id="close-client-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><i data-lucide="x" class="w-6 h-6"></i></button>
+                       </div>
+                       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                               <h4 class="font-bold mb-2">Informações de Contato</h4>
+                               <p><strong class="font-medium">Telefone:</strong> ${client.phone || 'N/A'}</p>
+                               <p><strong class="font-medium">Email:</strong> ${client.email || 'N/A'}</p>
+                               <p><strong class="font-medium">Endereço:</strong> ${client.address || 'N/A'}</p>
+                               <hr class="my-3 dark:border-slate-700">
+                               <h4 class="font-bold">Total Gasto na Loja:</h4>
+                               <p class="text-xl font-bold text-brand-primary">${formatCurrency(totalSpent)}</p>
+                           </div>
+                           <div>
+                               <h4 class="font-bold mb-2">Histórico de Compras (${clientSales.length})</h4>
+                               ${salesHTML}
+                           </div>
+                       </div>
+                   </div>
                  `;
                  window.lucide.createIcons();
                  modal.querySelector('#close-client-details-modal').addEventListener('click', () => modal.classList.add('hidden'));
@@ -1206,23 +1342,67 @@ document.addEventListener('DOMContentLoaded', () => {
         renderClientsTable();
     }
     
+    document.getElementById('app').addEventListener('submit', async (e) => {
+        if (e.target.id === 'add-product-form') {
+            e.preventDefault();
+            const form = e.target;
+            const name = form.querySelector('#product-name').value;
+            const price = parseFloat(form.querySelector('#product-price').value);
+            const quantity = parseInt(form.querySelector('#product-quantity').value);
+
+            if (!name || isNaN(price) || isNaN(quantity)) {
+                showToast('Por favor, preencha todos os campos corretamente.', 'error');
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "products"), {
+                    name,
+                    price,
+                    quantity,
+                    storeId: state.selectedStore.id
+                });
+                showToast('Produto adicionado com sucesso!', 'success');
+                form.reset();
+            } catch (error) {
+                console.error("Erro ao adicionar produto:", error);
+                showToast('Erro ao adicionar produto.', 'error');
+            }
+        }
+    });
+
+    document.getElementById('app').addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('.remove-product-btn');
+        if (removeBtn) {
+            const productId = removeBtn.dataset.productId;
+            showConfirmModal('Tem certeza que deseja remover este produto? A ação não pode ser desfeita.', async () => {
+                try {
+                    await deleteDoc(doc(db, "products", productId));
+                    showToast('Produto removido com sucesso!', 'success');
+                } catch (error) {
+                    console.error("Erro ao remover produto:", error);
+                    showToast('Erro ao remover produto.', 'error');
+                }
+            });
+        }
+    });
+
     function renderProdutos() {
         const view = document.getElementById('produtos-view');
         const tableBody = view.querySelector('#products-table-body');
 
         const renderProductsTable = () => {
+            tableBody.innerHTML = '';
             if (state.db.products.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-slate-500">Nenhum produto cadastrado.</td></tr>`;
                 return;
             }
 
             const sortedProducts = [...state.db.products].sort((a, b) => a.name.localeCompare(b.name));
-            
-            // CORREÇÃO: Eficiência na manipulação do DOM
-            let tableHTML = '';
+
             sortedProducts.forEach(product => {
                 const stockClass = product.quantity <= 5 ? 'text-red-500 font-bold' : (product.quantity <= 10 ? 'text-amber-500 font-semibold' : '');
-                tableHTML += `
+                const row = `
                     <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
                         <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${product.name}</td>
                         <td class="px-6 py-4 text-center ${stockClass}">${product.quantity}</td>
@@ -1234,8 +1414,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         </td>
                     </tr>
                 `;
+                tableBody.innerHTML += row;
             });
-            tableBody.innerHTML = tableHTML;
             window.lucide.createIcons();
         };
 
@@ -1243,9 +1423,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function renderPedidos() {
-        // CORREÇÃO: Limpa o listener antigo para evitar vazamento de memória
-        if (state.listeners.orders) state.listeners.orders();
-
         const c = document.getElementById('pedidos-view');
         const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
 
@@ -1275,34 +1452,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const renderTable = (sales) => {
             const tbody = c.querySelector('#orders-table-body');
+            tbody.innerHTML = '';
             if (!sales || sales.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="10" class="text-center p-8 text-slate-500">Nenhum pedido encontrado.</td></tr>';
-                return;
-            } 
-            
-            // CORREÇÃO: Eficiência na manipulação do DOM
-            let tableHTML = '';
-            sales.forEach(s => {
-                const paymentDisplay = Array.isArray(s.paymentMethods)
-                    ? s.paymentMethods.map(p => `${p.method}${p.installments ? ` (${p.installments})` : ''}`).join(' + ')
-                    : s.paymentMethod;
+            } else {
+                sales.forEach(s => {
+                    const r = document.createElement('tr');
+                    r.className = 'bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50';
+                    
+                    const paymentDisplay = Array.isArray(s.paymentMethods)
+                        ? s.paymentMethods.map(p => {
+                            let paymentString = p.method;
+                            if (p.installments) {
+                                paymentString += ` (${p.installments})`;
+                            }
+                            return paymentString;
+                        }).join(' + ')
+                        : s.paymentMethod;
 
-                tableHTML += `
-                    <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
-                        ${isGerente ? `<td class="px-6 py-4">${s.vendedor}</td>` : ''}
-                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
-                        <td class="px-6 py-4">${new Date(s.date.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                        <td class="px-6 py-4">${paymentDisplay}</td>
-                        <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
-                        <td class="px-6 py-4 text-center">
-                            <button data-order-id="${s.id}" class="view-details-btn text-brand-primary hover:underline">Detalhes</button>
-                        </td>
-                    </tr>`;
-            });
-            tbody.innerHTML = tableHTML;
+                    r.innerHTML =
+                        `${isGerente ? `<td class="px-6 py-4">${s.vendedor}</td>` : ''}
+                            <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
+                            <td class="px-6 py-4">${new Date(s.date.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                            <td class="px-6 py-4">${paymentDisplay}</td>
+                            <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
+                            <td class="px-6 py-4 text-center">
+                                <button data-order-id="${s.id}" class="view-details-btn text-brand-primary hover:underline">Detalhes</button>
+                            </td>`;
+                    tbody.appendChild(r);
+                });
+            }
         };
         
         const applyFiltersAndFetchSales = () => {
+            // Este listener agora é mais específico para a tela de pedidos.
+            const ordersListener = () => {};
+            if (state.listeners.orders) state.listeners.orders();
+
             const dateFilter = c.querySelector('#filter-date').value;
             const paymentFilter = c.querySelector('#filter-payment').value;
             const vendedorFilter = isGerente ? c.querySelector('#filter-vendedor').value : null;
@@ -1358,13 +1544,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     const itemsList = order.items.map(i => `<li>${i.productId ? '<i class="inline-block" data-lucide="package"></i> ' : ''}${i.name} (${formatCurrency(i.value)})</li>`).join('');
                     
                     const paymentDetails = Array.isArray(order.paymentMethods)
-                        ? order.paymentMethods.map(p => `<li>${p.method}: ${formatCurrency(p.amount)}${p.installments ? ` (em ${p.installments})` : ''}</li>`).join('')
+                        ? order.paymentMethods.map(p => {
+                            let paymentString = `<li>${p.method}: ${formatCurrency(p.amount)}`;
+                            if(p.installments) {
+                                paymentString += ` (em ${p.installments})`;
+                            }
+                            paymentString += `</li>`;
+                            return paymentString;
+                        }).join('')
                         : `<li>${order.paymentMethod}: ${formatCurrency(order.total)}</li>`;
                     
-                    let prizeDetails = '';
-                    if(order.prizeWon){
-                         prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
-                    }
+                             let prizeDetails = '';
+                             if(order.prizeWon){
+                                  prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
+                             }
 
                     m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p>${prizeDetails}</div></div>`;
                     m.querySelector('#close-details-modal').addEventListener('click', () => m.classList.add('hidden'));
@@ -1375,9 +1568,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderMetas(){
-        // CORREÇÃO: Limpa o listener antigo
-        if (state.listeners.metas) state.listeners.metas();
-
         const c = document.getElementById('metas-view');
         if (!c) return;
 
@@ -1473,7 +1663,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentPeriod = 'day';
 
         const updateRankingUI = (sales, period) => {
-            // CORREÇÃO: Evita mutação do objeto 'now' original
             const now = new Date();
             let startDate;
 
@@ -1484,8 +1673,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'week':
                     const dayOfWeek = now.getDay();
                     const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-                    // Cria uma nova data para não modificar a original
-                    startDate = new Date(now.getFullYear(), now.getMonth(), diff);
+                    startDate = new Date(now.setDate(diff));
                     break;
                 case 'day':
                 default:
@@ -1560,8 +1748,7 @@ document.addEventListener('DOMContentLoaded', () => {
             podiumContainer.innerHTML = podiumHTML;
 
             if(others.length > 0) {
-                // CORREÇÃO: Eficiência na manipulação do DOM
-                listContainer.innerHTML = `
+                const listHTML = `
                     <ul class="space-y-2">
                         ${others.map((seller, index) => `
                             <li class="flex items-center justify-between p-3 bg-slate-200/50 dark:bg-slate-800/50 rounded-lg">
@@ -1577,6 +1764,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         `).join('')}
                     </ul>
                 `;
+                listContainer.innerHTML = listHTML;
             } else if (rankedSellers.length > 3) {
                  listContainer.innerHTML = '<p class="text-center text-sm text-slate-500 p-4">...</p>';
             }
@@ -1598,17 +1786,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 view.querySelectorAll('.ranking-period-btn').forEach(b => b.classList.remove('bg-white', 'dark:bg-slate-900', 'text-brand-primary', 'shadow'));
                 e.target.classList.add('bg-white', 'dark:bg-slate-900', 'text-brand-primary', 'shadow');
                 
-                // Reutiliza os dados já carregados para performance
-                updateRankingUI(state.db.sales, currentPeriod);
+                const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
+                getDocs(q).then(snapshot => {
+                     const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                     updateRankingUI(allSales, currentPeriod);
+                });
             });
         });
     }
 
-    // O resto do código (renderDashboard, renderConfiguracoes, etc.) permanece o mesmo,
-    // mas com as correções de manipulação de DOM e listeners aplicadas onde necessário.
-    // ...
-    // (O restante do código foi omitido por brevidade, mas as correções foram aplicadas conceitualmente.)
- function renderDashboard() {
+    function renderDashboard() {
         const c = document.getElementById('relatorios-view');
         if (!c) return;
         const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
@@ -2351,64 +2538,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('theme-toggle').addEventListener('click', themeToggleHandler);
         document.getElementById('theme-toggle-app').addEventListener('click', themeToggleHandler);
 
-        // CORREÇÃO: Listener do sidebar centralizado aqui para evitar duplicação.
-        document.getElementById('sidebar').addEventListener('click', e => {
-            const link = e.target.closest('a[data-view]');
-            const logoutBtn = e.target.closest('button[data-action="logout"]');
-            if (link) { 
-                e.preventDefault(); 
-                switchView(link.dataset.view); 
-            }
-            if (logoutBtn) { 
-                logout(); 
-            }
-        });
-
-        // CORREÇÃO: Listeners de produto centralizados para evitar duplicação.
-        document.getElementById('app').addEventListener('submit', async (e) => {
-            if (e.target.id === 'add-product-form') {
-                e.preventDefault();
-                const form = e.target;
-                const name = form.querySelector('#product-name').value;
-                const price = parseFloat(form.querySelector('#product-price').value);
-                const quantity = parseInt(form.querySelector('#product-quantity').value);
-
-                if (!name || isNaN(price) || isNaN(quantity)) {
-                    showToast('Por favor, preencha todos os campos corretamente.', 'error');
-                    return;
-                }
-
-                try {
-                    await addDoc(collection(db, "products"), { name, price, quantity, storeId: state.selectedStore.id });
-                    showToast('Produto adicionado com sucesso!', 'success');
-                    form.reset();
-                } catch (error) {
-                    console.error("Erro ao adicionar produto:", error);
-                    showToast('Erro ao adicionar produto.', 'error');
-                }
-            }
-        });
-
-        document.getElementById('app').addEventListener('click', (e) => {
-            const removeBtn = e.target.closest('.remove-product-btn');
-            if (removeBtn) {
-                const productId = removeBtn.dataset.productId;
-                showConfirmModal('Tem certeza que deseja remover este produto?', async () => {
-                    try {
-                        await deleteDoc(doc(db, "products", productId));
-                        showToast('Produto removido com sucesso!', 'success');
-                    } catch (error) {
-                        console.error("Erro ao remover produto:", error);
-                        showToast('Erro ao remover produto.', 'error');
-                    }
-                });
-            }
-        });
-
         window.lucide.createIcons();
         loadInitialData();
     };
 
     init();
 });
-
