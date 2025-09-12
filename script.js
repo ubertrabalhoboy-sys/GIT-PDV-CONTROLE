@@ -5,6 +5,7 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 
 document.addEventListener('DOMContentLoaded', () => {
     // A configuração do Firebase permanece aqui.
+    // ATENÇÃO: Em um ambiente de produção, mova estas chaves para variáveis de ambiente ou um serviço de configuração remota para evitar exposição.
     const firebaseConfig = {
         apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
         authDomain: "pdv-vendas-8a65a.firebaseapp.com",
@@ -39,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             sales: []
         },
-        listeners: { users: null, sales: null, stores: null, products: null, clients: null },
+        listeners: { users: null, sales: null, stores: null, products: null, clients: null, orders: null, metas: null, ranking: null, relatorios: null },
         selectedStore: null
     };
     let selectedUserForLogin = null;
@@ -93,15 +94,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderStoreSelection() {
         const storeList = document.getElementById('store-list');
-        storeList.innerHTML = '';
-        state.db.stores.forEach(store => {
-            const storeButton = document.createElement('button');
-            storeButton.className = 'w-full text-left p-4 custom-card rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors duration-200';
-            storeButton.dataset.storeId = store.id;
-            storeButton.dataset.storeName = store.name;
-            storeButton.textContent = store.name;
-            storeList.appendChild(storeButton);
-        });
+        // CORRIGIDO: Uso eficiente do innerHTML, evitando múltiplas manipulações do DOM em loop.
+        const storeButtonsHTML = state.db.stores.map(store => `
+            <button class="w-full text-left p-4 custom-card rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors duration-200" data-store-id="${store.id}" data-store-name="${store.name}">
+                ${store.name}
+            </button>
+        `).join('');
+        storeList.innerHTML = storeButtonsHTML;
     }
 
     document.getElementById('store-list').addEventListener('click', async (e) => {
@@ -118,18 +117,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (settingsSnap.exists()) {
             state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
         } else {
-            await setDoc(settingsRef, {
+            // Se as configurações não existem, cria com valores padrão
+            const defaultSettings = {
                 storeName: state.selectedStore.name,
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
                 bonusSystem: { enabled: true, value: 80 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
-            });
-            state.db.settings.storeName = state.selectedStore.name;
-            state.db.settings.goals = { daily: 150, weekly: 1000, monthly: 4000 };
-            state.db.settings.bonusSystem = { enabled: true, value: 80 };
-            state.db.settings.bonusWheel = { enabled: false, prizes: [], minValue: 0 };
-            state.db.settings.ownerPhone = '';
+            };
+            await setDoc(settingsRef, defaultSettings);
+            state.db.settings = { ...state.db.settings, ...defaultSettings };
         }
 
         loadUsersForStore(state.selectedStore.id);
@@ -156,15 +153,15 @@ document.addEventListener('DOMContentLoaded', () => {
             state.db.users = Array.from(usersMap.values());
 
             const userList = document.getElementById('user-list');
-            userList.innerHTML = '';
             if (state.db.users.length > 0) {
-                state.db.users.forEach(user => {
-                    const userButton = document.createElement('button');
-                    userButton.className = 'flex flex-col items-center p-4 custom-card rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors duration-200 transform hover:scale-105';
-                    userButton.dataset.username = user.name;
-                    userButton.innerHTML = `<div class="w-16 h-16 mb-2 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div><span class="font-semibold text-slate-800 dark:text-slate-200 text-center">${user.name}</span>`;
-                    userList.appendChild(userButton);
-                });
+                // CORRIGIDO: Uso eficiente do innerHTML.
+                const userButtonsHTML = state.db.users.map(user => `
+                    <button class="flex flex-col items-center p-4 custom-card rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors duration-200 transform hover:scale-105" data-username="${user.name}">
+                        <div class="w-16 h-16 mb-2 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div>
+                        <span class="font-semibold text-slate-800 dark:text-slate-200 text-center">${user.name}</span>
+                    </button>
+                `).join('');
+                userList.innerHTML = userButtonsHTML;
             } else {
                 userList.innerHTML = '<p class="col-span-full text-center text-slate-500">Nenhum usuário para esta loja.</p>';
             }
@@ -183,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
         state.db.users = [];
     });
 
-
     const applyTheme = (t) => {
         const h = document.documentElement;
         const isDark = t === 'dark';
@@ -198,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return new Date(d).toLocaleDateString('pt-BR');
     };
-    const showToast = (m, t = 'success') => { const e = document.createElement('div'); e.className = `fixed bottom-5 right-5 ${t === 'success' ? 'bg-brand-primary' : 'bg-red-600'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 3000) };
+    const showToast = (m, t = 'success') => { const e = document.createElement('div'); e.className = `fixed bottom-5 right-5 ${t === 'success' ? 'bg-brand-primary' : (t === 'error' ? 'bg-red-600' : 'bg-slate-600')} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 3000) };
     const showConfirmModal = (m, onConfirm) => { const M = document.getElementById('confirm-modal'); M.querySelector('#confirm-modal-message').textContent = m; M.classList.remove('hidden'); const c = M.querySelector('#confirm-modal-confirm'), n = M.querySelector('#confirm-modal-cancel'); const h = () => { onConfirm(); hide() }; const k = () => hide(); const hide = () => { M.classList.add('hidden'); c.removeEventListener('click', h); n.removeEventListener('click', k) }; c.addEventListener('click', h, { once: true }); n.addEventListener('click', k, { once: true }) };
 
     function exportToCSV(data, filename) {
@@ -309,12 +305,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const logout = () => {
         signOut(auth);
-        if (state.listeners.users) state.listeners.users();
-        if (state.listeners.sales) state.listeners.sales();
-        if (state.listeners.stores) state.listeners.stores();
-        if (state.listeners.products) state.listeners.products();
-        if (state.listeners.clients) state.listeners.clients();
-        state.listeners = { users: null, sales: null, stores: null, products: null, clients: null };
+        // Desanexa todos os listeners para limpar a memória
+        Object.values(state.listeners).forEach(listener => {
+            if (typeof listener === 'function') {
+                listener();
+            }
+        });
+        state.listeners = { users: null, sales: null, stores: null, products: null, clients: null, orders: null, metas: null, ranking: null, relatorios: null };
         Object.assign(state, {
             loggedInUser: null,
             selectedStore: null,
@@ -327,6 +324,46 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('store-switcher-container').classList.add('hidden');
         loadInitialData();
     };
+
+    // NOVO: Função centralizada para gerenciar listeners da loja
+    function setupStoreListeners(storeId) {
+        // CORRIGIDO: Desanexa listeners antigos para evitar vazamentos de memória
+        if (state.listeners.products) state.listeners.products();
+        if (state.listeners.clients) state.listeners.clients();
+        if (state.listeners.sales) state.listeners.sales();
+
+        // Listener de produtos
+        const productsQuery = query(collection(db, "products"), where("storeId", "==", storeId));
+        state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
+            state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (state.currentView === 'produtos' && document.getElementById('produtos-view').classList.contains('active')) {
+                renderProdutos();
+            }
+        }, (error) => {
+            console.error("Erro ao carregar produtos:", error);
+            showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
+        });
+
+        // Listener de clientes
+        const clientsQuery = query(collection(db, "clients"), where("storeId", "==", storeId));
+        state.listeners.clients = onSnapshot(clientsQuery, (snapshot) => {
+            state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (state.currentView === 'clientes' && document.getElementById('clientes-view').classList.contains('active')) {
+                renderClientes();
+            }
+        }, (error) => {
+            console.error("Erro ao carregar clientes:", error);
+            showToast('Erro ao carregar clientes.', 'error');
+        });
+
+        // Listener geral de vendas para a loja
+        const salesQuery = query(collection(db, "sales"), where("storeId", "==", storeId));
+        state.listeners.sales = onSnapshot(salesQuery, (snapshot) => {
+            state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }, (error) => {
+            console.error("Erro ao carregar dados de vendas:", error);
+        });
+    }
 
     const initializeAppUI = () => {
         const user = state.loggedInUser;
@@ -354,39 +391,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        if (state.listeners.products) state.listeners.products();
-        const productsQuery = query(collection(db, "products"), where("storeId", "==", store.id));
-        state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
-            state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView === 'produtos' && document.getElementById('produtos-view').classList.contains('active')) {
-                renderProdutos();
-            }
-        }, (error) => {
-            console.error("Erro ao carregar produtos (verifique suas Regras de Segurança do Firestore):", error);
-            showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
-        });
-
-        if (state.listeners.clients) state.listeners.clients();
-        const clientsQuery = query(collection(db, "clients"), where("storeId", "==", store.id));
-        state.listeners.clients = onSnapshot(clientsQuery, (snapshot) => {
-            state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView === 'clientes' && document.getElementById('clientes-view').classList.contains('active')) {
-                renderClientes();
-            }
-        }, (error) => {
-            console.error("Erro ao carregar clientes:", error);
-            showToast('Erro ao carregar clientes.', 'error');
-        });
-
-        // NOVO: Listener geral de vendas para alimentar os filtros de clientes.
-        if (state.listeners.sales) state.listeners.sales();
-        const salesQuery = query(collection(db, "sales"), where("storeId", "==", store.id));
-        state.listeners.sales = onSnapshot(salesQuery, (snapshot) => {
-            state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        }, (error) => {
-            console.error("Erro ao carregar dados de vendas:", error);
-        });
-
+        // CORRIGIDO: Centraliza a configuração dos listeners da loja para evitar duplicação
+        setupStoreListeners(store.id);
 
         const switcherContainer = document.getElementById('store-switcher-container');
         if (user.role === 'superadmin') {
@@ -395,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.db.stores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const select = document.getElementById('store-switcher-select');
                 if (select) {
-                    const currentStoreId = state.selectedStore ? state.selectedStore.id : state.db.stores[0].id;
+                    const currentStoreId = state.selectedStore ? state.selectedStore.id : (state.db.stores[0]?.id || '');
                     select.innerHTML = '';
                     state.db.stores.forEach(s => {
                         select.innerHTML += `<option value="${s.id}" ${s.id === currentStoreId ? 'selected' : ''}>${s.name}</option>`;
@@ -424,21 +430,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
                 
-                if (state.listeners.products) state.listeners.products();
-                if (state.listeners.clients) state.listeners.clients();
-                if (state.listeners.sales) state.listeners.sales();
-
-                state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
-                    state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                });
+                // CORRIGIDO: Reconfigura os listeners para a nova loja, evitando vazamento de memória
+                setupStoreListeners(newStoreId);
                 
-                state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
-                    state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                });
-
-                state.listeners.sales = onSnapshot(query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
-                    state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                });
                 switchView(state.currentView);
             };
         } else {
@@ -457,12 +451,12 @@ document.addEventListener('DOMContentLoaded', () => {
             switchView('caixa');
         } else {
             const managerMenuHTML = createMenuItem('relatorios', 'layout-dashboard', 'Dashboard') +
-                                    createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
-                                    createMenuItem('clientes', 'users', 'Clientes') + 
-                                    createMenuItem('produtos', 'package', 'Produtos') + 
-                                    createMenuItem('ranking', 'trophy', 'Ranking') + 
-                                    createMenuItem('configuracoes', 'settings', 'Configurações') + 
-                                    createLogoutItem();
+                                      createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
+                                      createMenuItem('clientes', 'users', 'Clientes') + 
+                                      createMenuItem('produtos', 'package', 'Produtos') + 
+                                      createMenuItem('ranking', 'trophy', 'Ranking') + 
+                                      createMenuItem('configuracoes', 'settings', 'Configurações') + 
+                                      createLogoutItem();
             
             gM.innerHTML = managerMenuHTML;
             gM.classList.remove('hidden'); vM.classList.add('hidden');
@@ -489,10 +483,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const totalToday = salesToday.reduce((sum, s) => sum + s.total, 0);
 
                 const summaryText = `*Resumo do Dia - ${now.toLocaleDateString('pt-BR')}*\n\n` +
-                                  `*Loja:* ${state.selectedStore.name}\n` +
-                                  `*Total Vendido:* ${formatCurrency(totalToday)}\n` +
-                                  `*Vendas Realizadas:* ${salesToday.length}\n` +
-                                  `*Ticket Médio:* ${formatCurrency(salesToday.length > 0 ? totalToday / salesToday.length : 0)}`;
+                                    `*Loja:* ${state.selectedStore.name}\n` +
+                                    `*Total Vendido:* ${formatCurrency(totalToday)}\n` +
+                                    `*Vendas Realizadas:* ${salesToday.length}\n` +
+                                    `*Ticket Médio:* ${formatCurrency(salesToday.length > 0 ? totalToday / salesToday.length : 0)}`;
 
                 const encodedText = encodeURIComponent(summaryText);
                 window.open(`https://wa.me/55${ownerPhone}?text=${encodedText}`, '_blank');
@@ -675,7 +669,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearInterval(slowDownInterval);
                 }
             }, 200);
-
 
             let cumulativeProbability = 0;
             const weightedPrizes = prizes.map(p => ({ ...p, cumulative: cumulativeProbability += p.probability }));
@@ -1111,9 +1104,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
     
-    // ====================================================================================================
-    // FUNÇÃO renderClientes TOTALMENTE REFEITA PARA INCLUIR FILTROS E BOTÃO WHATSAPP
-    // ====================================================================================================
     function renderClientes() {
         const view = document.getElementById('clientes-view');
         const form = view.querySelector('#add-client-form');
@@ -1121,7 +1111,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchInput = view.querySelector('#client-search');
         const clientCountEl = view.querySelector('#client-count');
         
-        // Novos elementos do filtro
         const clientFilterForm = view.querySelector('#client-filter-form');
         const filterDateInput = view.querySelector('#filter-last-purchase');
         const filterProductInput = view.querySelector('#filter-product-purchased');
@@ -1138,7 +1127,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const renderClientsTable = (clients) => {
-            tableBody.innerHTML = '';
             const clientsToRender = clients || state.db.clients;
             
             clientCountEl.textContent = `${clientsToRender.length} cliente(s) encontrado(s).`;
@@ -1150,30 +1138,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const sortedClients = [...clientsToRender].sort((a, b) => a.name.localeCompare(b.name));
 
-            sortedClients.forEach(client => {
-                const row = `
-                    <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
-                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${client.name}</td>
-                        <td class="px-6 py-4">${client.phone || 'N/A'}</td>
-                        <td class="px-6 py-4 text-center">
-                            ${client.phone ? `<button data-client-id="${client.id}" data-client-phone="${client.phone}" class="whatsapp-client-btn text-green-500 hover:text-green-700" title="Enviar WhatsApp"><i class="w-5 h-5 pointer-events-none" data-lucide="message-circle"></i></button>` : `<span class="text-xs text-slate-400">Sem Tel.</span>`}
-                        </td>
-                        <td class="px-6 py-4 text-center space-x-2">
-                            <button data-client-id="${client.id}" class="view-client-btn text-blue-500 hover:text-blue-700" title="Ver Detalhes"><i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i></button>
-                            <button data-client-id="${client.id}" class="edit-client-btn text-amber-500 hover:text-amber-700" title="Editar"><i data-lucide="edit-2" class="w-4 h-4 pointer-events-none"></i></button>
-                            <button data-client-id="${client.id}" class="remove-client-btn text-red-500 hover:text-red-700" title="Remover"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>
-                        </td>
-                    </tr>
-                `;
-                tableBody.innerHTML += row;
-            });
+            // CORRIGIDO: Uso eficiente do innerHTML.
+            const rowsHTML = sortedClients.map(client => `
+                <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
+                    <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${client.name}</td>
+                    <td class="px-6 py-4">${client.phone || 'N/A'}</td>
+                    <td class="px-6 py-4 text-center">
+                        ${client.phone ? `<button data-client-id="${client.id}" data-client-phone="${client.phone}" class="whatsapp-client-btn text-green-500 hover:text-green-700" title="Enviar WhatsApp"><i class="w-5 h-5 pointer-events-none" data-lucide="message-circle"></i></button>` : `<span class="text-xs text-slate-400">Sem Tel.</span>`}
+                    </td>
+                    <td class="px-6 py-4 text-center space-x-2">
+                        <button data-client-id="${client.id}" class="view-client-btn text-blue-500 hover:text-blue-700" title="Ver Detalhes"><i data-lucide="eye" class="w-4 h-4 pointer-events-none"></i></button>
+                        <button data-client-id="${client.id}" class="edit-client-btn text-amber-500 hover:text-amber-700" title="Editar"><i data-lucide="edit-2" class="w-4 h-4 pointer-events-none"></i></button>
+                        <button data-client-id="${client.id}" class="remove-client-btn text-red-500 hover:text-red-700" title="Remover"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+            tableBody.innerHTML = rowsHTML;
             window.lucide.createIcons();
         };
 
-        // Lógica de busca simples (nome/telefone)
         searchInput.addEventListener('input', () => {
             const term = searchInput.value.toLowerCase();
-            clientFilterForm.reset(); // Limpa os filtros avançados ao usar a busca simples
+            clientFilterForm.reset(); 
             if (term.length === 0) {
                 renderClientsTable(state.db.clients);
                 return;
@@ -1184,7 +1170,6 @@ document.addEventListener('DOMContentLoaded', () => {
             renderClientsTable(filteredClients);
         });
 
-        // Lógica dos Filtros Avançados
         clientFilterForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const dateValue = filterDateInput.value;
@@ -1226,7 +1211,6 @@ document.addEventListener('DOMContentLoaded', () => {
             renderClientsTable(state.db.clients);
         });
 
-        // Lógica do formulário de Adicionar/Editar Cliente
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const clientData = {
@@ -1254,7 +1238,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         form.addEventListener('reset', resetForm);
 
-        // Lógica dos botões na tabela (Detalhes, Editar, Excluir, WhatsApp)
         tableBody.addEventListener('click', async (e) => {
             const btn = e.target.closest('button');
             if (!btn) return;
@@ -1298,21 +1281,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                  let salesHTML = '<p class="text-sm text-slate-500">Nenhuma compra registrada.</p>';
                  if (clientSales.length > 0) {
-                      salesHTML = `<ul class="space-y-2 text-sm max-h-60 overflow-y-auto pr-2">` + clientSales.sort((a,b) => b.date.seconds - a.date.seconds).map(sale => `
-                          <li class="p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-md">
-                              <div class="flex justify-between font-semibold">
-                                  <span>${formatDate(sale.date)}</span>
-                                  <span>${formatCurrency(sale.total)}</span>
-                              </div>
-                              <ul class="list-disc list-inside text-xs text-slate-600 dark:text-slate-400">
-                                  ${sale.items.map(item => `<li>${item.name}</li>`).join('')}
-                              </ul>
-                          </li>
-                      `).join('') + `</ul>`;
+                       salesHTML = `<ul class="space-y-2 text-sm max-h-60 overflow-y-auto pr-2">` + clientSales.sort((a,b) => b.date.seconds - a.date.seconds).map(sale => `
+                           <li class="p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-md">
+                               <div class="flex justify-between font-semibold">
+                                   <span>${formatDate(sale.date)}</span>
+                                   <span>${formatCurrency(sale.total)}</span>
+                               </div>
+                               <ul class="list-disc list-inside text-xs text-slate-600 dark:text-slate-400">
+                                   ${sale.items.map(item => `<li>${item.name}</li>`).join('')}
+                               </ul>
+                           </li>
+                       `).join('') + `</ul>`;
                  }
 
                  modal.innerHTML = `
-                   <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
+                  <div class="custom-card rounded-lg shadow-xl w-full max-w-2xl p-6 m-4 fade-in">
                        <div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4">
                            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">${client.name}</h2>
                            <button id="close-client-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><i data-lucide="x" class="w-6 h-6"></i></button>
@@ -1332,7 +1315,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                ${salesHTML}
                            </div>
                        </div>
-                   </div>
+                  </div>
                  `;
                  window.lucide.createIcons();
                  modal.querySelector('#close-client-details-modal').addEventListener('click', () => modal.classList.add('hidden'));
@@ -1392,7 +1375,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const tableBody = view.querySelector('#products-table-body');
 
         const renderProductsTable = () => {
-            tableBody.innerHTML = '';
             if (state.db.products.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-slate-500">Nenhum produto cadastrado.</td></tr>`;
                 return;
@@ -1400,9 +1382,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const sortedProducts = [...state.db.products].sort((a, b) => a.name.localeCompare(b.name));
 
-            sortedProducts.forEach(product => {
+            // CORRIGIDO: Uso eficiente do innerHTML.
+            const rowsHTML = sortedProducts.map(product => {
                 const stockClass = product.quantity <= 5 ? 'text-red-500 font-bold' : (product.quantity <= 10 ? 'text-amber-500 font-semibold' : '');
-                const row = `
+                return `
                     <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
                         <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${product.name}</td>
                         <td class="px-6 py-4 text-center ${stockClass}">${product.quantity}</td>
@@ -1414,8 +1397,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         </td>
                     </tr>
                 `;
-                tableBody.innerHTML += row;
-            });
+            }).join('');
+            tableBody.innerHTML = rowsHTML;
             window.lucide.createIcons();
         };
 
@@ -1452,41 +1435,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const renderTable = (sales) => {
             const tbody = c.querySelector('#orders-table-body');
-            tbody.innerHTML = '';
             if (!sales || sales.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="10" class="text-center p-8 text-slate-500">Nenhum pedido encontrado.</td></tr>';
-            } else {
-                sales.forEach(s => {
-                    const r = document.createElement('tr');
-                    r.className = 'bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50';
-                    
-                    const paymentDisplay = Array.isArray(s.paymentMethods)
-                        ? s.paymentMethods.map(p => {
-                            let paymentString = p.method;
-                            if (p.installments) {
-                                paymentString += ` (${p.installments})`;
-                            }
-                            return paymentString;
-                        }).join(' + ')
-                        : s.paymentMethod;
-
-                    r.innerHTML =
-                        `${isGerente ? `<td class="px-6 py-4">${s.vendedor}</td>` : ''}
-                            <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
-                            <td class="px-6 py-4">${new Date(s.date.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                            <td class="px-6 py-4">${paymentDisplay}</td>
-                            <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
-                            <td class="px-6 py-4 text-center">
-                                <button data-order-id="${s.id}" class="view-details-btn text-brand-primary hover:underline">Detalhes</button>
-                            </td>`;
-                    tbody.appendChild(r);
-                });
+                return;
             }
+            
+            // CORRIGIDO: Uso eficiente do innerHTML.
+            const rowsHTML = sales.map(s => {
+                const paymentDisplay = Array.isArray(s.paymentMethods)
+                    ? s.paymentMethods.map(p => {
+                        let paymentString = p.method;
+                        if (p.installments) {
+                            paymentString += ` (${p.installments})`;
+                        }
+                        return paymentString;
+                      }).join(' + ')
+                    : s.paymentMethod;
+
+                return `
+                    <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
+                        ${isGerente ? `<td class="px-6 py-4">${s.vendedor}</td>` : ''}
+                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${s.clientName}</td>
+                        <td class="px-6 py-4">${new Date(s.date.seconds * 1000).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                        <td class="px-6 py-4">${paymentDisplay}</td>
+                        <td class="px-6 py-4 text-right font-semibold text-slate-800 dark:text-slate-100">${formatCurrency(s.total)}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button data-order-id="${s.id}" class="view-details-btn text-brand-primary hover:underline">Detalhes</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            tbody.innerHTML = rowsHTML;
         };
         
         const applyFiltersAndFetchSales = () => {
-            // Este listener agora é mais específico para a tela de pedidos.
-            const ordersListener = () => {};
             if (state.listeners.orders) state.listeners.orders();
 
             const dateFilter = c.querySelector('#filter-date').value;
@@ -1551,12 +1533,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                             paymentString += `</li>`;
                             return paymentString;
-                        }).join('')
+                          }).join('')
                         : `<li>${order.paymentMethod}: ${formatCurrency(order.total)}</li>`;
                     
                              let prizeDetails = '';
                              if(order.prizeWon){
-                                  prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
+                                   prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
                              }
 
                     m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p>${prizeDetails}</div></div>`;
@@ -1644,6 +1626,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const storeId = state.selectedStore.id;
         const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), where("storeId", "==", storeId));
+        if (state.listeners.metas) state.listeners.metas();
         state.listeners.metas = onSnapshot(q, (snapshot) => {
             const mySales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             mySales.sort((a, b) => b.date.seconds - a.date.seconds);
@@ -1700,11 +1683,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 .map(([name, total]) => ({ name, total }))
                 .sort((a, b) => b.total - a.total);
 
-            podiumContainer.innerHTML = '';
-            listContainer.innerHTML = '';
-
             if (rankedSellers.length === 0) {
                 podiumContainer.innerHTML = '<p class="text-center text-slate-500 dark:text-slate-400 col-span-full mt-12">Nenhum vendedor para classificar.</p>';
+                listContainer.innerHTML = '';
                 return;
             }
             
@@ -1712,61 +1693,49 @@ document.addEventListener('DOMContentLoaded', () => {
             const others = rankedSellers.slice(3);
             
             const podiumOrder = [1, 0, 2];
-            const podiumHTML = `
-                <div class="flex flex-col sm:flex-row justify-center items-end gap-4 sm:gap-2 md:gap-4">
-                    ${podiumOrder.map(index => {
-                        const seller = top3[index];
-                        if (!seller) return '<div class="w-full sm:w-1/3"></div>';
-                        
-                        const heightClasses = ['h-40 sm:h-48', 'h-28 sm:h-32', 'h-20 sm:h-24'];
-                        const place = index + 1;
-                        const barHeight = place === 1 ? heightClasses[0] : (place === 2 ? heightClasses[1] : heightClasses[2]);
-                        const colorClasses = [
-                            'bg-amber-400 dark:bg-amber-500',
-                            'bg-slate-300 dark:bg-slate-400',
-                            'bg-yellow-600 dark:bg-yellow-700'
-                        ];
+            const podiumHTML = podiumOrder.map(index => {
+                const seller = top3[index];
+                if (!seller) return '<div class="w-full sm:w-1/3"></div>';
+                
+                const place = index + 1;
+                const heightClasses = ['h-40 sm:h-48', 'h-28 sm:h-32', 'h-20 sm:h-24'];
+                const barHeight = place === 1 ? heightClasses[0] : (place === 2 ? heightClasses[1] : heightClasses[2]);
+                const colorClasses = ['bg-amber-400 dark:bg-amber-500', 'bg-slate-300 dark:bg-slate-400', 'bg-yellow-600 dark:bg-yellow-700'];
 
-                        return `
-                        <div class="w-full sm:w-1/3 text-center flex flex-col items-center">
-                            <div class="relative mb-2">
-                                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-3xl sm:text-4xl font-bold border-4 ${place === 1 ? 'border-amber-400' : 'border-slate-400 dark:border-slate-500'}">
-                                    ${seller.name.charAt(0)}
-                                </div>
-                                <div class="absolute -top-2 -right-2 w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center text-sm font-bold border-2 border-white dark:border-slate-900">${place}</div>
-                            </div>
-                            <p class="font-bold text-slate-800 dark:text-white truncate w-full">${seller.name}</p>
-                            <p class="text-sm text-brand-primary font-semibold">${formatCurrency(seller.total)}</p>
-                            <div class="w-full ${barHeight} ${colorClasses[index]} rounded-t-lg mt-2 flex items-center justify-center">
-                                <i data-lucide="award" class="w-10 h-10 text-white/50"></i>
-                            </div>
+                return `
+                <div class="w-full sm:w-1/3 text-center flex flex-col items-center">
+                    <div class="relative mb-2">
+                        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-3xl sm:text-4xl font-bold border-4 ${place === 1 ? 'border-amber-400' : 'border-slate-400 dark:border-slate-500'}">
+                            ${seller.name.charAt(0)}
                         </div>
-                        `;
-                    }).join('')}
+                        <div class="absolute -top-2 -right-2 w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center text-sm font-bold border-2 border-white dark:border-slate-900">${place}</div>
+                    </div>
+                    <p class="font-bold text-slate-800 dark:text-white truncate w-full">${seller.name}</p>
+                    <p class="text-sm text-brand-primary font-semibold">${formatCurrency(seller.total)}</p>
+                    <div class="w-full ${barHeight} ${colorClasses[index]} rounded-t-lg mt-2 flex items-center justify-center">
+                        <i data-lucide="award" class="w-10 h-10 text-white/50"></i>
+                    </div>
                 </div>
-            `;
-            podiumContainer.innerHTML = podiumHTML;
+                `;
+            }).join('');
+            podiumContainer.innerHTML = `<div class="flex flex-col sm:flex-row justify-center items-end gap-4 sm:gap-2 md:gap-4">${podiumHTML}</div>`;
 
             if(others.length > 0) {
-                const listHTML = `
-                    <ul class="space-y-2">
-                        ${others.map((seller, index) => `
-                            <li class="flex items-center justify-between p-3 bg-slate-200/50 dark:bg-slate-800/50 rounded-lg">
-                                <div class="flex items-center gap-3">
-                                    <span class="font-bold text-slate-500 dark:text-slate-400">${index + 4}</span>
-                                    <div class="w-10 h-10 rounded-full bg-slate-300 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
-                                        ${seller.name.charAt(0)}
-                                    </div>
-                                    <span class="font-medium text-slate-800 dark:text-slate-200">${seller.name}</span>
-                                </div>
-                                <span class="font-semibold text-brand-primary">${formatCurrency(seller.total)}</span>
-                            </li>
-                        `).join('')}
-                    </ul>
-                `;
-                listContainer.innerHTML = listHTML;
-            } else if (rankedSellers.length > 3) {
-                 listContainer.innerHTML = '<p class="text-center text-sm text-slate-500 p-4">...</p>';
+                const listHTML = others.map((seller, index) => `
+                    <li class="flex items-center justify-between p-3 bg-slate-200/50 dark:bg-slate-800/50 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold text-slate-500 dark:text-slate-400 w-6 text-center">${index + 4}</span>
+                            <div class="w-10 h-10 rounded-full bg-slate-300 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
+                                ${seller.name.charAt(0)}
+                            </div>
+                            <span class="font-medium text-slate-800 dark:text-slate-200">${seller.name}</span>
+                        </div>
+                        <span class="font-semibold text-brand-primary">${formatCurrency(seller.total)}</span>
+                    </li>
+                `).join('');
+                listContainer.innerHTML = `<ul class="space-y-2">${listHTML}</ul>`;
+            } else {
+                 listContainer.innerHTML = '';
             }
             window.lucide.createIcons();
         };
@@ -1800,19 +1769,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!c) return;
         const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
 
-        // Bloco ÚNICO e CORRIGIDO para a seção de Análise com IA
         const aiSection = c.querySelector('#ai-analysis-section');
         if (aiSection) {
-            // 1. Controla a visibilidade da seção inteira baseado na função do usuário
             aiSection.classList.toggle('hidden', !isManager);
 
-            // 2. Adiciona o listener do botão apenas se a seção for visível
             if (isManager) {
                 const generateAiBtn = aiSection.querySelector('#generate-ai-analysis-btn');
                 const aiResultContainer = aiSection.querySelector('#ai-analysis-result-container');
 
                 if (generateAiBtn && aiResultContainer) {
-                    // Remove listener antigo para evitar duplicação em re-renderizações
                     const newGenerateAiBtn = generateAiBtn.cloneNode(true);
                     generateAiBtn.parentNode.replaceChild(newGenerateAiBtn, generateAiBtn);
 
@@ -1901,13 +1866,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 `).join('');
 
                 alertsContainer.innerHTML = insights.alerts.map(alert => `
-                     <div class="custom-card p-4 flex items-start gap-3 rounded-lg bg-amber-50 border-l-4 border-amber-400 dark:bg-amber-900/20 dark:border-amber-500">
-                        <span class="text-xl">${alert.icon}</span>
-                        <div class="flex-1">
-                            <p class="text-sm text-amber-800 dark:text-amber-200">${alert.text}</p>
-                            ${alert.action ? `<div class="mt-2">${alert.action}</div>` : ''}
-                        </div>
-                    </div>
+                       <div class="custom-card p-4 flex items-start gap-3 rounded-lg bg-amber-50 border-l-4 border-amber-400 dark:bg-amber-900/20 dark:border-amber-500">
+                           <span class="text-xl">${alert.icon}</span>
+                           <div class="flex-1">
+                               <p class="text-sm text-amber-800 dark:text-amber-200">${alert.text}</p>
+                               ${alert.action ? `<div class="mt-2">${alert.action}</div>` : ''}
+                           </div>
+                       </div>
                 `).join('');
                 window.lucide.createIcons();
             } else {
@@ -2009,7 +1974,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
         
         let q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-
+        
+        if(state.listeners.relatorios) state.listeners.relatorios();
         state.listeners.relatorios = onSnapshot(q, (snapshot) => {
             let allStoreSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             allStoreSales.sort((a, b) => b.date.seconds - a.date.seconds);
@@ -2055,11 +2021,7 @@ document.addEventListener('DOMContentLoaded', () => {
         enableBonusCheckbox.checked = state.db.settings.bonusSystem?.enabled ?? true;
         bonusValueInput.value = state.db.settings.bonusSystem?.value ?? 80;
 
-        if (enableBonusCheckbox.checked) {
-            bonusValueContainer.classList.remove('hidden');
-        } else {
-            bonusValueContainer.classList.add('hidden');
-        }
+        bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
         enableBonusCheckbox.addEventListener('change', () => {
             bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
         });
@@ -2137,23 +2099,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const updateUsersList=()=>{
             const list=c.querySelector('#users-list');
-            list.innerHTML='';
             const usersInStore = state.db.users.filter(u => u.storeId === state.selectedStore.id || u.role === 'superadmin');
             
             if(usersInStore.length === 0){
                 list.innerHTML = '<p class="text-slate-500 text-sm text-center">Nenhum usuário cadastrado para esta loja.</p>';
                 return;
             }
-
-            usersInStore.forEach(v=>{
-                 const roleClass = v.role === 'superadmin'
+            
+            // CORRIGIDO: Uso eficiente do innerHTML.
+            const usersHTML = usersInStore.map(v=>{
+                const roleClass = v.role === 'superadmin'
                     ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
                     : v.role === 'gerente'
                     ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
                     : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
                 const roleText = v.role.charAt(0).toUpperCase() + v.role.slice(1);
 
-                list.innerHTML+=`<li class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md">
+                return `<li class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md">
                     <div>
                         <span>${v.name}</span>
                         <span class="text-xs ml-2 px-2 py-0.5 rounded-full font-medium ${roleClass}">${roleText}</span>
@@ -2162,7 +2124,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </li>`;
-            });
+            }).join('');
+            list.innerHTML = usersHTML;
             window.lucide.createIcons();
         };
         
@@ -2218,7 +2181,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 showConfirmModal(`Tem certeza que deseja remover o usuário "${username}"?`, async () => {
                    try {
                        await deleteDoc(doc(db, "users", userid));
-                       showToast(`Usuário "${username}" removido.`, 'success');
+                       showToast(`Usuário "${username}" removido do banco de dados.`, 'success');
+                       // CORRIGIDO: Adiciona aviso sobre a conta de autenticação que permanece.
+                       console.warn(`A conta de autenticação para ${username} (UID: ${userid}) NÃO foi removida. Isso deve ser feito manualmente no Console do Firebase ou através de uma Cloud Function para manter a segurança.`);
+                       showToast('Lembrete: Remova a conta de autenticação no Console Firebase.', 'info');
                    } catch (error) { showToast('Erro ao remover usuário.', 'error'); }
                 });
             }
@@ -2261,18 +2227,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
          c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
-              showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
-                  try {
-                      const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-                      const salesSnapshot = await getDocs(q);
-                      if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
-                      const batch = writeBatch(db);
-                      salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-                      await batch.commit();
-                      showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
-                  } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
-              });
-          });
+               showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
+                   try {
+                       const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
+                       const salesSnapshot = await getDocs(q);
+                       if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
+                       const batch = writeBatch(db);
+                       salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+                       await batch.commit();
+                       showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
+                   } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
+               });
+         });
         
         const manageStoresSection = c.querySelector('#manage-stores-section');
         if (state.loggedInUser.role === 'superadmin') {
@@ -2302,16 +2268,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             const renderStoresList = () => {
-                storesListEl.innerHTML = '';
-                state.db.stores.forEach(store => {
-                    const li = document.createElement('li');
-                    li.className = 'flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md';
-                    li.innerHTML = `<span>${store.name}</span>
+                const storesHTML = state.db.stores.map(store => `
+                    <li class="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded-md">
+                        <span>${store.name}</span>
                         <button data-store-id="${store.id}" data-store-name="${store.name}" class="remove-store-btn text-red-500 hover:text-red-700">
                             <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
-                        </button>`;
-                    storesListEl.appendChild(li);
-                });
+                        </button>
+                    </li>
+                `).join('');
+                storesListEl.innerHTML = storesHTML;
                 window.lucide.createIcons();
             };
 
@@ -2522,7 +2487,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return { summary, alerts };
     }
- 
 
     const init = () => {
         const theme = localStorage.getItem('theme') || 'dark';
