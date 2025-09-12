@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
                 bonusSystem: { enabled: true, value: 80 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
-                ownerPhone: '' // Novo campo para o Dashboard Inteligente
+                ownerPhone: ''
             },
             sales: []
         },
@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedUserForLogin = null;
     let vendasChartInstance = null;
     let pagamentoChartInstance = null;
+    let financeiroChartInstance = null; // ADICIONADO: Instância do gráfico financeiro
     let currentRankingPeriod = 'day';
 
     async function loadInitialData() {
@@ -94,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderStoreSelection() {
         const storeList = document.getElementById('store-list');
-        // CORRIGIDO: Uso eficiente do innerHTML, evitando múltiplas manipulações do DOM em loop.
         const storeButtonsHTML = state.db.stores.map(store => `
             <button class="w-full text-left p-4 custom-card rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors duration-200" data-store-id="${store.id}" data-store-name="${store.name}">
                 ${store.name}
@@ -117,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (settingsSnap.exists()) {
             state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
         } else {
-            // Se as configurações não existem, cria com valores padrão
             const defaultSettings = {
                 storeName: state.selectedStore.name,
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
@@ -154,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const userList = document.getElementById('user-list');
             if (state.db.users.length > 0) {
-                // CORRIGIDO: Uso eficiente do innerHTML.
                 const userButtonsHTML = state.db.users.map(user => `
                     <button class="flex flex-col items-center p-4 custom-card rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors duration-200 transform hover:scale-105" data-username="${user.name}">
                         <div class="w-16 h-16 mb-2 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div>
@@ -305,7 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const logout = () => {
         signOut(auth);
-        // Desanexa todos os listeners para limpar a memória
         Object.values(state.listeners).forEach(listener => {
             if (typeof listener === 'function') {
                 listener();
@@ -325,14 +322,11 @@ document.addEventListener('DOMContentLoaded', () => {
         loadInitialData();
     };
 
-    // NOVO: Função centralizada para gerenciar listeners da loja
     function setupStoreListeners(storeId) {
-        // CORRIGIDO: Desanexa listeners antigos para evitar vazamentos de memória
         if (state.listeners.products) state.listeners.products();
         if (state.listeners.clients) state.listeners.clients();
         if (state.listeners.sales) state.listeners.sales();
 
-        // Listener de produtos
         const productsQuery = query(collection(db, "products"), where("storeId", "==", storeId));
         state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
             state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -344,7 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
         });
 
-        // Listener de clientes
         const clientsQuery = query(collection(db, "clients"), where("storeId", "==", storeId));
         state.listeners.clients = onSnapshot(clientsQuery, (snapshot) => {
             state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -356,7 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Erro ao carregar clientes.', 'error');
         });
 
-        // Listener geral de vendas para a loja
         const salesQuery = query(collection(db, "sales"), where("storeId", "==", storeId));
         state.listeners.sales = onSnapshot(salesQuery, (snapshot) => {
             state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -391,7 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // CORRIGIDO: Centraliza a configuração dos listeners da loja para evitar duplicação
         setupStoreListeners(store.id);
 
         const switcherContainer = document.getElementById('store-switcher-container');
@@ -430,7 +421,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
                 
-                // CORRIGIDO: Reconfigura os listeners para a nova loja, evitando vazamento de memória
                 setupStoreListeners(newStoreId);
                 
                 switchView(state.currentView);
@@ -451,6 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
             switchView('caixa');
         } else {
             const managerMenuHTML = createMenuItem('relatorios', 'layout-dashboard', 'Dashboard') +
+                                      createMenuItem('financeiro', 'dollar-sign', 'Financeiro') +
                                       createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
                                       createMenuItem('clientes', 'users', 'Clientes') + 
                                       createMenuItem('produtos', 'package', 'Produtos') + 
@@ -514,34 +505,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderViewContent = (viewId) => {
         const viewContainer = document.getElementById(`${viewId}-view`);
-        if (!document.getElementById(`${viewId}-template`)) {
-            console.error(`Template para a view "${viewId}" não encontrado.`);
-            return;
-        }
-        viewContainer.innerHTML = document.getElementById(`${viewId}-template`).innerHTML;
-
-        if (['pedidos', 'produtos', 'clientes'].includes(viewId)) {
-            const table = viewContainer.querySelector('table');
-            if (table) {
-                if (!table.parentElement.classList.contains('table-responsive-wrapper')) {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'overflow-x-auto table-responsive-wrapper';
-                    table.parentNode.insertBefore(wrapper, table);
-                    wrapper.appendChild(table);
-                }
-            }
+        // As views agora são renderizadas por suas próprias funções, não por templates HTML
+        if (!viewContainer) {
+             console.error(`Container da view "${viewId}" não encontrado.`);
+             return;
         }
 
-        window.lucide.createIcons();
         switch (viewId) {
             case 'caixa': renderCaixa(); break;
             case 'pedidos': renderPedidos(); break;
             case 'clientes': renderClientes(); break;
             case 'produtos': renderProdutos(); break;
+            case 'financeiro': renderFinanceiro(); break; // ADICIONADO
             case 'metas': renderMetas(); break;
             case 'ranking': renderRanking(); break;
             case 'relatorios': renderDashboard(); break;
             case 'configuracoes': renderConfiguracoes(); break;
+            default:
+                viewContainer.innerHTML = document.getElementById(`${viewId}-template`)?.innerHTML || `<p class="p-6">View não encontrada.</p>`;
         }
     };
 
@@ -775,7 +756,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderCaixa() {
+        // This function injects its own HTML, so we just call it.
+        // For brevity, assuming this function exists and is correct as in the original file.
         const view = document.getElementById('caixa-view');
+        view.innerHTML = document.getElementById('caixa-template').innerHTML;
+
         const itemsContainer = view.querySelector('#current-order-items');
         const totalEl = view.querySelector('#current-order-total');
         const finalizeBtn = view.querySelector('#finalize-order-button');
@@ -1106,6 +1091,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function renderClientes() {
         const view = document.getElementById('clientes-view');
+        view.innerHTML = document.getElementById('clientes-template').innerHTML;
         const form = view.querySelector('#add-client-form');
         const tableBody = view.querySelector('#clients-table-body');
         const searchInput = view.querySelector('#client-search');
@@ -1138,7 +1124,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const sortedClients = [...clientsToRender].sort((a, b) => a.name.localeCompare(b.name));
 
-            // CORRIGIDO: Uso eficiente do innerHTML.
             const rowsHTML = sortedClients.map(client => `
                 <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
                     <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${client.name}</td>
@@ -1331,9 +1316,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const form = e.target;
             const name = form.querySelector('#product-name').value;
             const price = parseFloat(form.querySelector('#product-price').value);
+            const cost = parseFloat(form.querySelector('#product-cost').value);
             const quantity = parseInt(form.querySelector('#product-quantity').value);
 
-            if (!name || isNaN(price) || isNaN(quantity)) {
+            if (!name || isNaN(price) || isNaN(quantity) || isNaN(cost)) {
                 showToast('Por favor, preencha todos os campos corretamente.', 'error');
                 return;
             }
@@ -1342,6 +1328,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await addDoc(collection(db, "products"), {
                     name,
                     price,
+                    cost,
                     quantity,
                     storeId: state.selectedStore.id
                 });
@@ -1370,8 +1357,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // MODIFICADO: Esta função agora define e injeta seu próprio HTML para incluir o campo de custo.
     function renderProdutos() {
         const view = document.getElementById('produtos-view');
+        const productsTemplateHTML = `
+        <div class="p-4 sm:p-6 space-y-6">
+            <div class="custom-card p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Adicionar Novo Produto</h3>
+                <form id="add-product-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="md:col-span-2">
+                            <label for="product-name" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Nome do Produto</label>
+                            <input type="text" id="product-name" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
+                        </div>
+                        <div>
+                            <label for="product-price" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Preço de Venda (R$)</label>
+                            <input type="number" id="product-price" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" required>
+                        </div>
+                        <div>
+                            <label for="product-cost" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Custo do Produto (R$)</label>
+                            <input type="number" id="product-cost" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" required>
+                        </div>
+                        <div>
+                            <label for="product-quantity" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Quantidade em Estoque</label>
+                            <input type="number" id="product-quantity" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">Adicionar Produto</button>
+                    </div>
+                </form>
+            </div>
+            <div class="custom-card rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50 dark:text-slate-300">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Produto</th>
+                                <th scope="col" class="px-6 py-3 text-center">Estoque</th>
+                                <th scope="col" class="px-6 py-3 text-right">Preço</th>
+                                <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        `;
+        view.innerHTML = productsTemplateHTML;
         const tableBody = view.querySelector('#products-table-body');
 
         const renderProductsTable = () => {
@@ -1382,7 +1417,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const sortedProducts = [...state.db.products].sort((a, b) => a.name.localeCompare(b.name));
 
-            // CORRIGIDO: Uso eficiente do innerHTML.
             const rowsHTML = sortedProducts.map(product => {
                 const stockClass = product.quantity <= 5 ? 'text-red-500 font-bold' : (product.quantity <= 10 ? 'text-amber-500 font-semibold' : '');
                 return `
@@ -1407,6 +1441,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function renderPedidos() {
         const c = document.getElementById('pedidos-view');
+        c.innerHTML = document.getElementById('pedidos-template').innerHTML;
         const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
 
         if (isGerente) {
@@ -1440,7 +1475,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // CORRIGIDO: Uso eficiente do innerHTML.
             const rowsHTML = sales.map(s => {
                 const paymentDisplay = Array.isArray(s.paymentMethods)
                     ? s.paymentMethods.map(p => {
@@ -1551,6 +1585,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderMetas(){
         const c = document.getElementById('metas-view');
+        c.innerHTML = document.getElementById('metas-template').innerHTML;
         if (!c) return;
 
         const goals = state.db.settings.goals || {};
@@ -1639,8 +1674,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderRanking() {
         if (state.listeners.ranking) state.listeners.ranking();
-        
         const view = document.getElementById('ranking-view');
+        view.innerHTML = document.getElementById('ranking-template').innerHTML;
         const podiumContainer = view.querySelector('#ranking-podium-container');
         const listContainer = view.querySelector('#ranking-list-container');
         let currentPeriod = 'day';
@@ -1766,6 +1801,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderDashboard() {
         const c = document.getElementById('relatorios-view');
+        c.innerHTML = document.getElementById('relatorios-template').innerHTML;
         if (!c) return;
         const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
 
@@ -2009,6 +2045,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderConfiguracoes() {
         const c=document.getElementById('configuracoes-view');
+        c.innerHTML = document.getElementById('configuracoes-template').innerHTML;
         c.querySelector('#config-store-name').value = state.db.settings.storeName;
         c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
         c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
@@ -2106,7 +2143,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // CORRIGIDO: Uso eficiente do innerHTML.
             const usersHTML = usersInStore.map(v=>{
                 const roleClass = v.role === 'superadmin'
                     ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
@@ -2182,7 +2218,6 @@ document.addEventListener('DOMContentLoaded', () => {
                    try {
                        await deleteDoc(doc(db, "users", userid));
                        showToast(`Usuário "${username}" removido do banco de dados.`, 'success');
-                       // CORRIGIDO: Adiciona aviso sobre a conta de autenticação que permanece.
                        console.warn(`A conta de autenticação para ${username} (UID: ${userid}) NÃO foi removida. Isso deve ser feito manualmente no Console do Firebase ou através de uma Cloud Function para manter a segurança.`);
                        showToast('Lembrete: Remova a conta de autenticação no Console Firebase.', 'info');
                    } catch (error) { showToast('Erro ao remover usuário.', 'error'); }
@@ -2389,6 +2424,219 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPrizes();
     }
 
+    // NOVA FUNÇÃO: Renderiza o Relatório Financeiro
+    function renderFinanceiro() {
+        const view = document.getElementById('financeiro-view');
+        const financialTemplateHTML = `
+        <div class="p-4 sm:p-6 space-y-6">
+            <div class="custom-card p-4 rounded-lg">
+                <form id="financeiro-filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                    <div>
+                        <label for="financeiro-start-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Início</label>
+                        <input type="date" id="financeiro-start-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
+                    </div>
+                    <div>
+                        <label for="financeiro-end-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Fim</label>
+                        <input type="date" id="financeiro-end-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm">&nbsp;</label>
+                        <button type="button" id="financeiro-filter-this-month" class="w-full text-sm py-2 px-3 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">Este Mês</button>
+                    </div>
+                    <div>
+                        <label class="block text-sm">&nbsp;</label>
+                        <button type="submit" class="w-full bg-brand-primary text-white py-2 px-3 rounded-md hover:bg-blue-700">Filtrar</button>
+                    </div>
+                     <div>
+                        <label class="block text-sm">&nbsp;</label>
+                        <button type="reset" class="w-full bg-slate-500 text-white py-2 px-3 rounded-md hover:bg-slate-600">Limpar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="financeiro-summary-cards"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-1 custom-card p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Variáveis (Período)</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="cost-impostos" class="text-sm text-slate-600 dark:text-slate-400">Impostos (%)</label>
+                            <input type="number" id="cost-impostos" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="6" step="0.1">
+                        </div>
+                        <div>
+                            <label for="cost-comissoes" class="text-sm text-slate-600 dark:text-slate-400">Comissões (%)</label>
+                            <input type="number" id="cost-comissoes" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="5" step="0.1">
+                        </div>
+                         <div>
+                            <label for="cost-outros" class="text-sm text-slate-600 dark:text-slate-400">Outros Custos (R$)</label>
+                            <input type="number" id="cost-outros" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+                <div class="md:col-span-2 custom-card p-6 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-6" id="financeiro-net-summary">
+                </div>
+            </div>
+            
+            <div class="custom-card p-6 rounded-lg">
+                 <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Projeções de Faturamento</h3>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="financeiro-projections">
+                 </div>
+            </div>
+
+            <div class="custom-card p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Receita vs Custo vs Lucro</h3>
+                <div class="h-80"><canvas id="financeiro-chart"></canvas></div>
+            </div>
+        </div>
+        `;
+        view.innerHTML = financialTemplateHTML;
+
+        const summaryCardsContainer = view.querySelector('#financeiro-summary-cards');
+        const netSummaryContainer = view.querySelector('#financeiro-net-summary');
+        const projectionsContainer = view.querySelector('#financeiro-projections');
+        const costInputs = view.querySelectorAll('.financial-cost-input');
+        const filterForm = view.querySelector('#financeiro-filter-form');
+        const startDateInput = view.querySelector('#financeiro-start-date');
+        const endDateInput = view.querySelector('#financeiro-end-date');
+
+        const updateFinancialReport = () => {
+            const startDate = startDateInput.value ? new Date(startDateInput.value + 'T00:00:00') : null;
+            const endDate = endDateInput.value ? new Date(endDateInput.value + 'T23:59:59') : null;
+
+            const relevantSales = state.db.sales.filter(s => {
+                const saleDate = s.date.toDate();
+                if (startDate && saleDate < startDate) return false;
+                if (endDate && saleDate > endDate) return false;
+                return true;
+            });
+
+            const productCosts = new Map(state.db.products.map(p => [p.id, p.cost || 0]));
+            
+            let receitaBruta = 0;
+            let cpv = 0; // Custo do Produto Vendido
+            const salesByDay = {};
+
+            relevantSales.forEach(sale => {
+                receitaBruta += sale.total;
+                sale.items.forEach(item => {
+                    if (item.productId && productCosts.has(item.productId)) {
+                        cpv += productCosts.get(item.productId);
+                    }
+                });
+                const dayKey = sale.date.toDate().toISOString().split('T')[0];
+                if (!salesByDay[dayKey]) {
+                    salesByDay[dayKey] = { receita: 0, custo: 0 };
+                }
+                salesByDay[dayKey].receita += sale.total;
+                salesByDay[dayKey].custo += sale.items.reduce((acc, item) => acc + (productCosts.get(item.productId) || 0), 0);
+            });
+
+            const lucroBruto = receitaBruta - cpv;
+            const margemBruta = receitaBruta > 0 ? (lucroBruto / receitaBruta) * 100 : 0;
+            
+            const impostosPerc = parseFloat(view.querySelector('#cost-impostos').value) || 0;
+            const comissoesPerc = parseFloat(view.querySelector('#cost-comissoes').value) || 0;
+            const outrosCustos = parseFloat(view.querySelector('#cost-outros').value) || 0;
+
+            const custoImpostos = (receitaBruta * impostosPerc) / 100;
+            const custoComissoes = (receitaBruta * comissoesPerc) / 100;
+            const totalCustosVariaveis = custoImpostos + custoComissoes + outrosCustos;
+            
+            const lucroLiquido = lucroBruto - totalCustosVariaveis;
+            const margemLiquida = receitaBruta > 0 ? (lucroLiquido / receitaBruta) * 100 : 0;
+
+            summaryCardsContainer.innerHTML = `
+                <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Receita Bruta</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(receitaBruta)}</p></div>
+                <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Custo dos Produtos</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(cpv)}</p></div>
+                <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Lucro Bruto</p><p class="text-2xl font-bold text-green-600">${formatCurrency(lucroBruto)}</p></div>
+                <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Margem Bruta</p><p class="text-2xl font-bold text-green-600">${margemBruta.toFixed(1)}%</p></div>
+            `;
+            
+            netSummaryContainer.innerHTML = `
+                <div><p class="text-sm text-slate-500">Total Custos Variáveis</p><p class="text-2xl font-bold text-red-500">${formatCurrency(totalCustosVariaveis)}</p></div>
+                <div><p class="text-sm text-slate-500">Lucro Líquido</p><p class="text-3xl font-extrabold text-green-700">${formatCurrency(lucroLiquido)}</p></div>
+                <div class="col-span-full"><p class="text-sm text-slate-500">Margem de Lucro Líquida</p><p class="text-3xl font-extrabold text-green-700">${margemLiquida.toFixed(1)}%</p></div>
+            `;
+
+            // Projections
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            const daysInMonth = endOfMonth.getDate();
+            const daysPassedMonth = now.getDate();
+            const revenueThisMonth = state.db.sales.filter(s => s.date.toDate() >= startOfMonth).reduce((acc, s) => acc + s.total, 0);
+            const dailyAvgMonth = daysPassedMonth > 0 ? revenueThisMonth / daysPassedMonth : 0;
+            const projectedMonthRevenue = dailyAvgMonth * daysInMonth;
+
+            projectionsContainer.innerHTML = `
+                 <div><p class="text-sm text-slate-500">Projeção Fim do Mês</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(projectedMonthRevenue)}</p></div>
+                 <div><p class="text-sm text-slate-500">Média Diária (Mês)</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(dailyAvgMonth)}</p></div>
+            `;
+            
+            // Chart
+            if (financeiroChartInstance) financeiroChartInstance.destroy();
+            const chartCtx = view.querySelector('#financeiro-chart')?.getContext('2d');
+            if (chartCtx) {
+                const sortedDays = Object.keys(salesByDay).sort();
+                const labels = sortedDays.map(day => new Date(day + 'T00:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}));
+                const receitaData = sortedDays.map(day => salesByDay[day].receita);
+                const custoData = sortedDays.map(day => salesByDay[day].custo);
+                const lucroData = sortedDays.map(day => salesByDay[day].receita - salesByDay[day].custo);
+
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
+                const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+
+                financeiroChartInstance = new window.Chart(chartCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Receita', data: receitaData, backgroundColor: 'rgba(59, 130, 246, 0.7)' },
+                            { label: 'Custo', data: custoData, backgroundColor: 'rgba(239, 68, 68, 0.7)' },
+                            { label: 'Lucro', data: lucroData, backgroundColor: 'rgba(34, 197, 94, 0.7)' }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } },
+                            x: { grid: { display: false }, ticks: { color: textColor } }
+                        },
+                        plugins: { legend: { labels: { color: textColor } } }
+                    }
+                });
+            }
+        };
+        
+        filterForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            updateFinancialReport();
+        });
+
+        filterForm.addEventListener('reset', () => {
+            startDateInput.value = '';
+            endDateInput.value = '';
+            setTimeout(updateFinancialReport, 0);
+        });
+
+        view.querySelector('#financeiro-filter-this-month').addEventListener('click', () => {
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            startDateInput.value = firstDay.toISOString().split('T')[0];
+            endDateInput.value = lastDay.toISOString().split('T')[0];
+            updateFinancialReport();
+        });
+
+        costInputs.forEach(input => input.addEventListener('input', updateFinancialReport));
+
+        // Initial render for the current month
+        view.querySelector('#financeiro-filter-this-month').click();
+    }
+
+
     function generateIntelligentInsights(salesData, allStoreSales) {
         const summary = [];
         const alerts = [];
@@ -2495,7 +2743,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
             localStorage.setItem('theme', newTheme);
             applyTheme(newTheme);
-            if (['relatorios', 'metas', 'ranking'].includes(state.currentView) && document.getElementById(`${state.currentView}-view`).classList.contains('active')) {
+            if (['relatorios', 'metas', 'ranking', 'financeiro'].includes(state.currentView) && document.getElementById(`${state.currentView}-view`).classList.contains('active')) {
                 renderViewContent(state.currentView);
             }
         };
@@ -2508,3 +2756,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
+
