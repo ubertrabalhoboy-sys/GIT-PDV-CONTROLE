@@ -2522,7 +2522,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return { summary, alerts };
     }
+ // ====================================================================================================
+    // NOVA FUNÇÃO PARA A TELA FINANCEIRA
+    // ====================================================================================================
+    function renderFinanceiro() {
+        const view = document.getElementById('financeiro-view');
+        const monthPicker = view.querySelector('#financial-month-picker');
+        const summaryContainer = view.querySelector('#financial-summary');
+        const expensesListContainer = view.querySelector('#financial-expenses-list');
+        const projectionContainer = view.querySelector('#financial-projection');
 
+        const updateFinancialReport = (year, month) => {
+            const selectedMonthStr = `${year}-${String(month).padStart(2, '0')}`;
+            
+            const salesInMonth = state.db.sales.filter(s => s.saleMonth === selectedMonthStr);
+            const expensesInMonth = state.db.expenses.filter(e => e.month === selectedMonthStr);
+
+            const grossRevenue = salesInMonth.reduce((sum, sale) => sum + sale.total, 0);
+            const cogs = salesInMonth.flatMap(s => s.items).reduce((sum, item) => sum + (item.cost || 0), 0);
+            const grossProfit = grossRevenue - cogs;
+            const totalExpenses = expensesInMonth.reduce((sum, exp) => sum + exp.value, 0);
+            const netProfit = grossProfit - totalExpenses;
+
+            summaryContainer.innerHTML = `
+                <div class="custom-card p-4"><p class="text-sm text-slate-500">Receita Bruta</p><p class="text-2xl font-bold text-green-500">${formatCurrency(grossRevenue)}</p></div>
+                <div class="custom-card p-4"><p class="text-sm text-slate-500">Custo dos Produtos</p><p class="text-2xl font-bold text-amber-500">${formatCurrency(cogs)}</p></div>
+                <div class="custom-card p-4"><p class="text-sm text-slate-500">Lucro Bruto</p><p class="text-2xl font-bold text-sky-500">${formatCurrency(grossProfit)}</p></div>
+                <div class="custom-card p-4"><p class="text-sm text-slate-500">Despesas Totais</p><p class="text-2xl font-bold text-red-500">${formatCurrency(totalExpenses)}</p></div>
+                <div class="custom-card p-4 bg-slate-800 text-white"><p class="text-sm text-slate-300">Lucro Líquido</p><p class="text-3xl font-bold">${formatCurrency(netProfit)}</p></div>
+            `;
+            
+            if (expensesInMonth.length > 0) {
+                expensesListContainer.innerHTML = '<ul class="space-y-2">' + expensesInMonth.map(exp => `
+                    <li class="flex justify-between items-center text-sm p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-md">
+                        <div>
+                            <span class="font-medium">${exp.description}</span>
+                            <span class="text-xs ml-2 px-2 py-0.5 rounded-full ${exp.type === 'Fixo' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">${exp.type}</span>
+                        </div>
+                        <span class="font-semibold">${formatCurrency(exp.value)}</span>
+                    </li>
+                `).join('') + '</ul>';
+            } else {
+                expensesListContainer.innerHTML = '<p class="text-center p-4 text-slate-500">Nenhuma despesa registrada para este mês.</p>';
+            }
+
+            projectionContainer.innerHTML = '';
+            const now = new Date();
+            if (now.getFullYear() === year && now.getMonth() + 1 === month) {
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const daysPassed = now.getDate();
+                const projectedProfit = (netProfit / daysPassed) * daysInMonth;
+                projectionContainer.innerHTML = `<p class="text-sm text-slate-500">Com base nos ${daysPassed} dias do mês, a projeção de lucro líquido é:</p><p class="text-2xl font-bold text-brand-primary">${formatCurrency(projectedProfit)}</p>`;
+            } else {
+                projectionContainer.innerHTML = `<p class="text-center p-4 text-slate-500">Projeções estão disponíveis apenas para o mês corrente.</p>`;
+            }
+        };
+
+        monthPicker.addEventListener('change', () => {
+            const [year, month] = monthPicker.value.split('-').map(Number);
+            updateFinancialReport(year, month);
+        });
+
+        // Define o valor inicial para o mês atual e carrega o relatório
+        const now = new Date();
+        const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        monthPicker.value = currentMonthStr;
+        updateFinancialReport(now.getFullYear(), now.getMonth() + 1);
+    }
 
     const init = () => {
         const theme = localStorage.getItem('theme') || 'dark';

@@ -339,11 +339,11 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label for="product-cost" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Custo (R$)</label>
-                                    <input type="number" id="product-cost" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                                    <input type="number" id="product-cost" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary" placeholder="0.00">
                                 </div>
                                 <div>
-                                    <label for="product-price" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Preço de Venda (R$)</label>
-                                    <input type="number" id="product-price" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                                    <label for="product-price" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Preço Venda (R$)</label>
+                                    <input type="number" id="product-price" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary" placeholder="0.00">
                                 </div>
                             </div>
                             <div>
@@ -673,8 +673,8 @@
                     <button id="save-goals-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Metas e Bônus</button>
                 </div>
             </div>
-
-             <div id="manage-expenses-section" class="hidden custom-card p-6 rounded-lg shadow-md">
+            
+            <div id="manage-expenses-section" class="hidden custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Despesas Mensais</h3>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
                     <div>
@@ -706,8 +706,7 @@
                     </div>
                     <div>
                         <h4 class="text-md font-semibold mb-2">Despesas do Mês Selecionado</h4>
-                        <ul id="expenses-list" class="space-y-2 max-h-60 overflow-y-auto">
-                            </ul>
+                        <ul id="expenses-list" class="space-y-2 max-h-60 overflow-y-auto"></ul>
                     </div>
                 </div>
             </div>
@@ -841,13 +840,17 @@
                 </div>
             </div>
 
-            <div id="financial-summary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div id="financial-summary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 text-center">
                 </div>
 
-            <div class="custom-card p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Detalhamento das Despesas do Mês</h3>
-                <div id="financial-expenses-list" class="space-y-2">
-                    <p class="text-center p-8 text-slate-500">Selecione um mês para ver as despesas.</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="custom-card p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Detalhamento das Despesas</h3>
+                    <div id="financial-expenses-list" class="space-y-2 max-h-80 overflow-y-auto"></div>
+                </div>
+                <div class="custom-card p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Projeção Mensal</h3>
+                    <div id="financial-projection" class="space-y-2"></div>
                 </div>
             </div>
         </div>
