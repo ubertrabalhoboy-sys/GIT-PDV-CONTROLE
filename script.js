@@ -1,4 +1,4 @@
-// Firebase Imports
+ // Firebase Imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, writeBatch, Timestamp, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -35,11 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
                 bonusSystem: { enabled: true, value: 80 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
-                ownerPhone: '' // Novo campo para o Dashboard Inteligente
+                ownerPhone: ''
             },
-            sales: []
+            sales: [],
+            expenses: [] // NOVO: Armazenar despesas
         },
-        listeners: { users: null, sales: null, stores: null, products: null, clients: null },
+        listeners: { users: null, sales: null, stores: null, products: null, clients: null, expenses: null },
         selectedStore: null
     };
     let selectedUserForLogin = null;
@@ -62,9 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('first-run-view').innerHTML = '<p class="text-slate-500 dark:text-slate-400 mb-6 text-center">Configurando o sistema pela primeira vez, por favor aguarde...</p><div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary mx-auto"></div>';
 
                 const storeName = "Loja Principal";
-
                 const storeRef = await addDoc(collection(db, "stores"), { name: storeName });
-
                 await setDoc(doc(db, "settings", storeRef.id), {
                     storeName: storeName,
                     goals: { daily: 150, weekly: 1000, monthly: 4000 },
@@ -108,10 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const storeButton = e.target.closest('button');
         if (!storeButton) return;
 
-        state.selectedStore = {
-            id: storeButton.dataset.storeId,
-            name: storeButton.dataset.storeName
-        };
+        state.selectedStore = { id: storeButton.dataset.storeId, name: storeButton.dataset.storeName };
 
         const settingsRef = doc(db, "settings", state.selectedStore.id);
         const settingsSnap = await getDoc(settingsRef);
@@ -125,13 +121,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
             });
-            state.db.settings.storeName = state.selectedStore.name;
-            state.db.settings.goals = { daily: 150, weekly: 1000, monthly: 4000 };
-            state.db.settings.bonusSystem = { enabled: true, value: 80 };
-            state.db.settings.bonusWheel = { enabled: false, prizes: [], minValue: 0 };
-            state.db.settings.ownerPhone = '';
+            Object.assign(state.db.settings, {
+                storeName: state.selectedStore.name,
+                goals: { daily: 150, weekly: 1000, monthly: 4000 },
+                bonusSystem: { enabled: true, value: 80 },
+                bonusWheel: { enabled: false, prizes: [], minValue: 0 },
+                ownerPhone: ''
+            });
         }
-
         loadUsersForStore(state.selectedStore.id);
     });
 
@@ -142,17 +139,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const superAdminQ = query(usersRef, where("role", "==", "superadmin"));
 
             const [usersSnapshot, superAdminSnapshot] = await Promise.all([getDocs(q), getDocs(superAdminQ)]);
-
             const usersMap = new Map();
-
-            usersSnapshot.docs.forEach(doc => {
-                usersMap.set(doc.id, { id: doc.id, ...doc.data() });
-            });
-
-            superAdminSnapshot.docs.forEach(doc => {
-                usersMap.set(doc.id, { id: doc.id, ...doc.data() });
-            });
-
+            usersSnapshot.docs.forEach(doc => usersMap.set(doc.id, { id: doc.id, ...doc.data() }));
+            superAdminSnapshot.docs.forEach(doc => usersMap.set(doc.id, { id: doc.id, ...doc.data() }));
             state.db.users = Array.from(usersMap.values());
 
             const userList = document.getElementById('user-list');
@@ -183,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
         state.db.users = [];
     });
 
-
     const applyTheme = (t) => {
         const h = document.documentElement;
         const isDark = t === 'dark';
@@ -193,9 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const formatCurrency = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
     const formatDate = d => {
-        if (d && d.toDate) {
-            return d.toDate().toLocaleDateString('pt-BR');
-        }
+        if (d && d.toDate) return d.toDate().toLocaleDateString('pt-BR');
         return new Date(d).toLocaleDateString('pt-BR');
     };
     const showToast = (m, t = 'success') => { const e = document.createElement('div'); e.className = `fixed bottom-5 right-5 ${t === 'success' ? 'bg-brand-primary' : 'bg-red-600'} text-white py-2 px-4 rounded-lg shadow-lg z-[70] animate-bounce`; e.textContent = m; document.body.appendChild(e); setTimeout(() => e.remove(), 3000) };
@@ -206,48 +192,16 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Nenhuma venda encontrada para exportar.', 'error');
             return;
         }
-
-        const headers = [
-            "Data da Compra", "ID da Venda", "Nome do Cliente", "Telefone do Cliente", "Vendedor",
-            "Itens Vendidos", "Forma de Pagamento", "Total da Venda", "Bônus da Venda"
-        ];
-
-        const formatItemsForCSV = (items) => {
-            if (!Array.isArray(items)) return '';
-            return items.map(item =>
-                `${item.name} (Valor: ${formatCurrency(item.value)}, Troca: ${item.exchange})`
-            ).join(' | ');
-        };
-
+        const headers = ["Data da Compra", "ID da Venda", "Nome do Cliente", "Telefone do Cliente", "Vendedor", "Itens Vendidos", "Forma de Pagamento", "Total da Venda", "Bônus da Venda"];
+        const formatItemsForCSV = (items) => !Array.isArray(items) ? '' : items.map(item => `${item.name} (Valor: ${formatCurrency(item.value)}, Troca: ${item.exchange})`).join(' | ');
         const formatPaymentsForCSV = (payments) => {
             if (Array.isArray(payments) && payments.length > 0) {
-                return payments.map(p => {
-                    let paymentString = `${p.method}: ${formatCurrency(p.amount)}`;
-                    if (p.installments) {
-                        paymentString += ` (em ${p.installments})`;
-                    }
-                    return paymentString;
-                }).join(' | ');
+                return payments.map(p => `${p.method}: ${formatCurrency(p.amount)}${p.installments ? ` (em ${p.installments})` : ''}`).join(' | ');
             }
             return payments || '';
         };
-
-        const rows = data.map(sale => [
-            new Date(sale.date.seconds * 1000).toLocaleString('pt-BR'),
-            sale.id,
-            sale.clientName,
-            sale.clientPhone || '',
-            sale.vendedor,
-            formatItemsForCSV(sale.items),
-            formatPaymentsForCSV(sale.paymentMethods || sale.paymentMethod),
-            (sale.total || 0).toFixed(2).replace('.', ','),
-            sale.bonus
-        ]);
-
-        let csvContent = "data:text/csv;charset=utf-8,\uFEFF"
-            + headers.join(",") + "\n"
-            + rows.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
-
+        const rows = data.map(sale => [new Date(sale.date.seconds * 1000).toLocaleString('pt-BR'), sale.id, sale.clientName, sale.clientPhone || '', sale.vendedor, formatItemsForCSV(sale.items), formatPaymentsForCSV(sale.paymentMethods || sale.paymentMethod), (sale.total || 0).toFixed(2).replace('.', ','), sale.bonus]);
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers.join(",") + "\n" + rows.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -279,18 +233,14 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
         const passwordInput = document.getElementById('password');
-
         if (!user) {
             showToast('Usuário não encontrado.', 'error');
             return;
         }
-
         const email = `${user.name.toLowerCase().replace(/\s+/g, '')}@pdv-app.com`;
-
         try {
             await signInWithEmailAndPassword(auth, email, passwordInput.value);
             state.loggedInUser = user;
-
             if (user.role !== 'superadmin' && !state.selectedStore) {
                 state.selectedStore = state.db.stores.find(s => s.id === user.storeId);
             }
@@ -309,17 +259,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const logout = () => {
         signOut(auth);
-        if (state.listeners.users) state.listeners.users();
-        if (state.listeners.sales) state.listeners.sales();
-        if (state.listeners.stores) state.listeners.stores();
-        if (state.listeners.products) state.listeners.products();
-        if (state.listeners.clients) state.listeners.clients();
-        state.listeners = { users: null, sales: null, stores: null, products: null, clients: null };
+        Object.values(state.listeners).forEach(listener => listener && listener());
+        state.listeners = { users: null, sales: null, stores: null, products: null, clients: null, expenses: null };
         Object.assign(state, {
             loggedInUser: null,
             selectedStore: null,
             currentOrder: [],
-            db: { users: [], stores: [], sales: [], products: [], clients: [], settings: {} }
+            db: { users: [], stores: [], sales: [], products: [], clients: [], expenses: [], settings: {} }
         });
         selectedUserForLogin = null;
         document.getElementById('app').classList.add('hidden');
@@ -333,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const store = state.selectedStore;
 
         if (!user || !user.role) {
-            console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida. Fazendo logout forçado.");
+            console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida.");
             showToast("Erro de autenticação, por favor faça login novamente.", "error");
             logout();
             return;
@@ -343,108 +289,46 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('username-sidebar').textContent = user.name;
         document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
 
-        if (state.listeners.users) state.listeners.users();
-        state.listeners.users = onSnapshot(query(collection(db, "users")), (snapshot) => {
-            state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes' || state.currentView === 'relatorios')) {
-                const activeView = document.getElementById(`${state.currentView}-view`);
-                if (activeView && activeView.classList.contains('active')) {
-                    renderViewContent(state.currentView);
-                }
-            }
-        });
-        
-        if (state.listeners.products) state.listeners.products();
-        const productsQuery = query(collection(db, "products"), where("storeId", "==", store.id));
-        state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
-            state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView === 'produtos' && document.getElementById('produtos-view').classList.contains('active')) {
-                renderProdutos();
-            }
-        }, (error) => {
-            console.error("Erro ao carregar produtos (verifique suas Regras de Segurança do Firestore):", error);
-            showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
-        });
+        Object.values(state.listeners).forEach(listener => listener && listener());
 
-        if (state.listeners.clients) state.listeners.clients();
-        const clientsQuery = query(collection(db, "clients"), where("storeId", "==", store.id));
-        state.listeners.clients = onSnapshot(clientsQuery, (snapshot) => {
-            state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView === 'clientes' && document.getElementById('clientes-view').classList.contains('active')) {
-                renderClientes();
-            }
-        }, (error) => {
-            console.error("Erro ao carregar clientes:", error);
-            showToast('Erro ao carregar clientes.', 'error');
-        });
+        const commonQueries = {
+            users: query(collection(db, "users")),
+            products: query(collection(db, "products"), where("storeId", "==", store.id)),
+            clients: query(collection(db, "clients"), where("storeId", "==", store.id)),
+            sales: query(collection(db, "sales"), where("storeId", "==", store.id)),
+            expenses: query(collection(db, "expenses"), where("storeId", "==", store.id))
+        };
 
-        // NOVO: Listener geral de vendas para alimentar os filtros de clientes.
-        if (state.listeners.sales) state.listeners.sales();
-        const salesQuery = query(collection(db, "sales"), where("storeId", "==", store.id));
-        state.listeners.sales = onSnapshot(salesQuery, (snapshot) => {
-            state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        }, (error) => {
-            console.error("Erro ao carregar dados de vendas:", error);
-        });
-
+        state.listeners.users = onSnapshot(commonQueries.users, s => state.db.users = s.docs.map(d => ({ id: d.id, ...d.data() })));
+        state.listeners.products = onSnapshot(commonQueries.products, s => state.db.products = s.docs.map(d => ({ id: d.id, ...d.data() })));
+        state.listeners.clients = onSnapshot(commonQueries.clients, s => state.db.clients = s.docs.map(d => ({ id: d.id, ...d.data() })));
+        state.listeners.sales = onSnapshot(commonQueries.sales, s => state.db.sales = s.docs.map(d => ({ id: d.id, ...d.data() })));
+        state.listeners.expenses = onSnapshot(commonQueries.expenses, s => state.db.expenses = s.docs.map(d => ({ id: d.id, ...d.data() })));
 
         const switcherContainer = document.getElementById('store-switcher-container');
         if (user.role === 'superadmin') {
-            if (state.listeners.stores) state.listeners.stores();
-            state.listeners.stores = onSnapshot(query(collection(db, "stores")), (snapshot) => {
+            state.listeners.stores = onSnapshot(query(collection(db, "stores")), snapshot => {
                 state.db.stores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const select = document.getElementById('store-switcher-select');
                 if (select) {
-                    const currentStoreId = state.selectedStore ? state.selectedStore.id : state.db.stores[0].id;
-                    select.innerHTML = '';
-                    state.db.stores.forEach(s => {
-                        select.innerHTML += `<option value="${s.id}" ${s.id === currentStoreId ? 'selected' : ''}>${s.name}</option>`;
-                    });
-                    if (!state.db.stores.some(s => s.id === currentStoreId)) {
-                        if (state.db.stores.length > 0) {
-                            state.selectedStore = state.db.stores[0];
-                            initializeAppUI();
-                            switchView(state.currentView || 'pedidos');
-                        } else {
-                            logout();
-                        }
-                    }
+                    select.innerHTML = state.db.stores.map(s => `<option value="${s.id}" ${s.id === store.id ? 'selected' : ''}>${s.name}</option>`).join('');
                 }
             });
 
             switcherContainer.classList.remove('hidden');
             const select = document.getElementById('store-switcher-select');
             select.onchange = async (e) => {
-                const newStoreId = e.target.value;
-                state.selectedStore = state.db.stores.find(s => s.id === newStoreId);
+                state.selectedStore = state.db.stores.find(s => s.id === e.target.value);
                 const settingsRef = doc(db, "settings", state.selectedStore.id);
                 const settingsSnap = await getDoc(settingsRef);
-                if (settingsSnap.exists()) {
-                    state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
-                }
-                document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
-                
-                if (state.listeners.products) state.listeners.products();
-                if (state.listeners.clients) state.listeners.clients();
-                if (state.listeners.sales) state.listeners.sales();
-
-                state.listeners.products = onSnapshot(query(collection(db, "products"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
-                    state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                });
-                
-                state.listeners.clients = onSnapshot(query(collection(db, "clients"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
-                    state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                });
-
-                state.listeners.sales = onSnapshot(query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id)), (snapshot) => {
-                    state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                });
-                switchView(state.currentView);
+                if (settingsSnap.exists()) state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
+                initializeAppUI();
+                switchView(state.currentView || 'relatorios');
             };
         } else {
             switcherContainer.classList.add('hidden');
         }
-
+        
         const createMenuItem = (v, i, t) => `<li><a href="#" data-view="${v}" class="flex items-center p-2 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white group transition-colors"><i data-lucide="${i}" class="w-5 h-5"></i><span class="ml-3">${t}</span></a></li>`;
         const createLogoutItem = () => `<li class="pt-2 mt-2 border-t border-slate-700"><button data-action="logout" class="w-full flex items-center p-2 text-red-400 rounded-lg hover:bg-red-500 hover:text-white group transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i><span class="ml-3">Sair</span></button></li>`;
 
@@ -457,6 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
             switchView('caixa');
         } else {
             const managerMenuHTML = createMenuItem('relatorios', 'layout-dashboard', 'Dashboard') +
+                                    createMenuItem('financeiro', 'trending-up', 'Financeiro') + 
                                     createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
                                     createMenuItem('clientes', 'users', 'Clientes') + 
                                     createMenuItem('produtos', 'package', 'Produtos') + 
@@ -473,30 +358,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const link = e.target.closest('a[data-view]'), logoutBtn = e.target.closest('button[data-action="logout"]');
             if (link) { e.preventDefault(); switchView(link.dataset.view); }
             if (logoutBtn) { logout(); }
-        });
-
-        document.getElementById('app').addEventListener('click', e => {
-            const shareBtn = e.target.closest('.share-daily-report-btn');
-            if(shareBtn) {
-                const ownerPhone = state.db.settings.ownerPhone?.replace(/\D/g, '');
-                if (!ownerPhone) {
-                    return showToast('Telefone do dono não configurado. Adicione em Configurações.', 'error');
-                }
-                
-                const now = new Date();
-                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const salesToday = state.db.sales.filter(s => s.date.toDate() >= todayStart);
-                const totalToday = salesToday.reduce((sum, s) => sum + s.total, 0);
-
-                const summaryText = `*Resumo do Dia - ${now.toLocaleDateString('pt-BR')}*\n\n` +
-                                  `*Loja:* ${state.selectedStore.name}\n` +
-                                  `*Total Vendido:* ${formatCurrency(totalToday)}\n` +
-                                  `*Vendas Realizadas:* ${salesToday.length}\n` +
-                                  `*Ticket Médio:* ${formatCurrency(salesToday.length > 0 ? totalToday / salesToday.length : 0)}`;
-
-                const encodedText = encodeURIComponent(summaryText);
-                window.open(`https://wa.me/55${ownerPhone}?text=${encodedText}`, '_blank');
-            }
         });
 
         window.lucide.createIcons();
@@ -528,13 +389,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (['pedidos', 'produtos', 'clientes'].includes(viewId)) {
             const table = viewContainer.querySelector('table');
-            if (table) {
-                if (!table.parentElement.classList.contains('table-responsive-wrapper')) {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'overflow-x-auto table-responsive-wrapper';
-                    table.parentNode.insertBefore(wrapper, table);
-                    wrapper.appendChild(table);
-                }
+            if (table && !table.parentElement.classList.contains('table-responsive-wrapper')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'overflow-x-auto table-responsive-wrapper';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
             }
         }
 
@@ -548,15 +407,19 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'ranking': renderRanking(); break;
             case 'relatorios': renderDashboard(); break;
             case 'configuracoes': renderConfiguracoes(); break;
+            case 'financeiro': renderFinanceiro(); break;
         }
     };
 
     const sidebar = document.getElementById('sidebar'), overlay = document.getElementById('sidebar-overlay');
-    const showMobileMenu = s => { if (s) { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden') } else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden') } };
+    const showMobileMenu = s => { s ? (sidebar.classList.remove('-translate-x-full'), overlay.classList.remove('hidden')) : (sidebar.classList.add('-translate-x-full'), overlay.classList.add('hidden')) };
     document.getElementById('mobile-menu-button').addEventListener('click', () => showMobileMenu(true));
     overlay.addEventListener('click', () => showMobileMenu(false));
 
-    function showPrizeWonModal(prize, saleData) {
+    // O restante das funções (showPrizeWonModal, etc.) permanece o mesmo e foi omitido para brevidade
+    // ..
+ 
+ function showPrizeWonModal(prize, saleData) {
         const modal = document.getElementById('prize-won-modal');
         modal.classList.remove('hidden');
         
@@ -2522,10 +2385,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return { summary, alerts };
     }
- // ====================================================================================================
-    // NOVA FUNÇÃO PARA A TELA FINANCEIRA
-    // ====================================================================================================
-    function renderFinanceiro() {
+ function renderFinanceiro() {
         const view = document.getElementById('financeiro-view');
         const monthPicker = view.querySelector('#financial-month-picker');
         const summaryContainer = view.querySelector('#financial-summary');
