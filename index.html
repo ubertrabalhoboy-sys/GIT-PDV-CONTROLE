@@ -158,7 +158,6 @@
             theme: {
                 extend: {
                     colors: {
-                        // Paleta inspirada na imagem de referência
                         'brand-primary': '#3b82f6', // Azul
                         'brand-secondary': '#22c55e', // Verde
                         'brand-tertiary': '#ec4899', // Rosa/Magenta
@@ -265,6 +264,7 @@
                 <div id="ranking-view" class="view"></div>
                 <div id="relatorios-view" class="view"></div>
                 <div id="configuracoes-view" class="view"></div>
+                <div id="financeiro-view" class="view"></div>
             </main>
         </div>
     </div>
@@ -336,9 +336,15 @@
                                 <label for="product-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Produto</label>
                                 <input type="text" id="product-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
                             </div>
-                            <div>
-                                <label for="product-price" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Preço (R$)</label>
-                                <input type="number" id="product-price" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="product-cost" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Custo (R$)</label>
+                                    <input type="number" id="product-cost" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                                </div>
+                                <div>
+                                    <label for="product-price" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Preço de Venda (R$)</label>
+                                    <input type="number" id="product-price" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                                </div>
                             </div>
                             <div>
                                 <label for="product-quantity" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Quantidade em Estoque</label>
@@ -359,6 +365,7 @@
                                     <tr>
                                         <th scope="col" class="px-6 py-3">Produto</th>
                                         <th scope="col" class="px-6 py-3 text-center">Estoque</th>
+                                        <th scope="col" class="px-6 py-3 text-right">Custo</th>
                                         <th scope="col" class="px-6 py-3 text-right">Preço</th>
                                         <th scope="col" class="px-6 py-3 text-center">Ações</th>
                                     </tr>
@@ -445,7 +452,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="clients-table-body">
-                                    </tbody>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -567,12 +574,9 @@
                 </div>
             </div>
     
-            <div id="ranking-podium-container" class="min-h-[350px]">
-                </div>
-    
+            <div id="ranking-podium-container" class="min-h-[350px]"></div>
             <div class="custom-card p-4 rounded-lg shadow-md">
-                <div id="ranking-list-container">
-                    </div>
+                <div id="ranking-list-container"></div>
             </div>
         </div>
     </script>
@@ -670,7 +674,45 @@
                 </div>
             </div>
 
-             <div class="custom-card p-6 rounded-lg shadow-md">
+             <div id="manage-expenses-section" class="hidden custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Despesas Mensais</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Adicionar Despesa</h4>
+                        <form id="add-expense-form" class="space-y-4">
+                             <div>
+                                <label for="expense-month" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Mês/Ano da Despesa</label>
+                                <input type="month" id="expense-month" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                            <div>
+                                <label for="expense-description" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Descrição</label>
+                                <input type="text" id="expense-description" required placeholder="Ex: Aluguel" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="expense-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor (R$)</label>
+                                    <input type="number" id="expense-value" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                </div>
+                                <div>
+                                    <label for="expense-type" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Tipo</label>
+                                    <select id="expense-type" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                        <option value="Fixo">Fixo</option>
+                                        <option value="Variável">Variável</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Adicionar Despesa</button>
+                        </form>
+                    </div>
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Despesas do Mês Selecionado</h4>
+                        <ul id="expenses-list" class="space-y-2 max-h-60 overflow-y-auto">
+                            </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="custom-card p-6 rounded-lg shadow-md">
                  <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Configurar Roleta de Prêmios</h3>
                  <div class="space-y-4">
                       <div class="flex items-center">
@@ -731,7 +773,6 @@
                 </div>
             </div>
 
-
             <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Exportar Vendas (CSV)</h3>
                 <div class="space-y-4 border-t border-slate-300 dark:border-slate-700 pt-4">
@@ -783,6 +824,30 @@
                 <div class="custom-card p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Usuários Cadastrados</h3>
                     <ul id="users-list" class="space-y-2"></ul>
+                </div>
+            </div>
+        </div>
+    </script>
+
+    <script type="text/html" id="financeiro-template">
+        <div class="space-y-6">
+            <div class="custom-card p-4 rounded-lg shadow-md">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Relatório Financeiro</h3>
+                    <div class="flex items-center gap-2">
+                        <label for="financial-month-picker" class="text-sm font-medium">Selecionar Mês:</label>
+                        <input type="month" id="financial-month-picker" class="rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div id="financial-summary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                </div>
+
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Detalhamento das Despesas do Mês</h3>
+                <div id="financial-expenses-list" class="space-y-2">
+                    <p class="text-center p-8 text-slate-500">Selecione um mês para ver as despesas.</p>
                 </div>
             </div>
         </div>
