@@ -811,11 +811,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const newItem = {
                 name: view.querySelector('#item-name').value,
                 value: parseFloat(view.querySelector('#item-value').value),
-                exchange: view.querySelector('#item-exchange').value
+                exchange: view.querySelector('#item-exchange').value,
+                cost: 0 // Custo padrão para itens não-estoque
             };
             
             if (selectedProduct) {
                 newItem.productId = selectedProduct.id;
+                newItem.cost = selectedProduct.cost || 0;
             }
 
             state.currentOrder.push(newItem);
@@ -1310,10 +1312,62 @@ document.addEventListener('DOMContentLoaded', () => {
         renderClientsTable();
     }
     
-    document.getElementById('app').addEventListener('submit', async (e) => {
-        if (e.target.id === 'add-product-form') {
+    // CORRIGIDO: Esta função agora define e injeta seu próprio HTML e gerencia seus próprios eventos.
+    function renderProdutos() {
+        const view = document.getElementById('produtos-view');
+        const productsTemplateHTML = `
+        <div class="p-4 sm:p-6 space-y-6">
+            <div class="custom-card p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Adicionar/Editar Produto</h3>
+                <form id="add-product-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="md:col-span-2">
+                            <label for="product-name" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Nome do Produto</label>
+                            <input type="text" id="product-name" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
+                        </div>
+                        <div>
+                            <label for="product-cost" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Custo (R$)</label>
+                            <input type="number" id="product-cost" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0.00" required>
+                        </div>
+                        <div>
+                            <label for="product-price" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Preço Venda (R$)</label>
+                            <input type="number" id="product-price" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="product-quantity" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Quantidade em Estoque</label>
+                        <input type="number" id="product-quantity" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
+                    </div>
+                    <div class="text-right">
+                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">Adicionar Produto</button>
+                    </div>
+                </form>
+            </div>
+            <div class="custom-card rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50 dark:text-slate-300">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Produto</th>
+                                <th scope="col" class="px-6 py-3 text-center">Estoque</th>
+                                <th scope="col" class="px-6 py-3 text-right">Preço Venda</th>
+                                <th scope="col" class="px-6 py-3 text-right">Custo</th>
+                                <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        `;
+        view.innerHTML = productsTemplateHTML;
+        const tableBody = view.querySelector('#products-table-body');
+        const form = view.querySelector('#add-product-form');
+
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const form = e.target;
             const name = form.querySelector('#product-name').value;
             const price = parseFloat(form.querySelector('#product-price').value);
             const cost = parseFloat(form.querySelector('#product-cost').value);
@@ -1338,80 +1392,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Erro ao adicionar produto:", error);
                 showToast('Erro ao adicionar produto.', 'error');
             }
-        }
-    });
+        });
 
-    document.getElementById('app').addEventListener('click', (e) => {
-        const removeBtn = e.target.closest('.remove-product-btn');
-        if (removeBtn) {
-            const productId = removeBtn.dataset.productId;
-            showConfirmModal('Tem certeza que deseja remover este produto? A ação não pode ser desfeita.', async () => {
-                try {
-                    await deleteDoc(doc(db, "products", productId));
-                    showToast('Produto removido com sucesso!', 'success');
-                } catch (error) {
-                    console.error("Erro ao remover produto:", error);
-                    showToast('Erro ao remover produto.', 'error');
-                }
-            });
-        }
-    });
-
-    // MODIFICADO: Esta função agora define e injeta seu próprio HTML para incluir o campo de custo.
-    function renderProdutos() {
-        const view = document.getElementById('produtos-view');
-        const productsTemplateHTML = `
-        <div class="p-4 sm:p-6 space-y-6">
-            <div class="custom-card p-6 rounded-lg">
-                <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Adicionar Novo Produto</h3>
-                <form id="add-product-form" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="md:col-span-2">
-                            <label for="product-name" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Nome do Produto</label>
-                            <input type="text" id="product-name" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
-                        </div>
-                        <div>
-                            <label for="product-price" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Preço de Venda (R$)</label>
-                            <input type="number" id="product-price" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" required>
-                        </div>
-                        <div>
-                            <label for="product-cost" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Custo do Produto (R$)</label>
-                            <input type="number" id="product-cost" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" required>
-                        </div>
-                        <div>
-                            <label for="product-quantity" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Quantidade em Estoque</label>
-                            <input type="number" id="product-quantity" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">Adicionar Produto</button>
-                    </div>
-                </form>
-            </div>
-            <div class="custom-card rounded-lg overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
-                        <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50 dark:text-slate-300">
-                            <tr>
-                                <th scope="col" class="px-6 py-3">Produto</th>
-                                <th scope="col" class="px-6 py-3 text-center">Estoque</th>
-                                <th scope="col" class="px-6 py-3 text-right">Preço</th>
-                                <th scope="col" class="px-6 py-3 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="products-table-body">
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        `;
-        view.innerHTML = productsTemplateHTML;
-        const tableBody = view.querySelector('#products-table-body');
+        tableBody.addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('.remove-product-btn');
+            if (removeBtn) {
+                const productId = removeBtn.dataset.productId;
+                showConfirmModal('Tem certeza que deseja remover este produto? A ação não pode ser desfeita.', async () => {
+                    try {
+                        await deleteDoc(doc(db, "products", productId));
+                        showToast('Produto removido com sucesso!', 'success');
+                    } catch (error) {
+                        console.error("Erro ao remover produto:", error);
+                        showToast('Erro ao remover produto.', 'error');
+                    }
+                });
+            }
+        });
 
         const renderProductsTable = () => {
             if (state.db.products.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-slate-500">Nenhum produto cadastrado.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-slate-500">Nenhum produto cadastrado.</td></tr>`;
                 return;
             }
 
@@ -1424,6 +1425,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${product.name}</td>
                         <td class="px-6 py-4 text-center ${stockClass}">${product.quantity}</td>
                         <td class="px-6 py-4 text-right">${formatCurrency(product.price)}</td>
+                        <td class="px-6 py-4 text-right">${formatCurrency(product.cost || 0)}</td>
                         <td class="px-6 py-4 text-center">
                             <button data-product-id="${product.id}" class="remove-product-btn text-red-500 hover:text-red-700">
                                 <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
@@ -2217,9 +2219,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 showConfirmModal(`Tem certeza que deseja remover o usuário "${username}"?`, async () => {
                    try {
                        await deleteDoc(doc(db, "users", userid));
-                       showToast(`Usuário "${username}" removido do banco de dados.`, 'success');
-                       console.warn(`A conta de autenticação para ${username} (UID: ${userid}) NÃO foi removida. Isso deve ser feito manualmente no Console do Firebase ou através de uma Cloud Function para manter a segurança.`);
-                       showToast('Lembrete: Remova a conta de autenticação no Console Firebase.', 'info');
+                       showToast(`Usuário "${username}" removido.`, 'success');
+                       console.log(`Documento do usuário ${username} (UID: ${userid}) removido do Firestore. Uma Cloud Function deve lidar com a exclusão da conta de autenticação.`);
                    } catch (error) { showToast('Erro ao remover usuário.', 'error'); }
                 });
             }
@@ -2427,70 +2428,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // NOVA FUNÇÃO: Renderiza o Relatório Financeiro
     function renderFinanceiro() {
         const view = document.getElementById('financeiro-view');
-        const financialTemplateHTML = `
-        <div class="p-4 sm:p-6 space-y-6">
-            <div class="custom-card p-4 rounded-lg">
-                <form id="financeiro-filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
-                    <div>
-                        <label for="financeiro-start-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Início</label>
-                        <input type="date" id="financeiro-start-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
-                    </div>
-                    <div>
-                        <label for="financeiro-end-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Fim</label>
-                        <input type="date" id="financeiro-end-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
-                    </div>
-                    <div>
-                        <label class="block text-sm">&nbsp;</label>
-                        <button type="button" id="financeiro-filter-this-month" class="w-full text-sm py-2 px-3 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">Este Mês</button>
-                    </div>
-                    <div>
-                        <label class="block text-sm">&nbsp;</label>
-                        <button type="submit" class="w-full bg-brand-primary text-white py-2 px-3 rounded-md hover:bg-blue-700">Filtrar</button>
-                    </div>
-                     <div>
-                        <label class="block text-sm">&nbsp;</label>
-                        <button type="reset" class="w-full bg-slate-500 text-white py-2 px-3 rounded-md hover:bg-slate-600">Limpar</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="financeiro-summary-cards"></div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="md:col-span-1 custom-card p-6 rounded-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Variáveis (Período)</h3>
-                    <div class="space-y-3">
-                        <div>
-                            <label for="cost-impostos" class="text-sm text-slate-600 dark:text-slate-400">Impostos (%)</label>
-                            <input type="number" id="cost-impostos" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="6" step="0.1">
-                        </div>
-                        <div>
-                            <label for="cost-comissoes" class="text-sm text-slate-600 dark:text-slate-400">Comissões (%)</label>
-                            <input type="number" id="cost-comissoes" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="5" step="0.1">
-                        </div>
-                         <div>
-                            <label for="cost-outros" class="text-sm text-slate-600 dark:text-slate-400">Outros Custos (R$)</label>
-                            <input type="number" id="cost-outros" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="0" step="0.01">
-                        </div>
-                    </div>
-                </div>
-                <div class="md:col-span-2 custom-card p-6 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-6" id="financeiro-net-summary">
-                </div>
-            </div>
-            
-            <div class="custom-card p-6 rounded-lg">
-                 <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Projeções de Faturamento</h3>
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="financeiro-projections">
-                 </div>
-            </div>
-
-            <div class="custom-card p-6 rounded-lg">
-                <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Receita vs Custo vs Lucro</h3>
-                <div class="h-80"><canvas id="financeiro-chart"></canvas></div>
-            </div>
-        </div>
-        `;
-        view.innerHTML = financialTemplateHTML;
+        view.innerHTML = document.getElementById('financeiro-template').innerHTML;
 
         const summaryCardsContainer = view.querySelector('#financeiro-summary-cards');
         const netSummaryContainer = view.querySelector('#financeiro-net-summary');
@@ -2520,8 +2458,11 @@ document.addEventListener('DOMContentLoaded', () => {
             relevantSales.forEach(sale => {
                 receitaBruta += sale.total;
                 sale.items.forEach(item => {
-                    if (item.productId && productCosts.has(item.productId)) {
-                        cpv += productCosts.get(item.productId);
+                    // Prioriza o custo salvo na venda. Se não existir (venda antiga), busca o custo atual.
+                    if (item.cost !== undefined) {
+                        cpv += item.cost;
+                    } else if (item.productId && productCosts.has(item.productId)) {
+                        cpv += productCosts.get(item.productId); // Fallback para vendas antigas
                     }
                 });
                 const dayKey = sale.date.toDate().toISOString().split('T')[0];
@@ -2529,7 +2470,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     salesByDay[dayKey] = { receita: 0, custo: 0 };
                 }
                 salesByDay[dayKey].receita += sale.total;
-                salesByDay[dayKey].custo += sale.items.reduce((acc, item) => acc + (productCosts.get(item.productId) || 0), 0);
+                salesByDay[dayKey].custo += sale.items.reduce((acc, item) => acc + (item.cost !== undefined ? item.cost : (productCosts.get(item.productId) || 0)), 0);
             });
 
             const lucroBruto = receitaBruta - cpv;
@@ -2756,4 +2697,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
-
