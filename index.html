@@ -5,18 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDV de Vendas</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <link href="/assets/css/style.css" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@0.378.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-    
     <style>
-        /* A regra @import foi removida daqui */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f1f5f9; /* bg-slate-100 */
@@ -157,6 +152,22 @@
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
     </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-primary': '#3b82f6', // Azul
+                        'brand-secondary': '#22c55e', // Verde
+                        'brand-tertiary': '#ec4899', // Rosa/Magenta
+                        'dark-bg': '#020617',
+                        'dark-card': '#0f172a'
+                    }
+                }
+            }
+        }
+    </script>
 </head>
 
 <body class="text-slate-800 dark:text-slate-200">
@@ -164,7 +175,7 @@
     <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-sm mx-auto">
               <div class="absolute top-5 right-5">
-                  <button id="theme-toggle" type="button" aria-label="Alternar tema claro/escuro" class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 focus:outline-none rounded-lg text-sm p-2.5">
+                  <button id="theme-toggle" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 focus:outline-none rounded-lg text-sm p-2.5">
                       <i id="theme-icon-sun" data-lucide="sun" class="w-5 h-5 hidden"></i>
                       <i id="theme-icon-moon" data-lucide="moon" class="w-5 h-5"></i>
                   </button>
@@ -227,7 +238,7 @@
             <header class="sticky top-0 bg-slate-100/80 dark:bg-dark-bg/80 backdrop-blur-sm z-20 border-b border-slate-200 dark:border-slate-800">
                 <div class="p-4 flex items-center justify-between">
                     <div class="flex items-center gap-4">
-                        <button id="mobile-menu-button" aria-label="Abrir menu lateral" class="sm:hidden text-slate-600 dark:text-slate-300">
+                        <button id="mobile-menu-button" class="sm:hidden text-slate-600 dark:text-slate-300">
                             <i data-lucide="menu" class="w-6 h-6"></i>
                         </button>
                         <h2 id="current-view-title" class="text-xl font-bold text-slate-900 dark:text-white"></h2>
@@ -236,7 +247,7 @@
                          <div id="store-switcher-container" class="hidden">
                               <select id="store-switcher-select" class="block w-full rounded-md border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 text-sm py-1.5"></select>
                          </div>
-                        <button id="theme-toggle-app" type="button" aria-label="Alternar tema claro/escuro" class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 focus:outline-none rounded-lg text-sm p-2.5">
+                        <button id="theme-toggle-app" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 focus:outline-none rounded-lg text-sm p-2.5">
                            <i id="theme-icon-sun-app" data-lucide="sun" class="w-5 h-5 hidden"></i>
                            <i id="theme-icon-moon-app" data-lucide="moon" class="w-5 h-5"></i>
                         </button>
@@ -244,7 +255,7 @@
                 </div>
             </header>
 
-            <main>
+            <main class="p-4 md:p-6">
                 <div id="caixa-view" class="view"></div>
                 <div id="pedidos-view" class="view"></div>
                 <div id="clientes-view" class="view"></div>
@@ -275,8 +286,8 @@
         </div>
     </div>
 
-    <template id="caixa-template">
-        <div class="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <script type="text/html" id="caixa-template">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Registrar Item</h3>
                 <form id="add-item-form" class="space-y-4">
@@ -312,384 +323,512 @@
                 <button id="finalize-order-button" class="w-full mt-6 bg-brand-primary text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"><i data-lucide="check-circle" class="w-6 h-6"></i>Finalizar Pedido</button>
             </div>
         </div>
-    </template>
+    </script>
 
-    <template id="produtos-template">
-        <div class="p-4 sm:p-6 space-y-6">
-            <div class="custom-card p-6 rounded-lg">
-                <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Adicionar/Editar Produto</h3>
-                <form id="add-product-form" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="md:col-span-2">
-                            <label for="product-name" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Nome do Produto</label>
-                            <input type="text" id="product-name" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
-                        </div>
-                        <div>
-                            <label for="product-cost" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Custo (R$)</label>
-                            <input type="number" id="product-cost" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0.00" required>
-                        </div>
-                        <div>
-                            <label for="product-price" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Preço Venda (R$)</label>
-                            <input type="number" id="product-price" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0.00" required>
+    <script type="text/html" id="produtos-template">
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Produto</h3>
+                        <form id="add-product-form" class="space-y-4">
+                            <div>
+                                <label for="product-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Produto</label>
+                                <input type="text" id="product-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="product-cost" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Custo (R$)</label>
+                                    <input type="number" id="product-cost" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label for="product-price" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Preço Venda (R$)</label>
+                                    <input type="number" id="product-price" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="product-quantity" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Quantidade em Estoque</label>
+                                <input type="number" id="product-quantity" step="1" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                            </div>
+                            <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="plus-circle" class="w-5 h-5"></i>Adicionar Produto
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="lg:col-span-2">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Produtos Cadastrados</h3>
+                        <div class="relative overflow-x-auto">
+                            <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                                <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">Produto</th>
+                                        <th scope="col" class="px-6 py-3 text-center">Estoque</th>
+                                        <th scope="col" class="px-6 py-3 text-right">Custo</th>
+                                        <th scope="col" class="px-6 py-3 text-right">Preço</th>
+                                        <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table-body">
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    <div>
-                        <label for="product-quantity" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Quantidade em Estoque</label>
-                        <input type="number" id="product-quantity" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
-                    </div>
-                    <div class="text-right">
-                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">Adicionar Produto</button>
-                    </div>
-                </form>
-            </div>
-            <div class="custom-card rounded-lg overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
-                        <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50 dark:text-slate-300">
-                            <tr>
-                                <th scope="col" class="px-6 py-3">Produto</th>
-                                <th scope="col" class="px-6 py-3 text-center">Estoque</th>
-                                <th scope="col" class="px-6 py-3 text-right">Custo</th>
-                                <th scope="col" class="px-6 py-3 text-right">Preço Venda</th>
-                                <th scope="col" class="px-6 py-3 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="products-table-body">
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>
-    </template>
+    </script>
     
-    <template id="clientes-template">
-      <div class="p-4 sm:p-6 space-y-6">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div class="lg:col-span-1">
-                  <div class="custom-card p-6 rounded-lg shadow-md">
-                      <h3 id="client-form-title" class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Cliente</h3>
-                      <form id="add-client-form" class="space-y-4">
-                          <input type="hidden" id="client-form-id">
-                          <div>
-                              <label for="client-form-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome Completo</label>
-                              <input type="text" id="client-form-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                          </div>
-                           <div>
-                              <label for="client-form-phone" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label>
-                              <input type="tel" id="client-form-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                          </div>
-                           <div>
-                              <label for="client-form-email" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">E-mail</label>
-                              <input type="email" id="client-form-email" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                          </div>
-                          <div>
-                              <label for="client-form-address" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Endereço</label>
-                              <textarea id="client-form-address" rows="3" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></textarea>
-                          </div>
-                          <div class="flex flex-col sm:flex-row gap-2 pt-2">
-                              <button type="reset" id="client-form-cancel" class="hidden w-full sm:w-auto px-5 py-2.5 text-sm font-medium focus:outline-none bg-slate-200/50 dark:bg-slate-700/50 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700">Cancelar</button>
-                              <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                                  <i data-lucide="user-plus" class="w-5 h-5"></i><span id="client-form-btn-text">Salvar Cliente</span>
-                              </button>
-                          </div>
-                      </form>
-                  </div>
-              </div>
-              <div class="lg:col-span-2">
-                  <div class="custom-card p-6 rounded-lg shadow-md">
-                      <div class="flex justify-between items-center mb-4">
-                          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Clientes Cadastrados</h3>
-                          <div id="client-count" class="text-sm text-slate-500"></div>
-                      </div>
-                      
-                      <form id="client-filter-form" class="mb-4 p-4 bg-slate-200/50 dark:bg-slate-800/50 rounded-lg space-y-4">
-                          <h4 class="text-sm font-semibold">Filtros Avançados</h4>
-                          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                  <label for="filter-last-purchase" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Comprou no dia</label>
-                                  <input type="date" id="filter-last-purchase" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
-                              </div>
-                              <div>
-                                  <label for="filter-product-purchased" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Comprou o produto</label>
-                                  <input type="text" id="filter-product-purchased" placeholder="Nome do produto..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
-                              </div>
-                          </div>
-                           <div class="flex gap-2">
-                              <button type="submit" class="w-full sm:w-auto bg-brand-primary text-white p-2 rounded-md flex items-center justify-center gap-2 text-sm"><i data-lucide="search" class="w-4 h-4"></i>Filtrar</button>
-                              <button type="reset" class="w-full sm:w-auto bg-slate-500 hover:bg-slate-600 text-white p-2 rounded-md flex items-center justify-center gap-2 text-sm"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Limpar</button>
-                          </div>
-                      </form>
-                      
-                      <div class="mb-4">
-                           <input type="text" id="client-search" placeholder="Buscar por nome ou telefone..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                      </div>
-                      <div class="relative overflow-y-auto max-h-[60vh]">
-                          <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
-                              <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50 sticky top-0">
-                                  <tr>
-                                      <th scope="col" class="px-6 py-3">Nome</th>
-                                      <th scope="col" class="px-6 py-3">Telefone</th>
-                                      <th scope="col" class="px-6 py-3 text-center">Contato</th>
-                                      <th scope="col" class="px-6 py-3 text-center">Ações</th>
-                                  </tr>
-                              </thead>
-                              <tbody id="clients-table-body">
-                              </tbody>
-                          </table>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </div>
-    </template>
+    <script type="text/html" id="clientes-template">
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 id="client-form-title" class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Cliente</h3>
+                        <form id="add-client-form" class="space-y-4">
+                            <input type="hidden" id="client-form-id">
+                            <div>
+                                <label for="client-form-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome Completo</label>
+                                <input type="text" id="client-form-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                             <div>
+                                <label for="client-form-phone" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label>
+                                <input type="tel" id="client-form-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                             <div>
+                                <label for="client-form-email" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">E-mail</label>
+                                <input type="email" id="client-form-email" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                            <div>
+                                <label for="client-form-address" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Endereço</label>
+                                <textarea id="client-form-address" rows="3" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></textarea>
+                            </div>
+                            <div class="flex flex-col sm:flex-row gap-2 pt-2">
+                                <button type="reset" id="client-form-cancel" class="hidden w-full sm:w-auto px-5 py-2.5 text-sm font-medium focus:outline-none bg-slate-200/50 dark:bg-slate-700/50 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700">Cancelar</button>
+                                <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                                    <i data-lucide="user-plus" class="w-5 h-5"></i><span id="client-form-btn-text">Salvar Cliente</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="lg:col-span-2">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Clientes Cadastrados</h3>
+                            <div id="client-count" class="text-sm text-slate-500"></div>
+                        </div>
+                        
+                        <form id="client-filter-form" class="mb-4 p-4 bg-slate-200/50 dark:bg-slate-800/50 rounded-lg space-y-4">
+                            <h4 class="text-sm font-semibold">Filtros Avançados</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="filter-last-purchase" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Comprou no dia</label>
+                                    <input type="date" id="filter-last-purchase" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                                </div>
+                                <div>
+                                    <label for="filter-product-purchased" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Comprou o produto</label>
+                                    <input type="text" id="filter-product-purchased" placeholder="Nome do produto..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                                </div>
+                            </div>
+                             <div class="flex gap-2">
+                                <button type="submit" class="w-full sm:w-auto bg-brand-primary text-white p-2 rounded-md flex items-center justify-center gap-2 text-sm"><i data-lucide="search" class="w-4 h-4"></i>Filtrar</button>
+                                <button type="reset" class="w-full sm:w-auto bg-slate-500 hover:bg-slate-600 text-white p-2 rounded-md flex items-center justify-center gap-2 text-sm"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Limpar</button>
+                            </div>
+                        </form>
+                        
+                        <div class="mb-4">
+                             <input type="text" id="client-search" placeholder="Buscar por nome ou telefone..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                        <div class="relative overflow-y-auto max-h-[60vh]">
+                            <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                                <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50 sticky top-0">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">Nome</th>
+                                        <th scope="col" class="px-6 py-3">Telefone</th>
+                                        <th scope="col" class="px-6 py-3 text-center">Contato</th>
+                                        <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clients-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </script>
     
-    <template id="pedidos-template">
-       <div class="p-4 sm:p-6 space-y-6">
-         <div id="vendedor-pedidos-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <div class="custom-card kpi-card-blue p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-blue-500/20 p-3 rounded-full"><i data-lucide="shopping-cart" class="w-6 h-6 text-blue-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Pedidos Finalizados</p><p id="pedidos-finalizados" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div></div>
-             <div class="custom-card kpi-card-green p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-green-500/20 p-3 rounded-full"><i data-lucide="dollar-sign" class="w-6 h-6 text-green-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Valor Total</p><p id="valor-total" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
-             <div class="custom-card kpi-card-pink p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-pink-500/20 p-3 rounded-full"><i data-lucide="receipt-text" class="w-6 h-6 text-pink-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Ticket Médio</p><p id="ticket-medio" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
-         </div>
-         
-         <div class="custom-card p-4 rounded-lg shadow-md">
-             <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end pb-4 border-b border-slate-300 dark:border-slate-700">
-                  <div class="lg:col-span-2">
-                    <label for="filter-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Data</label>
-                    <input type="date" id="filter-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                  </div>
-                  <div>
-                    <label for="filter-payment" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Pagamento</label>
-                    <select id="filter-payment" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                        <option>Todos</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option>
-                    </select>
-                  </div>
-                  <div id="gerente-vendedor-filter-container" class="hidden">
-                    <label for="filter-vendedor" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Vendedor</label>
-                    <select id="filter-vendedor" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></select>
-                  </div>
-                  <div class="flex gap-2">
-                    <button type="submit" class="w-full bg-brand-primary text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="search" class="w-4 h-4"></i>Buscar</button>
-                    <button type="reset" class="w-full bg-slate-500 hover:bg-slate-600 text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Limpar</button>
-                  </div>
-             </form>
-             <div class="relative overflow-x-auto pt-4">
-                 <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
-                     <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50">
-                         <tr id="orders-table-header-row">
-                             <th scope="col" class="px-6 py-3">Cliente</th>
-                             <th scope="col" class="px-6 py-3">Data</th>
-                             <th scope="col" class="px-6 py-3">Pagamento</th>
-                             <th scope="col" class="px-6 py-3 text-right">Total</th>
-                             <th scope="col" class="px-6 py-3 text-center">Ações</th>
-                         </tr>
-                     </thead>
-                     <tbody id="orders-table-body"></tbody>
-                 </table>
-                 <div id="no-orders-found" class="text-center p-8 text-slate-500 hidden">Nenhum pedido encontrado.</div>
+    <script type="text/html" id="pedidos-template">
+         <div class="space-y-6">
+            <div id="vendedor-pedidos-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div class="custom-card kpi-card-blue p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-blue-500/20 p-3 rounded-full"><i data-lucide="shopping-cart" class="w-6 h-6 text-blue-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Pedidos Finalizados</p><p id="pedidos-finalizados" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div></div>
+                 <div class="custom-card kpi-card-green p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-green-500/20 p-3 rounded-full"><i data-lucide="dollar-sign" class="w-6 h-6 text-green-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Valor Total</p><p id="valor-total" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
+                 <div class="custom-card kpi-card-pink p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-pink-500/20 p-3 rounded-full"><i data-lucide="receipt-text" class="w-6 h-6 text-pink-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Ticket Médio</p><p id="ticket-medio" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
+            </div>
+            
+            <div class="custom-card p-4 rounded-lg shadow-md">
+                 <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end pb-4 border-b border-slate-300 dark:border-slate-700">
+                      <div class="lg:col-span-2">
+                          <label for="filter-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Data</label>
+                          <input type="date" id="filter-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                      </div>
+                      <div>
+                          <label for="filter-payment" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Pagamento</label>
+                          <select id="filter-payment" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                               <option>Todos</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option>
+                          </select>
+                      </div>
+                      <div id="gerente-vendedor-filter-container" class="hidden">
+                           <label for="filter-vendedor" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Vendedor</label>
+                           <select id="filter-vendedor" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></select>
+                      </div>
+                      <div class="flex gap-2">
+                           <button type="submit" class="w-full bg-brand-primary text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="search" class="w-4 h-4"></i>Buscar</button>
+                           <button type="reset" class="w-full bg-slate-500 hover:bg-slate-600 text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Limpar</button>
+                      </div>
+                 </form>
+                <div class="relative overflow-x-auto pt-4">
+                     <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                         <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50">
+                             <tr id="orders-table-header-row">
+                                 <th scope="col" class="px-6 py-3">Cliente</th>
+                                 <th scope="col" class="px-6 py-3">Data</th>
+                                 <th scope="col" class="px-6 py-3">Pagamento</th>
+                                 <th scope="col" class="px-6 py-3 text-right">Total</th>
+                                 <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                             </tr>
+                         </thead>
+                         <tbody id="orders-table-body"></tbody>
+                     </table>
+                     <div id="no-orders-found" class="text-center p-8 text-slate-500 hidden">Nenhum pedido encontrado.</div>
+                </div>
+            </div>
+        </div>
+    </script>
+    
+    <script type="text/html" id="metas-template">
+        <div class="space-y-6">
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Meu Progresso</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Diária</span>
+                            <span id="progresso-diario-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
+                            <div id="progresso-diario-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Semanal</span>
+                            <span id="progresso-semanal-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
+                            <div id="progresso-semanal-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Mensal</span>
+                            <span id="progresso-mensal-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
+                            <div id="progresso-mensal-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="custom-card p-4 rounded-lg shadow-md text-center">
+                    <i data-lucide="flame" class="w-8 h-8 mx-auto mb-2 text-red-500"></i>
+                    <p class="text-sm text-slate-500">Meta Batida (Dias seguidos)</p>
+                    <p id="recorde-dias-consecutivos" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p>
+                </div>
+                <div class="custom-card p-4 rounded-lg shadow-md text-center">
+                    <i data-lucide="award" class="w-8 h-8 mx-auto mb-2 text-amber-500"></i>
+                    <p class="text-sm text-slate-500">Melhor Dia</p>
+                    <p id="recorde-melhor-dia" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p>
+                </div>
+                <div class="custom-card p-4 rounded-lg shadow-md text-center">
+                    <i data-lucide="trophy" class="w-8 h-8 mx-auto mb-2 text-sky-500"></i>
+                    <p class="text-sm text-slate-500">Melhor Semana</p>
+                    <p id="recorde-melhor-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p>
+                </div>
+            </div>
+        </div>
+    </script>
+
+    <script type="text/html" id="ranking-template">
+        <div class="space-y-6">
+            <div class="custom-card p-2 rounded-lg shadow-md max-w-sm mx-auto">
+                <div class="flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-md">
+                    <button data-period="day" class="ranking-period-btn flex-1 bg-white dark:bg-slate-900 text-brand-primary rounded shadow px-3 py-1.5 text-sm font-medium">Dia</button>
+                    <button data-period="week" class="ranking-period-btn flex-1 text-slate-500 dark:text-slate-400 px-3 py-1.5 text-sm font-medium">Semana</button>
+                    <button data-period="month" class="ranking-period-btn flex-1 text-slate-500 dark:text-slate-400 px-3 py-1.5 text-sm font-medium">Mês</button>
+                </div>
+            </div>
+    
+            <div id="ranking-podium-container" class="min-h-[350px]"></div>
+            <div class="custom-card p-4 rounded-lg shadow-md">
+                <div id="ranking-list-container"></div>
+            </div>
+        </div>
+    </script>
+    
+    <script type="text/html" id="relatorios-template">
+        <div class="space-y-6">
+             <div id="gerente-relatorios-vendedor-select-container" class="hidden custom-card p-4 rounded-lg shadow-md">
+                 <label for="relatorios-vendedor-select" class="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Visualizar Relatório de:</label>
+                 <select id="relatorios-vendedor-select" class="w-full md:w-1/3 block rounded-md border-slate-300 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-800/50"></select>
              </div>
-         </div>
-       </div>
-    </template>
-    
-    <template id="metas-template">
-      <div class="p-4 sm:p-6 space-y-6">
-          <div class="custom-card p-6 rounded-lg shadow-md">
-              <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Meu Progresso</h3>
-              <div class="space-y-4">
-                  <div>
-                      <div class="flex justify-between mb-1">
-                          <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Diária</span>
-                          <span id="progresso-diario-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
-                      </div>
-                      <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
-                          <div id="progresso-diario-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                 <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas Hoje</p><p id="relatorio-vendas-hoje" class="text-2xl font-bold text-brand-primary">R$ 0,00</p></div>
+                 <div id="bonus-hoje-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus Hoje</p><p id="relatorio-bonus-dia" class="text-2xl font-bold text-brand-primary">0</p></div>
+                 <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas na Semana</p><p id="relatorio-vendas-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
+                 <div id="bonus-semana-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus na Semana</p><p id="relatorio-bonus-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
+                 <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas no Mês</p><p id="relatorio-vendas-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
+                 <div id="bonus-mes-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus no Mês</p><p id="relatorio-bonus-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
+             </div>
+
+             <div id="ai-analysis-section" class="hidden custom-card p-6 rounded-lg shadow-md">
+                  <div class="flex justify-between items-center mb-4">
+                      <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">Análise de Desempenho com IA <span class="text-xs bg-brand-primary/20 text-brand-primary dark:bg-brand-primary/20 dark:text-blue-300 px-2 py-0.5 rounded-full">NOVO</span></h3>
+                  </div>
+                  <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
+                      <button id="generate-ai-analysis-btn" class="w-full sm:w-auto bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                           <i data-lucide="sparkles" class="w-4 h-4"></i>
+                           Gerar Análise com IA
+                      </button>
+                      <div id="ai-analysis-result-container" class="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-2 prose dark:prose-invert max-w-none">
+                           <p class="text-slate-500 dark:text-slate-400">Clique no botão para gerar uma análise inteligente dos dados de vendas do período selecionado.</p>
                       </div>
                   </div>
-                  <div>
-                      <div class="flex justify-between mb-1">
-                          <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Semanal</span>
-                          <span id="progresso-semanal-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
-                      </div>
-                      <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
-                          <div id="progresso-semanal-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
-                      </div>
-                  </div>
-                  <div>
-                      <div class="flex justify-between mb-1">
-                          <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Mensal</span>
-                          <span id="progresso-mensal-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
-                      </div>
-                      <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
-                          <div id="progresso-mensal-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
-                      </div>
-                  </div>
-              </div>
-          </div>
+             </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="custom-card p-4 rounded-lg shadow-md text-center">
-                  <i data-lucide="flame" class="w-8 h-8 mx-auto mb-2 text-red-500"></i>
-                  <p class="text-sm text-slate-500">Meta Batida (Dias seguidos)</p>
-                  <p id="recorde-dias-consecutivos" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p>
-              </div>
-              <div class="custom-card p-4 rounded-lg shadow-md text-center">
-                  <i data-lucide="award" class="w-8 h-8 mx-auto mb-2 text-amber-500"></i>
-                  <p class="text-sm text-slate-500">Melhor Dia</p>
-                  <p id="recorde-melhor-dia" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p>
-              </div>
-              <div class="custom-card p-4 rounded-lg shadow-md text-center">
-                  <i data-lucide="trophy" class="w-8 h-8 mx-auto mb-2 text-sky-500"></i>
-                  <p class="text-sm text-slate-500">Melhor Semana</p>
-                  <p id="recorde-melhor-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p>
-              </div>
-          </div>
-      </div>
-    </template>
-
-    <template id="ranking-template">
-      <div class="p-4 sm:p-6 space-y-6">
-          <div class="custom-card p-2 rounded-lg shadow-md max-w-sm mx-auto">
-              <div class="flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-md">
-                  <button data-period="day" class="ranking-period-btn flex-1 bg-white dark:bg-slate-900 text-brand-primary rounded shadow px-3 py-1.5 text-sm font-medium">Dia</button>
-                  <button data-period="week" class="ranking-period-btn flex-1 text-slate-500 dark:text-slate-400 px-3 py-1.5 text-sm font-medium">Semana</button>
-                  <button data-period="month" class="ranking-period-btn flex-1 text-slate-500 dark:text-slate-400 px-3 py-1.5 text-sm font-medium">Mês</button>
-              </div>
-          </div>
+             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                 <div class="lg:col-span-2 custom-card p-6 rounded-lg shadow-md">
+                     <h3 class="font-bold mb-4 text-slate-900 dark:text-white">Vendas nos últimos 7 dias</h3>
+                     <div class="h-80"><canvas id="vendas-semana-chart"></canvas></div>
+                 </div>
+                 <div class="custom-card p-6 rounded-lg shadow-md">
+                     <h3 class="font-bold mb-4 text-slate-900 dark:text-white">Formas de Pagamento</h3>
+                     <div class="h-80"><canvas id="pagamento-chart"></canvas></div>
+                 </div>
+             </div>
+        </div>
+    </script>
     
-          <div id="ranking-podium-container" class="min-h-[350px]"></div>
-          <div class="custom-card p-4 rounded-lg shadow-md">
-              <div id="ranking-list-container"></div>
-          </div>
-      </div>
-    </template>
-    
-    <template id="relatorios-template">
-      <div class="p-4 sm:p-6 space-y-6">
-           <div id="gerente-relatorios-vendedor-select-container" class="hidden custom-card p-4 rounded-lg shadow-md">
-               <label for="relatorios-vendedor-select" class="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Visualizar Relatório de:</label>
-               <select id="relatorios-vendedor-select" class="w-full md:w-1/3 block rounded-md border-slate-300 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-800/50"></select>
-           </div>
-           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-               <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas Hoje</p><p id="relatorio-vendas-hoje" class="text-2xl font-bold text-brand-primary">R$ 0,00</p></div>
-               <div id="bonus-hoje-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus Hoje</p><p id="relatorio-bonus-dia" class="text-2xl font-bold text-brand-primary">0</p></div>
-               <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas na Semana</p><p id="relatorio-vendas-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
-               <div id="bonus-semana-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus na Semana</p><p id="relatorio-bonus-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
-               <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas no Mês</p><p id="relatorio-vendas-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
-               <div id="bonus-mes-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus no Mês</p><p id="relatorio-bonus-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
-           </div>
-
-           <div id="ai-analysis-section" class="hidden custom-card p-6 rounded-lg shadow-md">
-               <div class="flex justify-between items-center mb-4">
-                   <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">Análise de Desempenho com IA <span class="text-xs bg-brand-primary/20 text-brand-primary dark:bg-brand-primary/20 dark:text-blue-300 px-2 py-0.5 rounded-full">NOVO</span></h3>
-               </div>
-               <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
-                   <button id="generate-ai-analysis-btn" class="w-full sm:w-auto bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                       <i data-lucide="sparkles" class="w-4 h-4"></i>
-                       Gerar Análise com IA
-                   </button>
-                   <div id="ai-analysis-result-container" class="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-2 prose dark:prose-invert max-w-none">
-                       <p class="text-slate-500 dark:text-slate-400">Clique no botão para gerar uma análise inteligente dos dados de vendas do período selecionado.</p>
-                   </div>
-               </div>
-           </div>
-
-           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-               <div class="lg:col-span-2 custom-card p-6 rounded-lg shadow-md">
-                   <h3 class="font-bold mb-4 text-slate-900 dark:text-white">Vendas nos últimos 7 dias</h3>
-                   <div class="h-80"><canvas id="vendas-semana-chart"></canvas></div>
-               </div>
-               <div class="custom-card p-6 rounded-lg shadow-md">
-                   <h3 class="font-bold mb-4 text-slate-900 dark:text-white">Formas de Pagamento</h3>
-                   <div class="h-80"><canvas id="pagamento-chart"></canvas></div>
-               </div>
-           </div>
-      </div>
-    </template>
-    
-    <template id="configuracoes-template">
-      <div class="p-4 sm:p-6 space-y-6">
-          <div class="custom-card p-6 rounded-lg">
-              <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Configurações Gerais</h3>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 border-t border-slate-300 dark:border-slate-700 pt-4">
-                  <div>
-                      <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Configurações da Loja</h4>
-                      <div class="space-y-4">
-                          <div>
-                              <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Loja</label>
-                              <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                          </div>
-                          <div>
-                            <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Telefone do Dono (WhatsApp)</label>
-                            <input type="tel" id="config-owner-phone" placeholder="Ex: 11987654321" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                            <p class="text-xs text-slate-500 mt-1">Usado para o envio do resumo diário.</p>
-                          </div>
-                          <button id="save-settings-button" class="mt-2 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Configurações</button>
+    <script type="text/html" id="configuracoes-template">
+        <div class="space-y-6">
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Painel Administrativo</h3>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
+                      <div>
+                          <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Configurações da Loja</h4>
+                          <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Loja</label>
+                          <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                          <button id="save-settings-button" class="mt-2 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Nome</button>
                       </div>
-                  </div>
-                  <div>
-                      <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Metas e Bônus</h4>
-                      <div class="space-y-4">
-                          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                          <h4 class="text-md font-semibold text-red-600 dark:text-red-500 mb-2">Zona de Perigo</h4>
+                          <p class="text-xs text-slate-500 mb-2">Esta ação não pode ser desfeita e removerá permanentemente todas as vendas do sistema.</p>
+                          <button id="delete-all-sales-button" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm">Zerar Todas as Vendas</button>
+                      </div>
+                 </div>
+            </div>
+
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Definir Metas e Bônus</h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="meta-diaria" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Diária (R$)</label>
+                            <input type="number" id="meta-diaria" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                        <div>
+                            <label for="meta-semanal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Semanal (R$)</label>
+                            <input type="number" id="meta-semanal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                         <div>
+                            <label for="meta-mensal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Mensal (R$)</label>
+                            <input type="number" id="meta-mensal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-300 dark:border-slate-700 pt-4 space-y-2">
+                        <div class="flex items-center">
+                            <input id="enable-bonus" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
+                            <label for="enable-bonus" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar sistema de bônus</label>
+                        </div>
+                        <div id="bonus-value-container" class="hidden">
+                             <label for="bonus-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Ganha 2 pontos de bônus a cada (R$)</label>
+                            <input type="number" id="bonus-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                    </div>
+                    <button id="save-goals-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Metas e Bônus</button>
+                </div>
+            </div>
+            
+            <div id="manage-expenses-section" class="hidden custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Despesas Mensais</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Adicionar Despesa</h4>
+                        <form id="add-expense-form" class="space-y-4">
+                             <div>
+                                <label for="expense-month" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Mês/Ano da Despesa</label>
+                                <input type="month" id="expense-month" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                            <div>
+                                <label for="expense-description" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Descrição</label>
+                                <input type="text" id="expense-description" required placeholder="Ex: Aluguel" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="expense-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor (R$)</label>
+                                    <input type="number" id="expense-value" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                </div>
+                                <div>
+                                    <label for="expense-type" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Tipo</label>
+                                    <select id="expense-type" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                        <option value="Fixo">Fixo</option>
+                                        <option value="Variável">Variável</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Adicionar Despesa</button>
+                        </form>
+                    </div>
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Despesas do Mês Selecionado</h4>
+                        <ul id="expenses-list" class="space-y-2 max-h-60 overflow-y-auto"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Configurar Roleta de Prêmios</h3>
+                 <div class="space-y-4">
+                      <div class="flex items-center">
+                          <input id="enable-bonus-wheel" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
+                          <label for="enable-bonus-wheel" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar roleta de prêmios após a venda</label>
+                      </div>
+
+                      <div id="bonus-wheel-config-container" class="hidden">
+                          <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
                               <div>
-                                  <label for="meta-diaria" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Diária (R$)</label>
-                                  <input type="number" id="meta-diaria" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                  <label for="bonus-wheel-min-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor Mínimo da Compra para Girar (R$)</label>
+                                  <input type="number" id="bonus-wheel-min-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                               </div>
+                          </div>
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4 mt-4">
                               <div>
-                                  <label for="meta-semanal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Semanal (R$)</label>
-                                  <input type="number" id="meta-semanal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                  <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Adicionar Prêmio</h4>
+                                  <form id="add-prize-form" class="space-y-4">
+                                      <div>
+                                          <label for="prize-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Prêmio</label>
+                                          <input type="text" id="prize-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                      </div>
+                                      <div>
+                                          <label for="prize-probability" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Chance de Sair (%)</label>
+                                          <input type="number" id="prize-probability" min="1" max="100" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                      </div>
+                                      <button type="submit" class="w-full bg-brand-secondary text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">Adicionar Prêmio</button>
+                                  </form>
                               </div>
                                <div>
-                                  <label for="meta-mensal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Mensal (R$)</label>
-                                  <input type="number" id="meta-mensal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                  <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Prêmios Atuais</h4>
+                                  <p class="text-xs text-slate-500 mb-2">Probabilidade Total: <span id="total-probability">0%</span></p>
+                                  <ul id="prizes-list" class="space-y-2 max-h-48 overflow-y-auto"></ul>
                               </div>
                           </div>
-                          <div class="border-t border-slate-300 dark:border-slate-700 pt-4 space-y-2">
-                              <div class="flex items-center">
-                                  <input id="enable-bonus" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
-                                  <label for="enable-bonus" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar sistema de bônus</label>
-                              </div>
-                              <div id="bonus-value-container" class="hidden">
-                                   <label for="bonus-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Ganha 2 pontos de bônus a cada (R$)</label>
-                                  <input type="number" id="bonus-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                              </div>
-                          </div>
-                          <button id="save-goals-button" class="mt-2 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Metas</button>
+                           <button id="save-wheel-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Configurações da Roleta</button>
                       </div>
-                  </div>
-              </div>
-          </div>
-          
-          <div class="custom-card p-6 rounded-lg shadow-md">
-              <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciamento de Usuários</h3>
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-6 border-t border-slate-300 dark:border-slate-700 pt-4">
-                  <div>
-                      <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Adicionar Novo Usuário</h4>
-                      <form id="add-user-form" class="space-y-4">
-                          <div>
-                              <label for="user-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome</label>
-                              <input type="text" id="user-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                          </div>
-                          <div>
-                              <label for="user-password" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Senha</label>
-                              <input type="password" id="user-password" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                          </div>
-                          <div class="flex items-center">
-                              <input id="create-as-manager" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
-                              <label for="create-as-manager" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Criar como Gerente</label>
-                          </div>
-                          <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Salvar Usuário</button>
-                      </form>
-                  </div>
-                  <div>
-                      <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Usuários Cadastrados</h4>
-                      <ul id="users-list" class="space-y-2 max-h-60 overflow-y-auto"></ul>
-                  </div>
-              </div>
-          </div>
-      </div>
-    </template>
-    
-    <template id="financeiro-template">
+                 </div>
+             </div>
+            
+            <div id="manage-stores-section" class="hidden custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Lojas</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Criar Nova Loja</h4>
+                        <form id="add-store-form" class="space-y-4">
+                            <div>
+                                <label for="new-store-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Nova Loja</label>
+                                <input type="text" id="new-store-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                            <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Criar Loja</button>
+                        </form>
+                    </div>
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Lojas Cadastradas</h4>
+                        <ul id="stores-management-list" class="space-y-2"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Exportar Vendas (CSV)</h3>
+                <div class="space-y-4 border-t border-slate-300 dark:border-slate-700 pt-4">
+                    <div>
+                        <label for="export-vendedor-select" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Filtrar por Vendedor</label>
+                        <select id="export-vendedor-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></select>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button id="export-today-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas do Dia</button>
+                        <button id="export-week-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas da Semana</button>
+                        <button id="export-month-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas do Mês</button>
+                    </div>
+                    <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Exportar por data específica:</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="start-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Data de Início</label>
+                                <input type="date" id="start-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                            </div>
+                            <div>
+                                <label for="end-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Data Final</label>
+                                <input type="date" id="end-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                            </div>
+                        </div>
+                        <button id="export-range-btn" class="w-full mt-2 bg-brand-primary text-white p-2 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4"></i>Exportar Período</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="custom-card p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Usuário</h3>
+                    <form id="add-user-form" class="space-y-4">
+                        <div>
+                            <label for="user-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome</label>
+                            <input type="text" id="user-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                        <div>
+                            <label for="user-password" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Senha</label>
+                            <input type="password" id="user-password" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                        <div class="flex items-center">
+                            <input id="create-as-manager" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
+                            <label for="create-as-manager" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Criar como Gerente</label>
+                        </div>
+                        <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Salvar Usuário</button>
+                    </form>
+                </div>
+                <div class="custom-card p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Usuários Cadastrados</h3>
+                    <ul id="users-list" class="space-y-2"></ul>
+                </div>
+            </div>
+        </div>
+    </script>
+
+     <template id="financeiro-template">
       <div class="p-4 sm:p-6 space-y-6">
           <div class="custom-card p-4 rounded-lg">
               <form id="financeiro-filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
@@ -752,6 +891,7 @@
           </div>
       </div>
     </template>
+    </script>
 
     <script type="module" src="script.js"></script>
 
