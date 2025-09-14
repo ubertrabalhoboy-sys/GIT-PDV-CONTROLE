@@ -1,18 +1,6 @@
-// Adicione esta função ao final do seu arquivo src/ui.js
-
-export function renderAppLoading() {
-    const appContainer = document.getElementById('app');
-    appContainer.classList.remove('hidden');
-    appContainer.innerHTML = '<div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary mx-auto mt-20"></div>';
-}
 // Substitua todo o conteúdo de src/ui.js por este
-
 import { formatCurrency } from './utils.js';
-import { getStores } from './firebaseApi.js';
 
-/**
- * Renderiza o fluxo completo de login.
- */
 export function renderLoginScreen(stores = [], users = [], isFirstRun = false, error = null) {
     const loginContainer = document.getElementById('login-screen');
     loginContainer.classList.remove('hidden');
@@ -42,7 +30,7 @@ export function renderLoginScreen(stores = [], users = [], isFirstRun = false, e
     } else if (stores.length > 1) {
         _renderStoreSelection(stores);
     } else {
-        _renderUserSelection(users);
+        _renderUserSelection(users, stores.length > 0 ? stores[0] : null);
     }
 
     window.lucide.createIcons();
@@ -63,19 +51,21 @@ export function _renderStoreSelection(stores) {
     `;
 }
 
-export function _renderUserSelection(users) {
+export function _renderUserSelection(users, store) {
     const container = document.getElementById('login-flow-container');
+    const hasMultipleStores = store === null; // Se a loja for nula, significa que viemos da seleção de loja
+
     const userButtonsHTML = users.length > 0 ? users.map(user => `
         <button class="flex flex-col items-center p-4 custom-card rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors duration-200 transform hover:scale-105" data-username="${user.name}" data-userid="${user.id}">
             <div class="w-16 h-16 mb-2 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div>
             <span class="font-semibold text-slate-800 dark:text-slate-200 text-center">${user.name}</span>
         </button>
-    `).join('') : '<p class="col-span-full text-center text-slate-500">Nenhum usuário encontrado.</p>';
+    `).join('') : '<p class="col-span-full text-center text-slate-500">Nenhum usuário encontrado para esta loja.</p>';
     
     container.innerHTML = `
-        <p class="text-slate-600 dark:text-slate-400 mb-8">Quem está acessando?</p>
+        <p class="text-slate-600 dark:text-slate-400 mb-8">Quem está acessando? ${store ? `(${store.name})` : ''}</p>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">${userButtonsHTML}</div>
-        <button id="back-to-stores" class="mt-6 text-sm text-slate-500 hover:text-brand-primary">Trocar de loja</button>
+        ${hasMultipleStores ? `<button id="back-to-stores" class="mt-6 text-sm text-slate-500 hover:text-brand-primary">Trocar de loja</button>` : ''}
     `;
     window.lucide.createIcons();
 }
@@ -114,8 +104,6 @@ export function clearLoginScreen() {
 }
 
 export function renderAppShell(user, store, allStores = null) {
-    // ... (O resto do arquivo ui.js permanece o mesmo)
-    // ... (A função renderAppShell, renderView, clearApp, etc. continuam aqui)
     const appContainer = document.getElementById('app');
     const sidebar = document.getElementById('sidebar');
     const header = document.getElementById('app-header');
@@ -221,5 +209,10 @@ export function setupThemeToggle(onThemeChangeCallback) {
             handler();
         }
     });
-    
+}
+
+export function renderAppLoading() {
+    const appContainer = document.getElementById('app');
+    appContainer.classList.remove('hidden');
+    appContainer.innerHTML = '<div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary mx-auto mt-20"></div>';
 }
