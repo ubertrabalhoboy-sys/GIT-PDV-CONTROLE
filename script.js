@@ -1313,133 +1313,186 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // CORRIGIDO: Esta função agora define e injeta seu próprio HTML e gerencia seus próprios eventos.
-    function renderProdutos() {
-        const view = document.getElementById('produtos-view');
-        const productsTemplateHTML = `
-        <div class="p-4 sm:p-6 space-y-6">
-            <div class="custom-card p-6 rounded-lg">
-                <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Adicionar/Editar Produto</h3>
-                <form id="add-product-form" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="md:col-span-2">
-                            <label for="product-name" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Nome do Produto</label>
-                            <input type="text" id="product-name" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
-                        </div>
-                        <div>
-                            <label for="product-cost" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Custo (R$)</label>
-                            <input type="number" id="product-cost" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0.00" required>
-                        </div>
-                        <div>
-                            <label for="product-price" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Preço Venda (R$)</label>
-                            <input type="number" id="product-price" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0.00" required>
-                        </div>
+  // CORRIGIDO: Esta função agora define e injeta seu próprio HTML e gerencia seus próprios eventos.
+function renderProdutos() {
+    const view = document.getElementById('produtos-view');
+    const productsTemplateHTML = `
+    <div class="p-4 sm:p-6 space-y-6">
+        <div class="custom-card p-6 rounded-lg">
+            <h3 id="product-form-title" class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Adicionar Novo Produto</h3>
+            <form id="add-product-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="md:col-span-2">
+                        <label for="product-name" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Nome do Produto</label>
+                        <input type="text" id="product-name" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
                     </div>
                     <div>
-                        <label for="product-quantity" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Quantidade em Estoque</label>
-                        <input type="number" id="product-quantity" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
+                        <label for="product-cost" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Custo (R$)</label>
+                        <input type="number" id="product-cost" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0.00" required>
                     </div>
-                    <div class="text-right">
-                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">Adicionar Produto</button>
+                    <div>
+                        <label for="product-price" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Preço Venda (R$)</label>
+                        <input type="number" id="product-price" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0.00" required>
                     </div>
-                </form>
-            </div>
-            <div class="custom-card rounded-lg overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
-                        <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50 dark:text-slate-300">
-                            <tr>
-                                <th scope="col" class="px-6 py-3">Produto</th>
-                                <th scope="col" class="px-6 py-3 text-center">Estoque</th>
-                                <th scope="col" class="px-6 py-3 text-right">Preço Venda</th>
-                                <th scope="col" class="px-6 py-3 text-right">Custo</th>
-                                <th scope="col" class="px-6 py-3 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="products-table-body">
-                        </tbody>
-                    </table>
                 </div>
+                <div>
+                    <label for="product-quantity" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Quantidade em Estoque</label>
+                    <input type="number" id="product-quantity" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-brand-primary focus:ring-brand-primary sm:text-sm bg-slate-200/50 dark:bg-slate-800/50" required>
+                </div>
+                <div class="text-right flex justify-end gap-3 pt-2">
+                    <button type="submit" class="inline-flex items-center justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary">
+                        <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i>Adicionar Produto
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="custom-card rounded-lg overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                    <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50 dark:text-slate-300">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Produto</th>
+                            <th scope="col" class="px-6 py-3 text-center">Estoque</th>
+                            <th scope="col" class="px-6 py-3 text-right">Preço Venda</th>
+                            <th scope="col" class="px-6 py-3 text-right">Custo</th>
+                            <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-table-body">
+                    </tbody>
+                </table>
             </div>
         </div>
-        `;
-        view.innerHTML = productsTemplateHTML;
-        const tableBody = view.querySelector('#products-table-body');
-        const form = view.querySelector('#add-product-form');
+    </div>
+    `;
+    view.innerHTML = productsTemplateHTML;
+    const tableBody = view.querySelector('#products-table-body');
+    const form = view.querySelector('#add-product-form');
+    const formTitle = view.querySelector('#product-form-title');
+    const formButton = form.querySelector('button[type="submit"]');
+    let currentEditingId = null;
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = form.querySelector('#product-name').value;
-            const price = parseFloat(form.querySelector('#product-price').value);
-            const cost = parseFloat(form.querySelector('#product-cost').value);
-            const quantity = parseInt(form.querySelector('#product-quantity').value);
+    // Função para resetar o formulário para o estado de "Adicionar"
+    const resetForm = () => {
+        form.reset();
+        currentEditingId = null;
+        formTitle.textContent = 'Adicionar Novo Produto';
+        formButton.innerHTML = '<i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i>Adicionar Produto';
+        view.querySelector('#cancel-edit-btn')?.remove(); // Remove o botão de cancelar se existir
+        window.lucide.createIcons();
+    };
 
-            if (!name || isNaN(price) || isNaN(quantity) || isNaN(cost)) {
-                showToast('Por favor, preencha todos os campos corretamente.', 'error');
-                return;
-            }
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = form.querySelector('#product-name').value;
+        const price = parseFloat(form.querySelector('#product-price').value);
+        const cost = parseFloat(form.querySelector('#product-cost').value);
+        const quantity = parseInt(form.querySelector('#product-quantity').value);
 
-            try {
-                await addDoc(collection(db, "products"), {
-                    name,
-                    price,
-                    cost,
-                    quantity,
-                    storeId: state.selectedStore.id
-                });
+        if (!name || isNaN(price) || isNaN(quantity) || isNaN(cost)) {
+            showToast('Por favor, preencha todos os campos corretamente.', 'error');
+            return;
+        }
+
+        const productData = { name, price, cost, quantity, storeId: state.selectedStore.id };
+
+        try {
+            if (currentEditingId) {
+                // Modo Edição: Atualiza o documento existente
+                const productRef = doc(db, "products", currentEditingId);
+                await updateDoc(productRef, productData);
+                showToast('Produto atualizado com sucesso!', 'success');
+            } else {
+                // Modo Adição: Cria um novo documento
+                await addDoc(collection(db, "products"), productData);
                 showToast('Produto adicionado com sucesso!', 'success');
-                form.reset();
-            } catch (error) {
-                console.error("Erro ao adicionar produto:", error);
-                showToast('Erro ao adicionar produto.', 'error');
             }
-        });
+            resetForm();
+        } catch (error) {
+            console.error("Erro ao salvar produto:", error);
+            showToast('Erro ao salvar produto.', 'error');
+        }
+    });
 
-        tableBody.addEventListener('click', (e) => {
-            const removeBtn = e.target.closest('.remove-product-btn');
-            if (removeBtn) {
-                const productId = removeBtn.dataset.productId;
-                showConfirmModal('Tem certeza que deseja remover este produto? A ação não pode ser desfeita.', async () => {
-                    try {
-                        await deleteDoc(doc(db, "products", productId));
-                        showToast('Produto removido com sucesso!', 'success');
-                    } catch (error) {
-                        console.error("Erro ao remover produto:", error);
-                        showToast('Erro ao remover produto.', 'error');
-                    }
-                });
+    tableBody.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-product-btn');
+        const removeBtn = e.target.closest('.remove-product-btn');
+        
+        if (removeBtn) {
+            const productId = removeBtn.dataset.productId;
+            showConfirmModal('Tem certeza que deseja remover este produto? A ação não pode ser desfeita.', async () => {
+                try {
+                    await deleteDoc(doc(db, "products", productId));
+                    showToast('Produto removido com sucesso!', 'success');
+                } catch (error) {
+                    console.error("Erro ao remover produto:", error);
+                    showToast('Erro ao remover produto.', 'error');
+                }
+            });
+        } else if (editBtn) {
+            const productId = editBtn.dataset.productId;
+            const product = state.db.products.find(p => p.id === productId);
+            if (product) {
+                currentEditingId = productId;
+                form.querySelector('#product-name').value = product.name;
+                form.querySelector('#product-price').value = product.price;
+                form.querySelector('#product-cost').value = product.cost || 0;
+                form.querySelector('#product-quantity').value = product.quantity;
+                
+                formTitle.textContent = 'Editando Produto';
+                formButton.innerHTML = '<i data-lucide="save" class="w-4 h-4 mr-2"></i>Atualizar Produto';
+                
+                // Adiciona botão de cancelar dinamicamente para não poluir o HTML base
+                if (!view.querySelector('#cancel-edit-btn')) {
+                    const cancelButton = document.createElement('button');
+                    cancelButton.type = 'button';
+                    cancelButton.id = 'cancel-edit-btn';
+                    cancelButton.textContent = 'Cancelar';
+                    cancelButton.className = 'py-2 px-4 border border-slate-300 dark:border-slate-600 rounded-md text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700';
+                    cancelButton.addEventListener('click', resetForm);
+                    formButton.parentElement.insertBefore(cancelButton, formButton);
+                }
+
+                window.lucide.createIcons();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                form.querySelector('#product-name').focus();
             }
-        });
+        }
+    });
 
-        const renderProductsTable = () => {
-            if (state.db.products.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-slate-500">Nenhum produto cadastrado.</td></tr>`;
-                return;
-            }
+    const renderProductsTable = () => {
+        if (state.db.products.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-slate-500">Nenhum produto cadastrado.</td></tr>`;
+            return;
+        }
 
-            const sortedProducts = [...state.db.products].sort((a, b) => a.name.localeCompare(b.name));
+        const sortedProducts = [...state.db.products].sort((a, b) => a.name.localeCompare(b.name));
 
-            const rowsHTML = sortedProducts.map(product => {
-                const stockClass = product.quantity <= 5 ? 'text-red-500 font-bold' : (product.quantity <= 10 ? 'text-amber-500 font-semibold' : '');
-                return `
-                    <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
-                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${product.name}</td>
-                        <td class="px-6 py-4 text-center ${stockClass}">${product.quantity}</td>
-                        <td class="px-6 py-4 text-right">${formatCurrency(product.price)}</td>
-                        <td class="px-6 py-4 text-right">${formatCurrency(product.cost || 0)}</td>
-                        <td class="px-6 py-4 text-center">
-                            <button data-product-id="${product.id}" class="remove-product-btn text-red-500 hover:text-red-700">
-                                <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-            tableBody.innerHTML = rowsHTML;
-            window.lucide.createIcons();
-        };
+        const rowsHTML = sortedProducts.map(product => {
+            const stockClass = product.quantity <= 5 ? 'text-red-500 font-bold' : (product.quantity <= 10 ? 'text-amber-500 font-semibold' : '');
+            return `
+                <tr class="bg-white/50 dark:bg-slate-900/50 border-b border-slate-300 dark:border-slate-800 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
+                    <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${product.name}</td>
+                    <td class="px-6 py-4 text-center ${stockClass}">${product.quantity}</td>
+                    <td class="px-6 py-4 text-right">${formatCurrency(product.price)}</td>
+                    <td class="px-6 py-4 text-right">${formatCurrency(product.cost || 0)}</td>
+                    <td class="px-6 py-4 text-center space-x-2">
+                        <button data-product-id="${product.id}" class="edit-product-btn text-amber-500 hover:text-amber-700 p-1 rounded-full" title="Editar">
+                            <i data-lucide="edit-2" class="w-4 h-4 pointer-events-none"></i>
+                        </button>
+                        <button data-product-id="${product.id}" class="remove-product-btn text-red-500 hover:text-red-700 p-1 rounded-full" title="Remover">
+                            <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        tableBody.innerHTML = rowsHTML;
+        window.lucide.createIcons();
+    };
 
-        renderProductsTable();
-    }
+    renderProductsTable();
+}
     
     function renderPedidos() {
         const c = document.getElementById('pedidos-view');
