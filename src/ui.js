@@ -1,3 +1,10 @@
+// Adicione esta função ao final do seu arquivo src/ui.js
+
+export function renderAppLoading() {
+    const appContainer = document.getElementById('app');
+    appContainer.classList.remove('hidden');
+    appContainer.innerHTML = '<div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary mx-auto mt-20"></div>';
+}
 // Substitua todo o conteúdo de src/ui.js por este
 
 import { formatCurrency } from './utils.js';
@@ -214,4 +221,5 @@ export function setupThemeToggle(onThemeChangeCallback) {
             handler();
         }
     });
+    
 }
