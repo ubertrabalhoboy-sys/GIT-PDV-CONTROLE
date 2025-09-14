@@ -1,13 +1,11 @@
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from './firebaseConfig.js';
-import { getStores, getUsersForStore, getUserProfile, getSettings, getInitialAdminUser } from './firebaseApi.js';
+import { getStores, getUsersForStore, getUserProfile, getInitialAdminUser } from './firebaseApi.js';
 import { renderLoginScreen, clearLoginScreen, clearApp, renderAppLoading } from './ui.js';
 
 let currentUser = null;
 let selectedStore = null;
 
-export const getCurrentUser = () => currentUser;
-export const getSelectedStore = () => selectedStore;
 export const setSelectedStore = (store) => {
     selectedStore = store;
     sessionStorage.setItem('selectedStore', JSON.stringify(store));
@@ -15,30 +13,19 @@ export const setSelectedStore = (store) => {
 
 export async function login(username, password) {
     const email = `${username.toLowerCase().replace(/\s+/g, '')}@pdv-app.com`;
-    try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const userProfile = await getUserProfile(userCredential.user.uid);
-        if (!userProfile) throw new Error("Perfil do usuário não encontrado no Firestore.");
-        currentUser = userProfile;
-        sessionStorage.setItem('lastUserUID', userCredential.user.uid);
-        return userProfile;
-    } catch (error) {
-        throw new Error("Usuário ou senha inválidos.");
-    }
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userProfile = await getUserProfile(userCredential.user.uid);
+    if (!userProfile) throw new Error("Perfil não encontrado no Firestore.");
+    currentUser = userProfile;
+    sessionStorage.setItem('lastUserUID', userCredential.user.uid);
+    return userProfile;
 }
 
 export async function logout() {
-    try {
-        await firebaseSignOut(auth);
-    } catch (error) {
-        console.error("Falha no logout:", error);
-    } finally {
-        currentUser = null;
-        selectedStore = null;
-        sessionStorage.clear();
-        clearApp();
-        startLoginFlow();
-    }
+    await firebaseSignOut(auth);
+    sessionStorage.clear();
+    clearApp();
+    startLoginFlow();
 }
 
 async function startLoginFlow() {
@@ -50,19 +37,15 @@ async function startLoginFlow() {
             renderLoginScreen([], adminUser ? [adminUser] : [], true);
             return;
         }
-
-        let usersToRender = [];
-        if (stores.length === 1) {
-            usersToRender = await getUsersForStore(stores[0].id);
-        }
-        
+        let usersToRender = stores.length === 1 ? await getUsersForStore(stores[0].id) : [];
         const superAdmin = await getInitialAdminUser();
-        const combinedUsers = [...new Map([...usersToRender, (superAdmin || {})].filter(u => u.id).map(item => [item['id'], item])).values()];
-        
+        if (superAdmin) {
+            usersToRender.push(superAdmin);
+        }
+        const combinedUsers = [...new Map(usersToRender.map(item => [item['id'], item])).values()];
         renderLoginScreen(stores, combinedUsers);
     } catch (error) {
-        console.error("ERRO CRÍTICO no startLoginFlow:", error);
-        renderLoginScreen([], [], false, "Erro ao carregar dados. Verifique o Firestore.");
+        renderLoginScreen([], [], false, "Erro ao carregar dados.");
     }
 }
 

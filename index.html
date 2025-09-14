@@ -6,42 +6,24 @@
     <title>PDV de Vendas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
         html.dark body { background-color: #020617; }
-        .view { display: none; }
-        .view.active { display: block; }
-        .fade-in { animation: fadeIn 0.5s ease-in-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .custom-card { background-color: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        html.dark .custom-card { background-color: rgba(15, 23, 42, 0.7); border: 1px solid rgba(51, 65, 85, 0.5); }
         .animate-shake { animation: shake 0.5s; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-        .custom-card { background-color: rgba(255, 255, 255, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
-        html.dark .custom-card { background-color: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.5); }
     </style>
     <script>
         tailwind.config = { darkMode: 'class', theme: { extend: { colors: { 'brand-primary': '#3b82f6' } } } }
     </script>
 </head>
 <body class="text-slate-800 dark:text-slate-200">
-
     <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4"></div>
-
-    <div id="app" class="hidden">
-        <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-slate-900 border-r border-slate-800"></aside>
-        <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 sm:hidden"></div>
-        <div class="sm:ml-64">
-            <header id="app-header" class="sticky top-0 bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-sm z-20 border-b border-slate-200 dark:border-slate-800"></header>
-            <main id="main-content" class="p-4 md:p-6"></main>
-        </div>
-    </div>
-    
+    <div id="app" class="hidden"></div>
     <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden"></div>
     <div id="toast-container" class="fixed bottom-5 right-5 z-[70]"></div>
-    
     <script type="module" src="./src/main.js"></script>
-
 </body>
 </html>

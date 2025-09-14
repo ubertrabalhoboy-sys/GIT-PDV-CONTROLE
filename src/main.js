@@ -1,8 +1,6 @@
 import { listenForAuthStateChanges, logout, login, setSelectedStore } from './auth.js';
-import { renderAppShell, _renderUserSelection, _renderPasswordView, _renderStoreSelection } from './ui.js';
+import { _renderUserSelection, _renderPasswordView, _renderStoreSelection, applyTheme, setupThemeToggle } from './ui.js';
 import { getStores, getUsersForStore, getInitialAdminUser } from './firebaseApi.js';
-
-async function initializeApp(user, initialStore) { /* ...código da função... */ }
 
 function setupGlobalEventListeners(initialStores) {
     let selectedUserForLogin = null;
@@ -29,6 +27,13 @@ function setupGlobalEventListeners(initialStores) {
             _renderUserSelection(users, selectedStoreForLogin);
             return;
         }
+
+        const backToUsers = e.target.closest('#back-to-users');
+        if (backToUsers) {
+             const users = await getUsersForStore(selectedStoreForLogin.id);
+             _renderUserSelection(users, selectedStoreForLogin);
+             return;
+        }
     });
     
     document.body.addEventListener('submit', async (e) => {
@@ -36,7 +41,7 @@ function setupGlobalEventListeners(initialStores) {
             e.preventDefault();
             const passwordInput = document.getElementById('password');
             const errorP = document.getElementById('login-error');
-            if (!selectedUserForLogin) return;
+            if (!selectedUserForLogin || !passwordInput) return;
             
             try {
                 if (!selectedStoreForLogin) {
@@ -53,9 +58,14 @@ function setupGlobalEventListeners(initialStores) {
 }
 
 async function onDomReady() {
+    applyTheme(localStorage.getItem('theme') || 'dark');
+    setupThemeToggle();
     const initialStores = await getStores();
     setupGlobalEventListeners(initialStores);
-    listenForAuthStateChanges(initializeApp);
+    listenForAuthStateChanges((user, store) => {
+        console.log("Login bem-sucedido!", user, store);
+        // Aqui entra a lógica para renderizar o app principal
+    });
 }
 
 if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', onDomReady); } else { onDomReady(); }
