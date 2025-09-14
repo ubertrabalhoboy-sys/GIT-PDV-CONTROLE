@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDV System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="styles.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <div id="app-root">
+        <div id="initial-loading" class="flex items-center justify-center h-screen">
+            <div class="text-xl font-semibold">Carregando Sistema...</div>
+        </div>
+    </div>
+
+    <div id="app-layout" class="hidden">
+        <nav id="sidebar" class="fixed top-0 left-0 h-full bg-gray-800 text-white w-64 p-4 transition-transform -translate-x-full md:translate-x-0">
+            </nav>
+        <main id="main-content" class="md:ml-64 p-8">
+            </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>

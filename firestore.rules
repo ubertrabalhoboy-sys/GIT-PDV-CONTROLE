@@ -1,0 +1,28 @@
+ules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the user belongs to the store
+    function userBelongsToStore(storeId) {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.storeId == storeId;
+    }
+
+    // Stores can be read by anyone to populate the login screen
+    match /stores/{storeId} {
+      allow read: if true;
+      allow write: if request.auth != null; // To be refined for Super Admin
+    }
+
+    // Users can be read to populate login screen avatars
+    match /users/{userId} {
+      allow read: if true;
+       // Only Super Admin should create/update users
+      allow write: if request.auth != null;
+    }
+
+    // All other collections require the user to be authenticated and part of the store
+    match /{collection}/{docId} {
+       allow read, write: if userBelongsToStore(resource.data.storeId);
+    }
+  }
+}

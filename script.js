@@ -2490,6 +2490,8 @@ function renderProdutos() {
         const filterForm = view.querySelector('#financeiro-filter-form');
         const startDateInput = view.querySelector('#financeiro-start-date');
         const endDateInput = view.querySelector('#financeiro-end-date');
+        const fixedCostsListEl = view.querySelector('#fixed-costs-list');
+        const addFixedCostForm = view.querySelector('#add-fixed-cost-form');
 
         const updateFinancialReport = () => {
             const startDate = startDateInput.value ? new Date(startDateInput.value + 'T00:00:00') : null;
