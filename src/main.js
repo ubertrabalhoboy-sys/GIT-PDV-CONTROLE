@@ -2,6 +2,22 @@ import { listenForAuthStateChanges, logout, login, setSelectedStore } from './au
 import { _renderUserSelection, _renderPasswordView, _renderStoreSelection, applyTheme, setupThemeToggle } from './ui.js';
 import { getStores, getUsersForStore, getInitialAdminUser } from './firebaseApi.js';
 
+function initializeApp(user, store) {
+    console.log("Login bem-sucedido! Bem-vindo,", user.name);
+    // Aqui entrará a lógica para renderizar o dashboard principal
+    const appContainer = document.getElementById('app');
+    if (!appContainer) return;
+    appContainer.classList.remove('hidden');
+    appContainer.innerHTML = `
+        <div class="p-8">
+            <h1 class="text-2xl font-bold">Bem-vindo, ${user.name}!</h1>
+            <p>Loja: ${store.name}</p>
+            <button id="logout-btn" class="mt-4 bg-red-500 text-white py-2 px-4 rounded">Sair</button>
+        </div>
+    `;
+    document.getElementById('logout-btn')?.addEventListener('click', logout);
+}
+
 function setupGlobalEventListeners(initialStores) {
     let selectedUserForLogin = null;
     let selectedStoreForLogin = initialStores.length === 1 ? initialStores[0] : null;
@@ -9,14 +25,11 @@ function setupGlobalEventListeners(initialStores) {
     document.body.addEventListener('click', async (e) => {
         const userButton = e.target.closest('button[data-username]');
         if (userButton) {
-            const usersInStore = await getUsersForStore(selectedStoreForLogin?.id);
-            const superAdminUser = await getInitialAdminUser();
-            let allAvailableUsers = [...usersInStore];
-            if (superAdminUser && !allAvailableUsers.some(u => u.id === superAdminUser.id)) {
-                allAvailableUsers.push(superAdminUser);
-            }
-            selectedUserForLogin = allAvailableUsers.find(u => u.id === userButton.dataset.userid);
-            if (selectedUserForLogin) { _renderPasswordView(selectedUserForLogin); }
+            const users = await getUsersForStore(selectedStoreForLogin?.id);
+            const superAdmin = await getInitialAdminUser();
+            if (superAdmin) users.push(superAdmin);
+            selectedUserForLogin = users.find(u => u.id === userButton.dataset.userid);
+            if (selectedUserForLogin) _renderPasswordView(selectedUserForLogin);
             return;
         }
 
@@ -41,8 +54,9 @@ function setupGlobalEventListeners(initialStores) {
             e.preventDefault();
             const passwordInput = document.getElementById('password');
             const errorP = document.getElementById('login-error');
-            if (!selectedUserForLogin || !passwordInput) return;
+            if (!selectedUserForLogin || !passwordInput || !errorP) return;
             
+            errorP.textContent = 'Verificando...';
             try {
                 if (!selectedStoreForLogin) {
                     selectedStoreForLogin = initialStores.length > 0 ? initialStores[0] : null;
@@ -51,7 +65,7 @@ function setupGlobalEventListeners(initialStores) {
                 await login(selectedUserForLogin.name, passwordInput.value);
                 setSelectedStore(selectedStoreForLogin);
             } catch (error) {
-                if(errorP) errorP.textContent = error.message;
+                errorP.textContent = error.message;
             }
         }
     });
@@ -62,10 +76,7 @@ async function onDomReady() {
     setupThemeToggle();
     const initialStores = await getStores();
     setupGlobalEventListeners(initialStores);
-    listenForAuthStateChanges((user, store) => {
-        console.log("Login bem-sucedido!", user, store);
-        // Aqui entra a lógica para renderizar o app principal
-    });
+    listenForAuthStateChanges(initializeApp);
 }
 
 if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', onDomReady); } else { onDomReady(); }

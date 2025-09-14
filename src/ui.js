@@ -11,7 +11,7 @@ export function applyTheme(theme) {
 
 export function setupThemeToggle() {
     document.body.addEventListener('click', (e) => {
-        if (e.target.closest('#theme-toggle-login')) {
+        if (e.target.closest('#theme-toggle')) {
             const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
             localStorage.setItem('theme', newTheme);
             applyTheme(newTheme);
@@ -21,8 +21,7 @@ export function setupThemeToggle() {
 
 export function _renderFirstRunView() {
     const container = document.getElementById('login-flow-container');
-    if (!container) return;
-    container.innerHTML = `<p class="text-slate-500">Configurando sistema...</p>`;
+    if (container) container.innerHTML = `<p class="text-slate-500">Configurando sistema pela primeira vez...</p>`;
 }
 
 export function _renderStoreSelection(stores) {
@@ -31,7 +30,7 @@ export function _renderStoreSelection(stores) {
     container.innerHTML = `
         <p class="text-slate-600 dark:text-slate-400 mb-8">Selecione a sua loja</p>
         <div class="space-y-2">${stores.map(store => `
-            <button class="w-full text-left p-4 custom-card rounded-lg" data-store-id="${store.id}">${store.name}</button>
+            <button class="w-full text-left p-4 custom-card rounded-lg hover:bg-slate-200/50" data-store-id="${store.id}">${store.name}</button>
         `).join('')}</div>`;
 }
 
@@ -41,14 +40,14 @@ export function _renderUserSelection(users, store) {
     const userButtonsHTML = users.length > 0 ? users.map(user => `
         <button class="flex flex-col items-center p-4 custom-card rounded-lg" data-username="${user.name}" data-userid="${user.id}">
             <div class="w-16 h-16 mb-2 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-3xl font-bold">${user.name.charAt(0).toUpperCase()}</div>
-            <span>${user.name}</span>
+            <span class="font-semibold">${user.name}</span>
         </button>
-    `).join('') : '<p>Nenhum usuário encontrado para esta loja.</p>';
+    `).join('') : '<p>Nenhum usuário encontrado.</p>';
     
     container.innerHTML = `
         <p class="mb-8">Quem está acessando? ${store ? `(${store.name})` : ''}</p>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">${userButtonsHTML}</div>
-        ${store ? '' : '<button id="back-to-stores" class="mt-6 text-sm">Trocar de loja</button>'}
+        ${!store ? '' : '<button id="back-to-stores" class="mt-6 text-sm text-slate-500">Trocar de loja</button>'}
     `;
     window.lucide.createIcons();
 }
@@ -77,11 +76,10 @@ export function renderLoginScreen(stores = [], users = [], isFirstRun = false, e
     const loginContainer = document.getElementById('login-screen');
     if (!loginContainer) return;
     loginContainer.classList.remove('hidden');
-    
     loginContainer.innerHTML = `
         <div class="w-full max-w-sm mx-auto">
             <div class="absolute top-5 right-5">
-                <button id="theme-toggle-login" type="button" class="p-2.5 rounded-lg">
+                <button id="theme-toggle" type="button" class="p-2.5 rounded-lg text-slate-500">
                     <i data-lucide="sun" class="w-5 h-5 hidden theme-icon-sun"></i>
                     <i data-lucide="moon" class="w-5 h-5 theme-icon-moon"></i>
                 </button>
@@ -92,8 +90,7 @@ export function renderLoginScreen(stores = [], users = [], isFirstRun = false, e
                 ${error ? `<p class="text-red-500">${error}</p>` : ''}
                 <div id="login-flow-container"></div>
             </div>
-        </div>
-    `;
+        </div>`;
     
     if (isFirstRun) {
         _renderFirstRunView();
@@ -116,13 +113,13 @@ export function clearLoginScreen() {
 
 export function clearApp() {
     const appContainer = document.getElementById('app');
-    if(appContainer) appContainer.innerHTML = '';
+    if(appContainer) {
+        appContainer.innerHTML = '';
+        appContainer.classList.add('hidden');
+    }
 }
 
 export function renderAppLoading() {
-    const appContainer = document.getElementById('app');
-    if(appContainer) {
-        appContainer.classList.remove('hidden');
-        appContainer.innerHTML = '<div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary mx-auto mt-20"></div>';
-    }
+    const loginContainer = document.getElementById('login-screen');
+    if(loginContainer) loginContainer.innerHTML = '<div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary"></div>';
 }

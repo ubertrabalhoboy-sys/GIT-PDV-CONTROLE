@@ -18,7 +18,6 @@ export async function login(username, password) {
     if (!userProfile) throw new Error("Perfil não encontrado no Firestore.");
     currentUser = userProfile;
     sessionStorage.setItem('lastUserUID', userCredential.user.uid);
-    return userProfile;
 }
 
 export async function logout() {
@@ -40,10 +39,10 @@ async function startLoginFlow() {
         let usersToRender = stores.length === 1 ? await getUsersForStore(stores[0].id) : [];
         const superAdmin = await getInitialAdminUser();
         if (superAdmin) {
-            usersToRender.push(superAdmin);
+            const isAlreadyInList = usersToRender.some(u => u.id === superAdmin.id);
+            if (!isAlreadyInList) usersToRender.push(superAdmin);
         }
-        const combinedUsers = [...new Map(usersToRender.map(item => [item['id'], item])).values()];
-        renderLoginScreen(stores, combinedUsers);
+        renderLoginScreen(stores, usersToRender);
     } catch (error) {
         renderLoginScreen([], [], false, "Erro ao carregar dados.");
     }
