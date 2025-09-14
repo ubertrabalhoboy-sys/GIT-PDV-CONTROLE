@@ -35,8 +35,7 @@ export async function logout() {
     } finally {
         currentUser = null;
         selectedStore = null;
-        sessionStorage.removeItem('selectedStore');
-        sessionStorage.removeItem('lastUserUID');
+        sessionStorage.clear();
         clearApp();
         startLoginFlow();
     }
@@ -52,14 +51,18 @@ async function startLoginFlow() {
             return;
         }
 
-        const users = await getUsersForStore(stores.length === 1 ? stores[0].id : null);
+        let usersToRender = [];
+        if (stores.length === 1) {
+            usersToRender = await getUsersForStore(stores[0].id);
+        }
+        
         const superAdmin = await getInitialAdminUser();
-        const combinedUsers = [...new Map([...users, (superAdmin || {})].filter(u => u.id).map(item => [item['id'], item])).values()];
+        const combinedUsers = [...new Map([...usersToRender, (superAdmin || {})].filter(u => u.id).map(item => [item['id'], item])).values()];
         
         renderLoginScreen(stores, combinedUsers);
     } catch (error) {
         console.error("ERRO CRÍTICO no startLoginFlow:", error);
-        renderLoginScreen([], [], false, "Erro ao carregar dados iniciais. Verifique as regras do Firestore.");
+        renderLoginScreen([], [], false, "Erro ao carregar dados. Verifique o Firestore.");
     }
 }
 
@@ -71,11 +74,7 @@ export function listenForAuthStateChanges(onLoginSuccess) {
             if (storedStoreJSON) {
                 selectedStore = JSON.parse(storedStoreJSON);
                 currentUser = await getUserProfile(user.uid);
-
                 if (currentUser && selectedStore) {
-                    const settings = await getSettings(selectedStore.id);
-                    selectedStore.settings = settings;
-                    clearLoginScreen();
                     onLoginSuccess(currentUser, selectedStore);
                     return;
                 }

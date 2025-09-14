@@ -1,8 +1,7 @@
-import { listenForAuthStateChanges, logout, login, getSelectedStore, setSelectedStore } from './auth.js';
-import { renderAppShell, renderView, showMobileMenu, applyTheme, setupThemeToggle, _renderUserSelection, _renderPasswordView, _renderStoreSelection } from './ui.js';
-import { getStores, getUsersForStore, getSettings, getInitialAdminUser } from './firebaseApi.js';
+import { listenForAuthStateChanges, logout, login, setSelectedStore } from './auth.js';
+import { renderAppShell, _renderUserSelection, _renderPasswordView, _renderStoreSelection } from './ui.js';
+import { getStores, getUsersForStore, getInitialAdminUser } from './firebaseApi.js';
 
-async function switchView(viewId) { /* ...código da função... */ }
 async function initializeApp(user, initialStore) { /* ...código da função... */ }
 
 function setupGlobalEventListeners(initialStores) {
@@ -30,13 +29,6 @@ function setupGlobalEventListeners(initialStores) {
             _renderUserSelection(users, selectedStoreForLogin);
             return;
         }
-
-        const backToUsers = e.target.closest('#back-to-users');
-        if (backToUsers) {
-             const users = await getUsersForStore(selectedStoreForLogin.id);
-             _renderUserSelection(users, selectedStoreForLogin);
-             return;
-        }
     });
     
     document.body.addEventListener('submit', async (e) => {
@@ -46,9 +38,6 @@ function setupGlobalEventListeners(initialStores) {
             const errorP = document.getElementById('login-error');
             if (!selectedUserForLogin) return;
             
-            passwordInput.disabled = true;
-            if (errorP) errorP.textContent = 'Verificando...';
-
             try {
                 if (!selectedStoreForLogin) {
                     selectedStoreForLogin = initialStores.length > 0 ? initialStores[0] : null;
@@ -58,18 +47,12 @@ function setupGlobalEventListeners(initialStores) {
                 setSelectedStore(selectedStoreForLogin);
             } catch (error) {
                 if(errorP) errorP.textContent = error.message;
-            } finally {
-                passwordInput.disabled = false;
             }
         }
     });
 }
 
 async function onDomReady() {
-    const theme = localStorage.getItem('theme') || 'dark';
-    applyTheme(theme);
-    setupThemeToggle(() => {});
-    
     const initialStores = await getStores();
     setupGlobalEventListeners(initialStores);
     listenForAuthStateChanges(initializeApp);
