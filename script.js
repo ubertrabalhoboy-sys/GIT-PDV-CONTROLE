@@ -196,60 +196,60 @@ document.addEventListener('DOMContentLoaded', () => {
     const showConfirmModal = (m, onConfirm) => { const M = document.getElementById('confirm-modal'); M.querySelector('#confirm-modal-message').textContent = m; M.classList.remove('hidden'); const c = M.querySelector('#confirm-modal-confirm'), n = M.querySelector('#confirm-modal-cancel'); const h = () => { onConfirm(); hide() }; const k = () => hide(); const hide = () => { M.classList.add('hidden'); c.removeEventListener('click', h); n.removeEventListener('click', k) }; c.addEventListener('click', h, { once: true }); n.addEventListener('click', k, { once: true }) };
 
     function exportToCSV(data, filename) {
-    if (data.length === 0) {
-        showToast('Nenhuma venda encontrada para exportar.', 'error');
-        return;
-    }
-
-    const headers = [
-        "Data da Compra", "ID da Venda", "Nome do Cliente", "Telefone do Cliente", "Vendedor",
-        "Itens Vendidos", "Forma de Pagamento", "Total da Venda", "Comissão da Venda"
-    ];
-
-    const formatItemsForCSV = (items) => {
-        if (!Array.isArray(items)) return '';
-        return items.map(item =>
-            `${item.name} (Valor: ${formatCurrency(item.value)}, Troca: ${item.exchange})`
-        ).join(' | ');
-    };
-
-    const formatPaymentsForCSV = (payments) => {
-        if (Array.isArray(payments) && payments.length > 0) {
-            return payments.map(p => {
-                let paymentString = `${p.method}: ${formatCurrency(p.amount)}`;
-                if (p.installments) {
-                    paymentString += ` (em ${p.installments})`;
-                }
-                return paymentString;
-            }).join(' | ');
+        if (data.length === 0) {
+            showToast('Nenhuma venda encontrada para exportar.', 'error');
+            return;
         }
-        return payments || '';
-    };
 
-    const rows = data.map(sale => [
-        new Date(sale.date.seconds * 1000).toLocaleString('pt-BR'),
-        sale.id,
-        sale.clientName,
-        sale.clientPhone || '',
-        sale.vendedor,
-        formatItemsForCSV(sale.items),
-        formatPaymentsForCSV(sale.paymentMethods || sale.paymentMethod),
-        (sale.total || 0).toFixed(2).replace('.', ','),
-        (sale.commission || 0).toFixed(2).replace('.', ',') // MUDANÇA AQUI
-    ]);
+        const headers = [
+            "Data da Compra", "ID da Venda", "Nome do Cliente", "Telefone do Cliente", "Vendedor",
+            "Itens Vendidos", "Forma de Pagamento", "Total da Venda", "Bônus da Venda"
+        ];
 
-    let csvContent = "data:text/csv;charset=utf-8,\uFEFF"
-        + headers.join(",") + "\n"
-        + rows.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+        const formatItemsForCSV = (items) => {
+            if (!Array.isArray(items)) return '';
+            return items.map(item =>
+                `${item.name} (Valor: ${formatCurrency(item.value)}, Troca: ${item.exchange})`
+            ).join(' | ');
+        };
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${filename}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
+        const formatPaymentsForCSV = (payments) => {
+            if (Array.isArray(payments) && payments.length > 0) {
+                return payments.map(p => {
+                    let paymentString = `${p.method}: ${formatCurrency(p.amount)}`;
+                    if (p.installments) {
+                        paymentString += ` (em ${p.installments})`;
+                    }
+                    return paymentString;
+                }).join(' | ');
+            }
+            return payments || '';
+        };
+
+        const rows = data.map(sale => [
+            new Date(sale.date.seconds * 1000).toLocaleString('pt-BR'),
+            sale.id,
+            sale.clientName,
+            sale.clientPhone || '',
+            sale.vendedor,
+            formatItemsForCSV(sale.items),
+            formatPaymentsForCSV(sale.paymentMethods || sale.paymentMethod),
+            (sale.total || 0).toFixed(2).replace('.', ','),
+            sale.bonus
+        ]);
+
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `${filename}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 
     document.getElementById('user-selection-view').addEventListener('click', (e) => {
         const userButton = e.target.closest('button');
@@ -756,262 +756,340 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderCaixa() {
-    // A maior parte da função permanece igual...
-    // A única mudança é no listener do formulário de finalização.
-    // Para garantir, substitua a função inteira:
+        // This function injects its own HTML, so we just call it.
+        // For brevity, assuming this function exists and is correct as in the original file.
+        const view = document.getElementById('caixa-view');
+        view.innerHTML = document.getElementById('caixa-template').innerHTML;
 
-    const view = document.getElementById('caixa-view');
-    view.innerHTML = document.getElementById('caixa-template').innerHTML;
-
-    const itemsContainer = view.querySelector('#current-order-items');
-    const totalEl = view.querySelector('#current-order-total');
-    const finalizeBtn = view.querySelector('#finalize-order-button');
-    const addForm = view.querySelector('#add-item-form');
-    const modalContainer = document.getElementById('finalize-order-modal');
-    
-    const productSearchInput = view.querySelector('#product-search');
-    const searchResultsContainer = view.querySelector('#product-search-results');
-    let selectedProduct = null;
-
-    const updateUI = () => {
-        itemsContainer.innerHTML = '';
-        if (state.currentOrder.length === 0) {
-            itemsContainer.innerHTML = '<p id="no-items-message" class="text-slate-500 dark:text-slate-400 text-center py-4">Nenhum item adicionado.</p>';
-            finalizeBtn.disabled = true;
-        } else {
-            state.currentOrder.forEach((item, i) => {
-                const el = document.createElement('div');
-                el.className = 'flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-3 rounded-md';
-                
-                const stockIcon = item.productId ? `<i data-lucide="package" class="w-4 h-4 text-slate-500 mr-2" title="Item do Estoque"></i>` : '';
-
-                el.innerHTML = `
-                    <div class="flex items-center">
-                        ${stockIcon}
-                        <div>
-                            <p class="font-semibold text-slate-800 dark:text-slate-200">${item.name}</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Troca: ${item.exchange || 'N/A'}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <span class="font-semibold text-slate-800 dark:text-slate-200">${formatCurrency(item.value)}</span>
-                        <button data-index="${i}" class="remove-item-btn text-red-500 hover:text-red-700 transition-colors">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </div>`;
-                itemsContainer.appendChild(el);
-            });
-            finalizeBtn.disabled = false;
-        }
-        totalEl.textContent = formatCurrency(state.currentOrder.reduce((sum, i) => sum + i.value, 0));
-        window.lucide.createIcons();
-    };
-
-    addForm.addEventListener('submit', e => {
-        e.preventDefault();
+        const itemsContainer = view.querySelector('#current-order-items');
+        const totalEl = view.querySelector('#current-order-total');
+        const finalizeBtn = view.querySelector('#finalize-order-button');
+        const addForm = view.querySelector('#add-item-form');
+        const modalContainer = document.getElementById('finalize-order-modal');
         
-        const newItem = {
-            name: view.querySelector('#item-name').value,
-            value: parseFloat(view.querySelector('#item-value').value),
-            exchange: view.querySelector('#item-exchange').value,
-            cost: 0 // Custo padrão para itens não-estoque
-        };
-        
-        if (selectedProduct) {
-            newItem.productId = selectedProduct.id;
-            newItem.cost = selectedProduct.cost || 0;
-        }
+        const productSearchInput = view.querySelector('#product-search');
+        const searchResultsContainer = view.querySelector('#product-search-results');
+        let selectedProduct = null;
 
-        state.currentOrder.push(newItem);
-        updateUI();
-        addForm.reset();
-        productSearchInput.value = '';
-        selectedProduct = null;
-        view.querySelector('#item-name').focus();
-    });
-
-    itemsContainer.addEventListener('click', e => {
-        const b = e.target.closest('.remove-item-btn');
-        if (b) {
-            state.currentOrder.splice(b.dataset.index, 1);
-            updateUI();
-        }
-    });
-    
-    productSearchInput.addEventListener('input', () => {
-        const searchTerm = productSearchInput.value.toLowerCase();
-        if (searchTerm.length < 2) {
-            searchResultsContainer.innerHTML = '';
-            searchResultsContainer.classList.add('hidden');
-            return;
-        }
-
-        const results = state.db.products.filter(p => 
-            p.name.toLowerCase().includes(searchTerm) && p.quantity > 0
-        );
-
-        if (results.length > 0) {
-            searchResultsContainer.innerHTML = results.map(p => `
-                <div class="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer" data-product-id="${p.id}">
-                    <p class="font-semibold text-slate-800 dark:text-slate-200">${p.name}</p>
-                    <p class="text-sm text-slate-500">Estoque: ${p.quantity} | ${formatCurrency(p.price)}</p>
-                </div>
-            `).join('');
-            searchResultsContainer.classList.remove('hidden');
-        } else {
-            searchResultsContainer.classList.add('hidden');
-        }
-    });
-
-    searchResultsContainer.addEventListener('click', (e) => {
-        const resultDiv = e.target.closest('[data-product-id]');
-        if (resultDiv) {
-            const productId = resultDiv.dataset.productId;
-            selectedProduct = state.db.products.find(p => p.id === productId);
-
-            if (selectedProduct) {
-                view.querySelector('#item-name').value = selectedProduct.name;
-                view.querySelector('#item-value').value = selectedProduct.price;
-            }
-
-            productSearchInput.value = '';
-            searchResultsContainer.classList.add('hidden');
-        }
-    });
-
-    finalizeBtn.addEventListener('click', () => {
-        modalContainer.classList.remove('hidden');
-        const orderTotal = state.currentOrder.reduce((sum, i) => sum + i.value, 0);
-
-        // ... (código do modal continua o mesmo até o submit do formulário) ...
-        modalContainer.innerHTML = `
-            <div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in">
-                <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Finalizar Pedido</h2>
-                <p class="mb-4 text-lg">Total do Pedido: <span id="modal-total-value" class="font-bold text-brand-primary">${formatCurrency(orderTotal)}</span></p>
-                
-                <form id="finalize-order-form" class="space-y-3">
-                    <div class="relative">
-                        <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Buscar Cliente</label>
-                        <input type="text" id="sale-client-search" autocomplete="off" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Digite nome ou telefone...">
-                         <div id="sale-client-search-results" class="absolute z-20 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md mt-1 shadow-lg max-h-40 overflow-y-auto hidden"></div>
-                    </div>
-                    <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente (para a venda)</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></div>
-                    <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Ex: 11987654321"></div>
-
-                    <div class="border-t border-slate-300 dark:border-slate-700 pt-3">
-                        <label class="block text-sm font-semibold mb-2 text-slate-800 dark:text-slate-200">Formas de Pagamento</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label for="payment-pix" class="text-xs text-slate-500">Pix</label><input type="number" id="payment-pix" data-method="Pix" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0,00"></div>
-                            <div><label for="payment-dinheiro" class="text-xs text-slate-500">Dinheiro</label><input type="number" id="payment-dinheiro" data-method="Dinheiro" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0,00"></div>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                            <div>
-                                <label for="payment-cartao" class="text-xs text-slate-500">Cartão</label>
-                                <input type="number" id="payment-cartao" data-method="Cartão" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0,00">
-                            </div>
-                            <div id="installments-container" class="hidden">
-                                <label for="payment-installments" class="text-xs text-slate-500">Parcelas</label>
-                                <select id="payment-installments" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                                    ${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}x">${i + 1}x</option>`).join('')}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+        const updateUI = () => {
+            itemsContainer.innerHTML = '';
+            if (state.currentOrder.length === 0) {
+                itemsContainer.innerHTML = '<p id="no-items-message" class="text-slate-500 dark:text-slate-400 text-center py-4">Nenhum item adicionado.</p>';
+                finalizeBtn.disabled = true;
+            } else {
+                state.currentOrder.forEach((item, i) => {
+                    const el = document.createElement('div');
+                    el.className = 'flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-3 rounded-md';
                     
-                    <div class="border-t border-slate-300 dark:border-slate-700 pt-3 text-right text-sm">
-                        <p>Total Pago: <span id="modal-paid-value" class="font-semibold text-slate-800 dark:text-slate-200">R$ 0,00</span></p>
-                        <p>Restante: <span id="modal-remaining-value" class="font-semibold text-red-500">R$ 0,00</span></p>
-                    </div>
+                    const stockIcon = item.productId ? `<i data-lucide="package" class="w-4 h-4 text-slate-500 mr-2" title="Item do Estoque"></i>` : '';
 
-                    <div class="pt-4 flex justify-end gap-4">
-                        <button type="button" id="cancel-finalize-button" class="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 py-2 px-4 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500">Cancelar</button>
-                        <button type="submit" id="confirm-sale-button" class="bg-brand-primary text-white py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>Confirmar Venda</button>
-                    </div>
-                </form>
-            </div>`;
-        
-        // Listener do formulário
-        modalContainer.querySelector('#finalize-order-form').addEventListener('submit', async e => {
-            e.preventDefault();
-            const clientNameInput = modalContainer.querySelector('#client-name');
-            const clientPhoneInput = modalContainer.querySelector('#client-phone');
-            const paymentInputs = modalContainer.querySelectorAll('.payment-input');
-
-            // ... (lógica de pagamento continua a mesma) ...
-            const paymentMethods = [];
-            paymentInputs.forEach(input => {
-                const amount = parseFloat(input.value);
-                if (amount > 0) {
-                    const method = { method: input.dataset.method, amount: amount };
-                    if (input.id === 'payment-cartao') {
-                        method.installments = modalContainer.querySelector('#payment-installments').value;
-                    }
-                    paymentMethods.push(method);
-                }
-            });
-            if (paymentMethods.length === 0) {
-                return showToast('Adicione ao menos uma forma de pagamento.', 'error');
-            }
-
-            const total = orderTotal;
-            
-            // ############# INÍCIO DA MUDANÇA #############
-            let commission = 0;
-            const commissionConfig = state.db.settings.commissionSystem;
-            if (commissionConfig && commissionConfig.enabled && commissionConfig.percentage > 0) {
-                commission = total * (commissionConfig.percentage / 100);
-            }
-            // ############# FIM DA MUDANÇA #############
-
-            const saleData = {
-                clientName: clientNameInput.value,
-                clientPhone: clientPhoneInput.value,
-                // clientId: selectedClient ? selectedClient.id : null, // Descomente se 'selectedClient' estiver no escopo
-                paymentMethods: paymentMethods,
-                paymentMethod: paymentMethods.map(p => p.method).join(' + '),
-                paymentMethodTypes: paymentMethods.map(p => p.method),
-                items: state.currentOrder,
-                total: total,
-                commission: commission, // SALVA A COMISSÃO
-                date: Timestamp.now(),
-                vendedor: state.loggedInUser.name,
-                status: 'Finalizado',
-                storeId: state.selectedStore.id,
-                prizeWon: null
-            };
-
-            // ... (restante da lógica de salvar no batch, etc., continua a mesma)
-            try {
-                const batch = writeBatch(db);
-                state.currentOrder.filter(item => item.productId).forEach(item => {
-                    const productRef = doc(db, "products", item.productId);
-                    batch.update(productRef, { quantity: increment(-1) });
+                    el.innerHTML = `
+                        <div class="flex items-center">
+                            ${stockIcon}
+                            <div>
+                                <p class="font-semibold text-slate-800 dark:text-slate-200">${item.name}</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Troca: ${item.exchange || 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="font-semibold text-slate-800 dark:text-slate-200">${formatCurrency(item.value)}</span>
+                            <button data-index="${i}" class="remove-item-btn text-red-500 hover:text-red-700 transition-colors">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>`;
+                    itemsContainer.appendChild(el);
                 });
-                
-                const newSaleRef = doc(collection(db, "sales"));
-                batch.set(newSaleRef, saleData);
-                await batch.commit();
+                finalizeBtn.disabled = false;
+            }
+            totalEl.textContent = formatCurrency(state.currentOrder.reduce((sum, i) => sum + i.value, 0));
+            window.lucide.createIcons();
+        };
 
-                saleData.id = newSaleRef.id;
-                showToast('Venda registrada e estoque atualizado!', 'success');
-                modalContainer.classList.add('hidden');
+        addForm.addEventListener('submit', e => {
+            e.preventDefault();
+            
+            const newItem = {
+                name: view.querySelector('#item-name').value,
+                value: parseFloat(view.querySelector('#item-value').value),
+                exchange: view.querySelector('#item-exchange').value,
+                cost: 0 // Custo padrão para itens não-estoque
+            };
+            
+            if (selectedProduct) {
+                newItem.productId = selectedProduct.id;
+                newItem.cost = selectedProduct.cost || 0;
+            }
 
-                const wheelConfig = state.db.settings.bonusWheel;
-                if (wheelConfig && wheelConfig.enabled && wheelConfig.prizes && wheelConfig.prizes.length > 0 && total >= (wheelConfig.minValue || 0)) {
-                    showBonusWheelModal(saleData);
-                } else if (saleData.clientPhone) {
-                    showWhatsAppModal(saleData);
-                }
-                state.currentOrder = [];
+            state.currentOrder.push(newItem);
+            updateUI();
+            addForm.reset();
+            productSearchInput.value = '';
+            selectedProduct = null;
+            view.querySelector('#item-name').focus();
+        });
+
+        itemsContainer.addEventListener('click', e => {
+            const b = e.target.closest('.remove-item-btn');
+            if (b) {
+                state.currentOrder.splice(b.dataset.index, 1);
                 updateUI();
-            } catch (error) {
-                showToast('Erro ao registrar a venda.', 'error');
-                console.error("Erro no batch de venda:", error);
             }
         });
+        
+        productSearchInput.addEventListener('input', () => {
+            const searchTerm = productSearchInput.value.toLowerCase();
+            if (searchTerm.length < 2) {
+                searchResultsContainer.innerHTML = '';
+                searchResultsContainer.classList.add('hidden');
+                return;
+            }
+
+            const results = state.db.products.filter(p => 
+                p.name.toLowerCase().includes(searchTerm) && p.quantity > 0
+            );
+
+            if (results.length > 0) {
+                searchResultsContainer.innerHTML = results.map(p => `
+                    <div class="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer" data-product-id="${p.id}">
+                        <p class="font-semibold text-slate-800 dark:text-slate-200">${p.name}</p>
+                        <p class="text-sm text-slate-500">Estoque: ${p.quantity} | ${formatCurrency(p.price)}</p>
+                    </div>
+                `).join('');
+                searchResultsContainer.classList.remove('hidden');
+            } else {
+                searchResultsContainer.classList.add('hidden');
+            }
+        });
+
+        searchResultsContainer.addEventListener('click', (e) => {
+            const resultDiv = e.target.closest('[data-product-id]');
+            if (resultDiv) {
+                const productId = resultDiv.dataset.productId;
+                selectedProduct = state.db.products.find(p => p.id === productId);
+
+                if (selectedProduct) {
+                    view.querySelector('#item-name').value = selectedProduct.name;
+                    view.querySelector('#item-value').value = selectedProduct.price;
+                }
+
+                productSearchInput.value = '';
+                searchResultsContainer.classList.add('hidden');
+            }
+        });
+
+        finalizeBtn.addEventListener('click', () => {
+            modalContainer.classList.remove('hidden');
+            const orderTotal = state.currentOrder.reduce((sum, i) => sum + i.value, 0);
+
+            modalContainer.innerHTML = `
+                <div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in">
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Finalizar Pedido</h2>
+                    <p class="mb-4 text-lg">Total do Pedido: <span id="modal-total-value" class="font-bold text-brand-primary">${formatCurrency(orderTotal)}</span></p>
+                    
+                    <form id="finalize-order-form" class="space-y-3">
+                        <div class="relative">
+                            <label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Buscar Cliente</label>
+                            <input type="text" id="sale-client-search" autocomplete="off" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Digite nome ou telefone...">
+                             <div id="sale-client-search-results" class="absolute z-20 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md mt-1 shadow-lg max-h-40 overflow-y-auto hidden"></div>
+                        </div>
+                        <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Nome do Cliente (para a venda)</label><input type="text" id="client-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></div>
+                        <div><label class="block text-sm text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label><input type="tel" id="client-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" placeholder="Ex: 11987654321"></div>
+
+                        <div class="border-t border-slate-300 dark:border-slate-700 pt-3">
+                            <label class="block text-sm font-semibold mb-2 text-slate-800 dark:text-slate-200">Formas de Pagamento</label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div><label for="payment-pix" class="text-xs text-slate-500">Pix</label><input type="number" id="payment-pix" data-method="Pix" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0,00"></div>
+                                <div><label for="payment-dinheiro" class="text-xs text-slate-500">Dinheiro</label><input type="number" id="payment-dinheiro" data-method="Dinheiro" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0,00"></div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                                <div>
+                                    <label for="payment-cartao" class="text-xs text-slate-500">Cartão</label>
+                                    <input type="number" id="payment-cartao" data-method="Cartão" class="payment-input block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" step="0.01" placeholder="0,00">
+                                </div>
+                                <div id="installments-container" class="hidden">
+                                    <label for="payment-installments" class="text-xs text-slate-500">Parcelas</label>
+                                    <select id="payment-installments" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                        ${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}x">${i + 1}x</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t border-slate-300 dark:border-slate-700 pt-3 text-right text-sm">
+                            <p>Total Pago: <span id="modal-paid-value" class="font-semibold text-slate-800 dark:text-slate-200">R$ 0,00</span></p>
+                            <p>Restante: <span id="modal-remaining-value" class="font-semibold text-red-500">R$ 0,00</span></p>
+                        </div>
+
+                        <div class="pt-4 flex justify-end gap-4">
+                            <button type="button" id="cancel-finalize-button" class="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 py-2 px-4 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500">Cancelar</button>
+                            <button type="submit" id="confirm-sale-button" class="bg-brand-primary text-white py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>Confirmar Venda</button>
+                        </div>
+                    </form>
+                </div>`;
+            
+            let selectedClient = null;
+            const clientSearchInput = modalContainer.querySelector('#sale-client-search');
+            const clientSearchResults = modalContainer.querySelector('#sale-client-search-results');
+            const clientNameInput = modalContainer.querySelector('#client-name');
+            const clientPhoneInput = modalContainer.querySelector('#client-phone');
+            
+            clientSearchInput.addEventListener('input', () => {
+                const term = clientSearchInput.value.toLowerCase();
+                if (term.length < 2) {
+                    clientSearchResults.classList.add('hidden');
+                    return;
+                }
+                const results = state.db.clients.filter(c => c.name.toLowerCase().includes(term) || (c.phone && c.phone.includes(term)));
+                if(results.length > 0) {
+                    clientSearchResults.innerHTML = results.map(c => `
+                        <div class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer" data-client-id="${c.id}">
+                            <p class="text-sm font-medium">${c.name}</p>
+                            <p class="text-xs text-slate-500">${c.phone || 'Sem telefone'}</p>
+                        </div>
+                    `).join('');
+                    clientSearchResults.classList.remove('hidden');
+                } else {
+                    clientSearchResults.classList.add('hidden');
+                }
+            });
+
+            clientSearchResults.addEventListener('click', e => {
+                const clientDiv = e.target.closest('[data-client-id]');
+                if(clientDiv) {
+                    selectedClient = state.db.clients.find(c => c.id === clientDiv.dataset.clientId);
+                    if(selectedClient){
+                        clientNameInput.value = selectedClient.name;
+                        clientPhoneInput.value = selectedClient.phone || '';
+                    }
+                    clientSearchResults.classList.add('hidden');
+                    clientSearchInput.value = selectedClient.name;
+                }
+            });
+
+            const paidValueEl = modalContainer.querySelector('#modal-paid-value');
+            const remainingValueEl = modalContainer.querySelector('#modal-remaining-value');
+            const confirmBtn = modalContainer.querySelector('#confirm-sale-button');
+            const paymentInputs = modalContainer.querySelectorAll('.payment-input');
+            const cartaoInput = modalContainer.querySelector('#payment-cartao');
+            const installmentsContainer = modalContainer.querySelector('#installments-container');
+
+            const updatePaymentSummary = () => {
+                let paidAmount = 0;
+                paymentInputs.forEach(input => {
+                    paidAmount += parseFloat(input.value) || 0;
+                });
+
+                const remainingAmount = orderTotal - paidAmount;
+
+                paidValueEl.textContent = formatCurrency(paidAmount);
+                remainingValueEl.textContent = formatCurrency(remainingAmount);
+
+                installmentsContainer.classList.toggle('hidden', !(parseFloat(cartaoInput.value) > 0));
+
+                if (remainingAmount <= 0.001) {
+                    confirmBtn.disabled = false;
+                    remainingValueEl.classList.remove('text-red-500');
+                    remainingValueEl.classList.add('text-green-500');
+                    if (remainingAmount < -0.001) {
+                        remainingValueEl.innerHTML = `Troco: <span class="font-bold">${formatCurrency(Math.abs(remainingAmount))}</span>`;
+                    } else {
+                        remainingValueEl.textContent = 'Pago';
+                    }
+                } else {
+                    confirmBtn.disabled = true;
+                    remainingValueEl.classList.add('text-red-500');
+                    remainingValueEl.classList.remove('text-green-500');
+                }
+            };
+
+            updatePaymentSummary();
+            paymentInputs.forEach(input => input.addEventListener('input', updatePaymentSummary));
+
+            modalContainer.querySelector('#cancel-finalize-button').addEventListener('click', () => modalContainer.classList.add('hidden'));
+
+            modalContainer.querySelector('#finalize-order-form').addEventListener('submit', async e => {
+                e.preventDefault();
+
+                const paymentMethods = [];
+                paymentInputs.forEach(input => {
+                    const amount = parseFloat(input.value);
+                    if (amount > 0) {
+                        const method = {
+                            method: input.dataset.method,
+                            amount: amount
+                        };
+                        if (input.id === 'payment-cartao') {
+                            method.installments = modalContainer.querySelector('#payment-installments').value;
+                        }
+                        paymentMethods.push(method);
+                    }
+                });
+
+                if (paymentMethods.length === 0) {
+                    showToast('Adicione ao menos uma forma de pagamento.', 'error');
+                    return;
+                }
+
+                const total = orderTotal;
+                let bonus = 0;
+                const bonusConfig = state.db.settings.bonusSystem;
+                if (bonusConfig && bonusConfig.enabled && bonusConfig.value > 0) {
+                    bonus = Math.floor(total / bonusConfig.value) * 2;
+                }
+
+                const saleData = {
+                    clientName: clientNameInput.value,
+                    clientPhone: clientPhoneInput.value,
+                    clientId: selectedClient ? selectedClient.id : null,
+                    paymentMethods: paymentMethods,
+                    paymentMethod: paymentMethods.map(p => p.method).join(' + '),
+                    paymentMethodTypes: paymentMethods.map(p => p.method),
+                    items: state.currentOrder,
+                    total: total,
+                    bonus: bonus,
+                    date: Timestamp.now(),
+                    vendedor: state.loggedInUser.name,
+                    status: 'Finalizado',
+                    storeId: state.selectedStore.id,
+                    prizeWon: null
+                };
+
+                try {
+                    const batch = writeBatch(db);
+                    const itemsToDecrement = state.currentOrder.filter(item => item.productId);
+                    
+                    itemsToDecrement.forEach(item => {
+                        const productRef = doc(db, "products", item.productId);
+                        batch.update(productRef, { quantity: increment(-1) });
+                    });
+                    
+                    const newSaleRef = doc(collection(db, "sales"));
+                    batch.set(newSaleRef, saleData);
+                    
+                    await batch.commit();
+
+                    saleData.id = newSaleRef.id;
+                    
+                    showToast('Venda registrada e estoque atualizado!', 'success');
+                    modalContainer.classList.add('hidden');
+
+                    const wheelConfig = state.db.settings.bonusWheel;
+                    if (wheelConfig && wheelConfig.enabled && wheelConfig.prizes && wheelConfig.prizes.length > 0 && total >= (wheelConfig.minValue || 0)) {
+                        showBonusWheelModal(saleData);
+                    } else if (saleData.clientPhone) {
+                        showWhatsAppModal(saleData);
+                    }
+
+                    state.currentOrder = [];
+                    updateUI();
+                } catch (error) {
+                    showToast('Erro ao registrar a venda. Estoque pode não ter sido atualizado.', 'error');
+                    console.error("Erro no batch de venda:", error);
+                }
+            });
+        });
         updateUI();
-    });
-}
+    }
     
     function renderClientes() {
         const view = document.getElementById('clientes-view');
@@ -1776,75 +1854,217 @@ function renderProdutos() {
         });
     }
 
+    function renderDashboard() {
+        const c = document.getElementById('relatorios-view');
+        c.innerHTML = document.getElementById('relatorios-template').innerHTML;
+        if (!c) return;
+        const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
 
-function renderDashboard() {
-    const c = document.getElementById('relatorios-view');
-    c.innerHTML = document.getElementById('relatorios-template').innerHTML;
-    if (!c) return;
-    const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
+        const aiSection = c.querySelector('#ai-analysis-section');
+        if (aiSection) {
+            aiSection.classList.toggle('hidden', !isManager);
 
-    if (!state.db.settings.commissionSystem?.enabled) { // VERIFICA SE O SISTEMA DE COMISSÃO ESTÁ ATIVO
-        const commissionCards = c.querySelectorAll('#comissao-hoje-card, #comissao-semana-card, #comissao-mes-card');
-        commissionCards.forEach(card => card?.classList.add('hidden'));
-    }
+            if (isManager) {
+                const generateAiBtn = aiSection.querySelector('#generate-ai-analysis-btn');
+                const aiResultContainer = aiSection.querySelector('#ai-analysis-result-container');
 
-    const updateDashboardUI = (sales, allStoreSales) => {
-        if (vendasChartInstance) vendasChartInstance.destroy();
-        if (pagamentoChartInstance) pagamentoChartInstance.destroy();
-        
-        // ... (código dos insights e alertas continua o mesmo)
-        
-        const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-        const dayOfWeek = now.getDay();
-        const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
+                if (generateAiBtn && aiResultContainer) {
+                    const newGenerateAiBtn = generateAiBtn.cloneNode(true);
+                    generateAiBtn.parentNode.replaceChild(newGenerateAiBtn, generateAiBtn);
 
-        const salesToday = sales.filter(s => s.date.toDate().getTime() >= startOfToday.getTime());
-        const salesWeek = sales.filter(s => s.date.toDate().getTime() >= startOfWeek.getTime());
-        const salesMonth = sales.filter(s => s.date.toDate().getTime() >= startOfMonth.getTime());
+                    newGenerateAiBtn.addEventListener('click', () => {
+                        const selectedVendedor = isManager ? c.querySelector('#relatorios-vendedor-select')?.value : 'total';
+                        const salesData = selectedVendedor === 'total' || !isManager
+                            ? state.db.sales
+                            : state.db.sales.filter(s => s.vendedor === selectedVendedor);
 
-        c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + s.total, 0));
-        c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + s.total, 0));
-        c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
-        
-        if(state.db.settings.commissionSystem?.enabled){
-             c.querySelector('#relatorio-comissao-dia').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + (s.commission || 0), 0));
-             c.querySelector('#relatorio-comissao-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + (s.commission || 0), 0));
-             c.querySelector('#relatorio-comissao-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + (s.commission || 0), 0));
-        }
-        
-        // ... (resto da função com os gráficos continua o mesmo)
-        const salesLast7Days = {};
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setHours(0, 0, 0, 0);
-            d.setDate(d.getDate() - i);
-            salesLast7Days[d.toISOString().split('T')[0]] = { label: d.toLocaleDateString('pt-BR', {weekday: 'short'}).slice(0,3), total: 0 };
-        }
-        sales.forEach(sale => {
-            const saleDate = sale.date.toDate();
-            const dayKey = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate()).toISOString().split('T')[0];
-            if (salesLast7Days[dayKey]) {
-                salesLast7Days[dayKey].total += sale.total;
+                        if (salesData.length === 0) {
+                            aiResultContainer.innerHTML = `<p class="text-amber-600 dark:text-amber-400">Não há dados de vendas suficientes para gerar uma análise.</p>`;
+                            return;
+                        }
+
+                        newGenerateAiBtn.disabled = true;
+                        aiResultContainer.innerHTML = `
+                            <div class="flex items-center gap-2 text-slate-500">
+                                <div class="w-5 h-5 border-2 border-dashed rounded-full animate-spin border-brand-primary"></div>
+                                Analisando dados e gerando insights...
+                            </div>
+                        `;
+
+                        setTimeout(() => {
+                            const totalSales = salesData.reduce((sum, s) => sum + s.total, 0);
+                            const numOrders = salesData.length;
+                            const avgTicket = totalSales / numOrders;
+                            const salesByDay = salesData.reduce((acc, s) => {
+                                const day = s.date.toDate().toLocaleDateString('pt-BR');
+                                acc[day] = (acc[day] || 0) + s.total;
+                                return acc;
+                            }, {});
+                            const bestDay = Object.entries(salesByDay).sort((a, b) => b[1] - a[1])[0];
+                            const paymentMethods = salesData.flatMap(s => s.paymentMethods || [{ method: s.paymentMethod }])
+                                .reduce((acc, p) => { acc[p.method] = (acc[p.method] || 0) + 1; return acc; }, {});
+                            const mostUsedPayment = Object.entries(paymentMethods).sort((a, b) => b[1] - a[1])[0];
+
+                            const analysisHTML = `
+                                <h4>Resumo do Período:</h4>
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li><strong>Total de Vendas:</strong> ${formatCurrency(totalSales)} em ${numOrders} pedido(s).</li>
+                                    <li><strong>Ticket Médio:</strong> ${formatCurrency(avgTicket)} por pedido.</li>
+                                    ${bestDay ? `<li><strong>Dia de Maior Movimento:</strong> ${bestDay[0]} com ${formatCurrency(bestDay[1])}.</li>` : ''}
+                                    ${mostUsedPayment ? `<li><strong>Forma de Pagamento Mais Usada:</strong> ${mostUsedPayment[0]}.</li>` : ''}
+                                </ul>
+                                <p class="mt-3 text-xs text-slate-400">*Análise gerada automaticamente com base nos dados disponíveis.</p>
+                            `;
+                            
+                            aiResultContainer.innerHTML = analysisHTML;
+                            newGenerateAiBtn.disabled = false;
+                        }, 1500);
+                    });
+                }
             }
-        });
-
-        const isDarkMode = document.documentElement.classList.contains('dark');
-        const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
-        const textColor = isDarkMode ? '#cbd5e1' : '#475569';
-        
-        const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
-        if(vendasCtx) {
-            vendasChartInstance = new window.Chart(vendasCtx, { /* ... config do gráfico ... */ });
         }
-    };
-    
-    // ... (o restante da função com o listener do select continua o mesmo)
-    const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
-    let q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-    
+
+        const summaryContainer = c.querySelector('#intelligent-summary') || document.createElement('div');
+        summaryContainer.id = 'intelligent-summary';
+        summaryContainer.className = 'mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+
+        const alertsContainer = c.querySelector('#intelligent-alerts') || document.createElement('div');
+        alertsContainer.id = 'intelligent-alerts';
+        alertsContainer.className = 'mt-6 space-y-3';
+
+        const mainContent = c.querySelector('.grid');
+        if (mainContent && !c.querySelector('#intelligent-summary')) {
+            mainContent.parentNode.insertBefore(summaryContainer, mainContent);
+            mainContent.parentNode.appendChild(alertsContainer);
+        }
+
+        if (!state.db.settings.bonusSystem?.enabled) {
+            const bonusCards = c.querySelectorAll('#bonus-hoje-card, #bonus-semana-card, #bonus-mes-card');
+            bonusCards.forEach(card => card?.classList.add('hidden'));
+        }
+
+        const updateDashboardUI = (sales, allStoreSales) => {
+            if (vendasChartInstance) vendasChartInstance.destroy();
+            if (pagamentoChartInstance) pagamentoChartInstance.destroy();
+            
+            if (isManager) {
+                const insights = generateIntelligentInsights(sales, allStoreSales);
+                summaryContainer.innerHTML = insights.summary.map(insight => `
+                    <div class="custom-card p-4 flex items-start gap-3 rounded-lg">
+                        <span class="text-xl">${insight.icon}</span>
+                        <p class="text-sm text-slate-700 dark:text-slate-300">${insight.text}</p>
+                    </div>
+                `).join('');
+
+                alertsContainer.innerHTML = insights.alerts.map(alert => `
+                       <div class="custom-card p-4 flex items-start gap-3 rounded-lg bg-amber-50 border-l-4 border-amber-400 dark:bg-amber-900/20 dark:border-amber-500">
+                           <span class="text-xl">${alert.icon}</span>
+                           <div class="flex-1">
+                               <p class="text-sm text-amber-800 dark:text-amber-200">${alert.text}</p>
+                               ${alert.action ? `<div class="mt-2">${alert.action}</div>` : ''}
+                           </div>
+                       </div>
+                `).join('');
+                window.lucide.createIcons();
+            } else {
+                summaryContainer.innerHTML = '';
+                alertsContainer.innerHTML = '';
+            }
+
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+            const dayOfWeek = now.getDay();
+            const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
+
+            const salesToday = sales.filter(s => s.date.toDate().getTime() >= startOfToday.getTime());
+            const salesWeek = sales.filter(s => s.date.toDate().getTime() >= startOfWeek.getTime());
+            const salesMonth = sales.filter(s => s.date.toDate().getTime() >= startOfMonth.getTime());
+
+            c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + s.total, 0));
+            c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + s.total, 0));
+            c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
+            
+            if(state.db.settings.bonusSystem?.enabled){
+                 c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
+                 c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
+                 c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
+            }
+            
+            const salesLast7Days = {};
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setHours(0, 0, 0, 0);
+                d.setDate(d.getDate() - i);
+                salesLast7Days[d.toISOString().split('T')[0]] = { label: d.toLocaleDateString('pt-BR', {weekday: 'short'}).slice(0,3), total: 0 };
+            }
+            sales.forEach(sale => {
+                const saleDate = sale.date.toDate();
+                const dayKey = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate()).toISOString().split('T')[0];
+                if (salesLast7Days[dayKey]) {
+                    salesLast7Days[dayKey].total += sale.total;
+                }
+            });
+
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
+            const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+            
+            const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
+            if(vendasCtx) {
+                const gradient = vendasCtx.createLinearGradient(0, 0, 0, vendasCtx.canvas.height);
+                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+                gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+                
+                vendasChartInstance = new window.Chart(vendasCtx, {
+                    type: 'line',
+                    data: { 
+                        labels: Object.values(salesLast7Days).map(d => d.label), 
+                        datasets: [{ 
+                            label: 'Vendas Diárias', 
+                            data: Object.values(salesLast7Days).map(d => d.total), 
+                            backgroundColor: gradient,
+                            borderColor: '#3b82f6',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#3b82f6',
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.4
+                        }] 
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
+                });
+            }
+
+            const paymentData = sales.reduce((acc, sale) => {
+                (sale.paymentMethods || [{method: sale.paymentMethod, amount: sale.total}]).forEach(p => {
+                    acc[p.method] = (acc[p.method] || 0) + p.amount;
+                });
+                return acc;
+            }, {});
+
+            const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
+            if(pagamentosCtx) {
+                pagamentoChartInstance = new window.Chart(pagamentosCtx, {
+                    type: 'doughnut',
+                    data: { 
+                        labels: Object.keys(paymentData), 
+                        datasets: [{ 
+                            data: Object.values(paymentData), 
+                            backgroundColor: ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b'], 
+                            borderColor: isDarkMode ? '#0f172a' : '#f1f5f9', 
+                            borderWidth: 4 
+                        }] 
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
+                });
+            }
+        };
+        
+        const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
+        
+        let q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
         
         if(state.listeners.relatorios) state.listeners.relatorios();
         state.listeners.relatorios = onSnapshot(q, (snapshot) => {
@@ -1878,56 +2098,56 @@ function renderDashboard() {
         });
     }
 
+    function renderConfiguracoes() {
+        const c=document.getElementById('configuracoes-view');
+        c.innerHTML = document.getElementById('configuracoes-template').innerHTML;
+        c.querySelector('#config-store-name').value = state.db.settings.storeName;
+        c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
+        c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
+        c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
+        
+        const enableBonusCheckbox = c.querySelector('#enable-bonus');
+        const bonusValueContainer = c.querySelector('#bonus-value-container');
+        const bonusValueInput = c.querySelector('#bonus-value');
 
-function renderConfiguracoes() {
-    const c=document.getElementById('configuracoes-view');
-    c.innerHTML = document.getElementById('configuracoes-template').innerHTML;
-    c.querySelector('#config-store-name').value = state.db.settings.storeName;
-    c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
-    c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
-    c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
-    
-    // ############# INÍCIO DA MUDANÇA #############
-    const enableCommissionCheckbox = c.querySelector('#enable-commission');
-    const commissionValueContainer = c.querySelector('#commission-value-container');
-    const commissionPercentageInput = c.querySelector('#commission-percentage');
+        enableBonusCheckbox.checked = state.db.settings.bonusSystem?.enabled ?? true;
+        bonusValueInput.value = state.db.settings.bonusSystem?.value ?? 80;
 
-    enableCommissionCheckbox.checked = state.db.settings.commissionSystem?.enabled ?? true;
-    commissionPercentageInput.value = state.db.settings.commissionSystem?.percentage ?? 5; // Padrão de 5%
+        bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
+        enableBonusCheckbox.addEventListener('change', () => {
+            bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
+        });
+        
+        const exportVendedorSelect = c.querySelector('#export-vendedor-select');
+        exportVendedorSelect.innerHTML = '<option value="Todos">Todos os Vendedores</option>';
+        const vendedores = state.db.users.filter(u => u.role === 'vendedor' && u.storeId === state.selectedStore.id).map(u => u.name);
+        vendedores.forEach(name => {
+            exportVendedorSelect.innerHTML += `<option value="${name}">${name}</option>`;
+        });
+        
+        const handleExport = async (startDate, endDate, filename) => {
+            const selectedVendedor = exportVendedorSelect.value;
+            try {
+                let baseConditions = [
+                    where("storeId", "==", state.selectedStore.id),
+                    where("date", ">=", startDate),
+                    where("date", "<=", endDate)
+                ];
 
-    commissionValueContainer.classList.toggle('hidden', !enableCommissionCheckbox.checked);
-    enableCommissionCheckbox.addEventListener('change', () => {
-        commissionValueContainer.classList.toggle('hidden', !enableCommissionCheckbox.checked);
-    });
-    // ############# FIM DA MUDANÇA #############
+                const baseQuery = query(collection(db, "sales"), ...baseConditions);
+                const salesSnapshot = await getDocs(baseQuery);
+                let salesToExport = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // ... (Código de exportação CSV continua o mesmo)
+                if (selectedVendedor !== 'Todos') {
+                    salesToExport = salesToExport.filter(sale => sale.vendedor === selectedVendedor);
+                }
 
-    c.querySelector('#save-goals-button').addEventListener('click', async () => {
-        const newGoals = {
-            daily: parseFloat(c.querySelector('#meta-diaria').value) || 0,
-            weekly: parseFloat(c.querySelector('#meta-semanal').value) || 0,
-            monthly: parseFloat(c.querySelector('#meta-mensal').value) || 0,
+                exportToCSV(salesToExport, filename);
+            } catch (error) {
+                console.error("Erro ao exportar vendas:", error);
+                showToast('Erro ao buscar dados para exportação.', 'error');
+            }
         };
-        // ############# INÍCIO DA MUDANÇA #############
-         const newCommissionSystem = {
-             enabled: c.querySelector('#enable-commission').checked,
-             percentage: parseFloat(c.querySelector('#commission-percentage').value) || 0,
-        };
-        // ############# FIM DA MUDANÇA #############
-
-        try {
-            await setDoc(doc(db, "settings", state.selectedStore.id), {
-                goals: newGoals,
-                commissionSystem: newCommissionSystem // Salva o novo sistema de comissão
-            }, { merge: true });
-            state.db.settings.goals = newGoals;
-            state.db.settings.commissionSystem = newCommissionSystem;
-            showToast('Metas e comissão salvas com sucesso!', 'success');
-        } catch(error) {
-            showToast('Erro ao salvar metas e comissão.', 'error');
-        }
-    });
         
         c.querySelector('#export-today-btn').addEventListener('click', () => {
             const todayStart = new Date(new Date().setHours(0,0,0,0));
