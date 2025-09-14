@@ -1,10 +1,7 @@
-// Substitua todo o conteúdo de src/auth.js por este:
-
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { auth } from './firebaseConfig.js';
 import { getStores, getUsersForStore, getUserProfile, getSettings, getInitialAdminUser } from './firebaseApi.js';
-import { renderLoginScreen, clearLoginScreen, clearApp } from './ui.js';
-import { DEBUG } from "./utils.js";
+import { renderLoginScreen, clearLoginScreen, clearApp, renderAppLoading } from './ui.js';
 
 let currentUser = null;
 let selectedStore = null;
@@ -16,51 +13,75 @@ export const setSelectedStore = (store) => {
     sessionStorage.setItem('selectedStore', JSON.stringify(store));
 };
 
-export async function login(username, password) { /* ...código da função... */ }
-export async function logout() { /* ...código da função... */ }
+export async function login(username, password) {
+    const email = `${username.toLowerCase().replace(/\s+/g, '')}@pdv-app.com`;
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const userProfile = await getUserProfile(userCredential.user.uid);
+        if (!userProfile) throw new Error("Perfil do usuário não encontrado no Firestore.");
+        currentUser = userProfile;
+        sessionStorage.setItem('lastUserUID', userCredential.user.uid);
+        return userProfile;
+    } catch (error) {
+        throw new Error("Usuário ou senha inválidos.");
+    }
+}
+
+export async function logout() {
+    try {
+        await firebaseSignOut(auth);
+    } catch (error) {
+        console.error("Falha no logout:", error);
+    } finally {
+        currentUser = null;
+        selectedStore = null;
+        sessionStorage.removeItem('selectedStore');
+        sessionStorage.removeItem('lastUserUID');
+        clearApp();
+        startLoginFlow();
+    }
+}
 
 async function startLoginFlow() {
-    // --- PONTO DE TESTE D ---
-    console.log("Mensagem D: A função startLoginFlow em auth.js foi chamada.");
     clearLoginScreen();
     try {
-        console.log("Mensagem E: Buscando lojas do Firebase...");
         let stores = await getStores();
-        console.log("Mensagem F: Lojas encontradas:", stores);
-
         if (stores.length === 0) {
-            console.log("Mensagem G: Nenhuma loja encontrada, procurando por superadmin...");
             const adminUser = await getInitialAdminUser();
-            if (adminUser) {
-                 renderLoginScreen([], [adminUser]);
-            } else {
-                 renderLoginScreen([], [], true);
-            }
-            console.log("Mensagem H: Tela de primeira execução renderizada.");
+            renderLoginScreen([], adminUser ? [adminUser] : [], true);
             return;
         }
-        
-        console.log("Mensagem I: Buscando usuários para a(s) loja(s)...");
-        const allUsersForStore = stores.length === 1 ? await getUsersForStore(stores[0].id) : [];
+
+        const users = await getUsersForStore(stores.length === 1 ? stores[0].id : null);
         const superAdmin = await getInitialAdminUser();
-        const combinedUsers = [...new Map([...allUsersForStore, (superAdmin || {})].filter(u => u.id).map(item => [item['id'], item])).values()];
-        console.log("Mensagem J: Usuários encontrados:", combinedUsers);
+        const combinedUsers = [...new Map([...users, (superAdmin || {})].filter(u => u.id).map(item => [item['id'], item])).values()];
         
         renderLoginScreen(stores, combinedUsers);
-        console.log("Mensagem K: A função renderLoginScreen foi chamada com sucesso.");
-
     } catch (error) {
         console.error("ERRO CRÍTICO no startLoginFlow:", error);
-        renderLoginScreen([], [], false, "Erro ao carregar dados iniciais.");
+        renderLoginScreen([], [], false, "Erro ao carregar dados iniciais. Verifique as regras do Firestore.");
     }
 }
 
 export function listenForAuthStateChanges(onLoginSuccess) {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // Lógica de usuário logado...
+            renderAppLoading();
+            const storedStoreJSON = sessionStorage.getItem('selectedStore');
+            if (storedStoreJSON) {
+                selectedStore = JSON.parse(storedStoreJSON);
+                currentUser = await getUserProfile(user.uid);
+
+                if (currentUser && selectedStore) {
+                    const settings = await getSettings(selectedStore.id);
+                    selectedStore.settings = settings;
+                    clearLoginScreen();
+                    onLoginSuccess(currentUser, selectedStore);
+                    return;
+                }
+            }
+            return logout();
         } else {
-            console.log("auth.js: Detectado que o usuário está deslogado. Iniciando fluxo de login...");
             startLoginFlow();
         }
     });

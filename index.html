@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="dark">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,41 +11,29 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-        html.dark body {
-            background-color: #020617;
-            background-image: radial-gradient(circle at 1px 1px, #1e293b 1px, transparent 0);
-            background-size: 20px 20px;
-        }
+        html.dark body { background-color: #020617; }
         .view { display: none; }
         .view.active { display: block; }
-        /* Animações */
         .fade-in { animation: fadeIn 0.5s ease-in-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-shake { animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-shake { animation: shake 0.5s; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-        /* Estilos customizados */
-        .custom-card {
-             background-color: rgba(255, 255, 255, 0.6);
-             border: 1px solid rgba(255, 255, 255, 0.1);
-             backdrop-filter: blur(10px);
-        }
-        html.dark .custom-card {
-            background-color: rgba(15, 23, 42, 0.6); /* bg-slate-900/60 */
-            border: 1px solid rgba(51, 65, 85, 0.5); /* border-slate-700/50 */
-        }
+        .custom-card { background-color: rgba(255, 255, 255, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
+        html.dark .custom-card { background-color: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.5); }
     </style>
     <script>
-        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { 'brand-primary': '#3b82f6', 'brand-secondary': '#22c55e', 'brand-tertiary': '#ec4899', 'dark-bg': '#020617', 'dark-card': '#0f172a' } } } }
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { 'brand-primary': '#3b82f6', 'brand-secondary': '#22c55e' } } } }
     </script>
 </head>
+<body class="text-slate-800 dark:text-slate-200">
 
-<div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4"></div>
+    <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4"></div>
 
     <div id="app" class="hidden">
-        <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-dark-card border-r border-slate-800"></aside>
+        <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-slate-900 border-r border-slate-800"></aside>
         <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 sm:hidden"></div>
         <div class="sm:ml-64">
-            <header id="app-header" class="sticky top-0 bg-slate-100/80 dark:bg-dark-bg/80 backdrop-blur-sm z-20 border-b border-slate-200 dark:border-slate-800"></header>
+            <header id="app-header" class="sticky top-0 bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-sm z-20 border-b border-slate-200 dark:border-slate-800"></header>
             <main id="main-content" class="p-4 md:p-6"></main>
         </div>
     </div>
@@ -55,5 +42,6 @@
     <div id="toast-container" class="fixed bottom-5 right-5 z-[70]"></div>
     
     <script type="module" src="./src/main.js"></script>
+
 </body>
 </html>
