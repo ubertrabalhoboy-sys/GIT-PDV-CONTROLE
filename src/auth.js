@@ -138,25 +138,27 @@ async function startLoginFlow() {
  * Este é o ponto central que decide se mostra a tela de login ou a aplicação.
  * @param {function} onLoginSuccess - Callback a ser executado quando um usuário está logado.
  */
+// Cole este código NO LUGAR da função listenForAuthStateChanges existente em src/auth.js
+
+/**
+ * Escuta por mudanças no estado de autenticação do Firebase.
+ * Este é o ponto central que decide se mostra a tela de login ou a aplicação.
+ * @param {function} onLoginSuccess - Callback a ser executado quando um usuário está logado.
+ */
 export function listenForAuthStateChanges(onLoginSuccess) {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             // Usuário está logado na sessão do Firebase
             if (DEBUG) console.log("Auth state changed: User is logged in.", user.uid);
-            
-            // Tenta restaurar a loja da sessionStorage
-            const storedStore = sessionStorage.getItem('selectedStore');
-            const lastUID = sessionStorage.getItem('lastUserUID');
 
-            // Valida se o usuário logado é o mesmo da última sessão da aba
-            if (user.uid !== lastUID) {
-                 if (DEBUG) console.log("UID mismatch. Forcing logout and re-login.");
-                 await logout();
-                 return;
-            }
+            // --- INÍCIO DA CORREÇÃO ---
+            // Agora, antes de validar, nós definimos o UID na sessão da aba se não estiver lá.
+            sessionStorage.setItem('lastUserUID', user.uid);
 
-            if (storedStore) {
-                selectedStore = JSON.parse(storedStore);
+            const storedStoreJSON = sessionStorage.getItem('selectedStore');
+
+            if (storedStoreJSON) {
+                selectedStore = JSON.parse(storedStoreJSON);
                 const userProfile = await getUserProfile(user.uid);
                 currentUser = userProfile;
 
@@ -165,12 +167,15 @@ export function listenForAuthStateChanges(onLoginSuccess) {
                     selectedStore.settings = settings; // Anexa as configurações à loja
                     clearLoginScreen();
                     onLoginSuccess(currentUser, selectedStore);
-                    return;
+                    return; // Fim do fluxo de sucesso
                 }
             }
-            // Se não houver loja na sessão ou algo der errado, força o logout para reiniciar o fluxo
-            if (DEBUG) console.log("No valid session store found. Logging out.");
+
+            // Se não houver loja na sessão (ex: aba nova), forçamos o logout para
+            // que o usuário possa selecionar a loja novamente de forma limpa.
+            if (DEBUG) console.log("No valid store found in session. Forcing re-login to select store.");
             await logout();
+            // --- FIM DA CORREÇÃO ---
 
         } else {
             // Usuário não está logado
