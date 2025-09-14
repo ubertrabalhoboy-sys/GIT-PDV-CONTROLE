@@ -2700,7 +2700,7 @@ function renderProdutos() {
              alerts.push({
                 icon: '💰',
                 text: `Total de vendas hoje: <strong>${formatCurrency(totalToday)}</strong> em ${salesToday.length} venda(s).`,
-                action: `<button class="share-daily-report-btn text-sm bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600 flex items-center gap-2"><i data-lucide="send" class="w-4 h-4"></i>Enviar Resumo</button>`
+                
             });
         }
 
