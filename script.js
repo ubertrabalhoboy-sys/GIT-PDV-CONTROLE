@@ -2479,274 +2479,230 @@ function renderProdutos() {
     }
 
     // NOVA FUNÇÃO: Renderiza o Relatório Financeiro
-    function renderFinanceiro() {
-        const view = document.getElementById('financeiro-view');
-        view.innerHTML = document.getElementById('financeiro-template').innerHTML;
+function renderFinanceiro() {
+    const view = document.getElementById('financeiro-view');
+    view.innerHTML = document.getElementById('financeiro-template').innerHTML;
 
-        const summaryCardsContainer = view.querySelector('#financeiro-summary-cards');
-        const netSummaryContainer = view.querySelector('#financeiro-net-summary');
-        const projectionsContainer = view.querySelector('#financeiro-projections');
-        const costInputs = view.querySelectorAll('.financial-cost-input');
-        const filterForm = view.querySelector('#financeiro-filter-form');
-        const startDateInput = view.querySelector('#financeiro-start-date');
-        const endDateInput = view.querySelector('#financeiro-end-date');
+    const summaryCardsContainer = view.querySelector('#financeiro-summary-cards');
+    const netSummaryContainer = view.querySelector('#financeiro-net-summary');
+    const projectionsContainer = view.querySelector('#financeiro-projections');
+    const costInputs = view.querySelectorAll('.financial-cost-input');
+    const filterForm = view.querySelector('#financeiro-filter-form');
+    const startDateInput = view.querySelector('#financeiro-start-date');
+    const endDateInput = view.querySelector('#financeiro-end-date');
 
-        const updateFinancialReport = () => {
-            const startDate = startDateInput.value ? new Date(startDateInput.value + 'T00:00:00') : null;
-            const endDate = endDateInput.value ? new Date(endDateInput.value + 'T23:59:59') : null;
+    const fixedCostsListEl = view.querySelector('#fixed-costs-list');
+    const addFixedCostForm = view.querySelector('#add-fixed-cost-form');
 
-            const relevantSales = state.db.sales.filter(s => {
-                const saleDate = s.date.toDate();
-                if (startDate && saleDate < startDate) return false;
-                if (endDate && saleDate > endDate) return false;
-                return true;
-            });
-
-            const productCosts = new Map(state.db.products.map(p => [p.id, p.cost || 0]));
-            
-            let receitaBruta = 0;
-            let cpv = 0; // Custo do Produto Vendido
-            const salesByDay = {};
-
-            relevantSales.forEach(sale => {
-                receitaBruta += sale.total;
-                sale.items.forEach(item => {
-                    // Prioriza o custo salvo na venda. Se não existir (venda antiga), busca o custo atual.
-                    if (item.cost !== undefined) {
-                        cpv += item.cost;
-                    } else if (item.productId && productCosts.has(item.productId)) {
-                        cpv += productCosts.get(item.productId); // Fallback para vendas antigas
-                    }
-                });
-                const dayKey = sale.date.toDate().toISOString().split('T')[0];
-                if (!salesByDay[dayKey]) {
-                    salesByDay[dayKey] = { receita: 0, custo: 0 };
-                }
-                salesByDay[dayKey].receita += sale.total;
-                salesByDay[dayKey].custo += sale.items.reduce((acc, item) => acc + (item.cost !== undefined ? item.cost : (productCosts.get(item.productId) || 0)), 0);
-            });
-
-            const lucroBruto = receitaBruta - cpv;
-            const margemBruta = receitaBruta > 0 ? (lucroBruto / receitaBruta) * 100 : 0;
-            
-            const impostosPerc = parseFloat(view.querySelector('#cost-impostos').value) || 0;
-            const comissoesPerc = parseFloat(view.querySelector('#cost-comissoes').value) || 0;
-            const outrosCustos = parseFloat(view.querySelector('#cost-outros').value) || 0;
-
-            const custoImpostos = (receitaBruta * impostosPerc) / 100;
-            const custoComissoes = (receitaBruta * comissoesPerc) / 100;
-            const totalCustosVariaveis = custoImpostos + custoComissoes + outrosCustos;
-            
-            const lucroLiquido = lucroBruto - totalCustosVariaveis;
-            const margemLiquida = receitaBruta > 0 ? (lucroLiquido / receitaBruta) * 100 : 0;
-
-            summaryCardsContainer.innerHTML = `
-                <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Receita Bruta</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(receitaBruta)}</p></div>
-                <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Custo dos Produtos</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(cpv)}</p></div>
-                <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Lucro Bruto</p><p class="text-2xl font-bold text-green-600">${formatCurrency(lucroBruto)}</p></div>
-                <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Margem Bruta</p><p class="text-2xl font-bold text-green-600">${margemBruta.toFixed(1)}%</p></div>
-            `;
-            
-            netSummaryContainer.innerHTML = `
-                <div><p class="text-sm text-slate-500">Total Custos Variáveis</p><p class="text-2xl font-bold text-red-500">${formatCurrency(totalCustosVariaveis)}</p></div>
-                <div><p class="text-sm text-slate-500">Lucro Líquido</p><p class="text-3xl font-extrabold text-green-700">${formatCurrency(lucroLiquido)}</p></div>
-                <div class="col-span-full"><p class="text-sm text-slate-500">Margem de Lucro Líquida</p><p class="text-3xl font-extrabold text-green-700">${margemLiquida.toFixed(1)}%</p></div>
-            `;
-
-            // Projections
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            const daysInMonth = endOfMonth.getDate();
-            const daysPassedMonth = now.getDate();
-            const revenueThisMonth = state.db.sales.filter(s => s.date.toDate() >= startOfMonth).reduce((acc, s) => acc + s.total, 0);
-            const dailyAvgMonth = daysPassedMonth > 0 ? revenueThisMonth / daysPassedMonth : 0;
-            const projectedMonthRevenue = dailyAvgMonth * daysInMonth;
-
-            projectionsContainer.innerHTML = `
-                 <div><p class="text-sm text-slate-500">Projeção Fim do Mês</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(projectedMonthRevenue)}</p></div>
-                 <div><p class="text-sm text-slate-500">Média Diária (Mês)</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(dailyAvgMonth)}</p></div>
-            `;
-            
-            // Chart
-            if (financeiroChartInstance) financeiroChartInstance.destroy();
-            const chartCtx = view.querySelector('#financeiro-chart')?.getContext('2d');
-            if (chartCtx) {
-                const sortedDays = Object.keys(salesByDay).sort();
-                const labels = sortedDays.map(day => new Date(day + 'T00:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}));
-                const receitaData = sortedDays.map(day => salesByDay[day].receita);
-                const custoData = sortedDays.map(day => salesByDay[day].custo);
-                const lucroData = sortedDays.map(day => salesByDay[day].receita - salesByDay[day].custo);
-
-                const isDarkMode = document.documentElement.classList.contains('dark');
-                const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
-                const textColor = isDarkMode ? '#cbd5e1' : '#475569';
-
-                financeiroChartInstance = new window.Chart(chartCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            { label: 'Receita', data: receitaData, backgroundColor: 'rgba(59, 130, 246, 0.7)' },
-                            { label: 'Custo', data: custoData, backgroundColor: 'rgba(239, 68, 68, 0.7)' },
-                            { label: 'Lucro', data: lucroData, backgroundColor: 'rgba(34, 197, 94, 0.7)' }
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        scales: {
-                            y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } },
-                            x: { grid: { display: false }, ticks: { color: textColor } }
-                        },
-                        plugins: { legend: { labels: { color: textColor } } }
-                    }
-                });
-            }
-        };
-        
-        filterForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            updateFinancialReport();
-        });
-
-        filterForm.addEventListener('reset', () => {
-            startDateInput.value = '';
-            endDateInput.value = '';
-            setTimeout(updateFinancialReport, 0);
-        });
-
-        view.querySelector('#financeiro-filter-this-month').addEventListener('click', () => {
-            const now = new Date();
-            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            startDateInput.value = firstDay.toISOString().split('T')[0];
-            endDateInput.value = lastDay.toISOString().split('T')[0];
-            updateFinancialReport();
-        });
-
-        costInputs.forEach(input => input.addEventListener('input', updateFinancialReport));
-
-        // Initial render for the current month
-        view.querySelector('#financeiro-filter-this-month').click();
-    }
-
-
-    function generateIntelligentInsights(salesData, allStoreSales) {
-        const summary = [];
-        const alerts = [];
-
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const dayOfWeek = now.getDay();
-        const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); 
-        const weekStart = new Date(now.getFullYear(), now.getMonth(), diff);
-        weekStart.setHours(0,0,0,0);
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-        const salesThisWeek = allStoreSales.filter(s => s.date.toDate() >= weekStart);
-        const totalThisWeek = salesThisWeek.reduce((sum, s) => sum + s.total, 0);
-        const daysPassedInWeek = now.getDay() === 0 ? 7 : now.getDay();
-        const avgDailyThisWeek = totalThisWeek > 0 ? totalThisWeek / daysPassedInWeek : 0;
-
-        const salesThisMonth = allStoreSales.filter(s => s.date.toDate() >= monthStart);
-        const totalThisMonth = salesThisMonth.reduce((sum, s) => sum + s.total, 0);
-
-        summary.push({
-            icon: '📊',
-            text: `Total vendido na semana: <strong>${formatCurrency(totalThisWeek)}</strong> (${formatCurrency(avgDailyThisWeek)}/dia em média).`
-        });
-
-        const sellerCount = state.db.users.filter(u => u.storeId === state.selectedStore.id && u.role === 'vendedor').length || 1;
-        const individualMonthlyGoal = state.db.settings.goals?.monthly || 0;
-        const monthlyGoal = individualMonthlyGoal * sellerCount;
-
-        if (monthlyGoal > 0) {
-            const remainingForGoal = monthlyGoal - totalThisMonth;
-            if (remainingForGoal > 0) {
-                summary.push({
-                    icon: '🎯',
-                    text: `Meta mensal da equipe: faltam <strong>${formatCurrency(remainingForGoal)}</strong> para atingir ${formatCurrency(monthlyGoal)}.`
-                });
-            } else {
-                 summary.push({
-                    icon: '✅',
-                    text: `Meta mensal da equipe de ${formatCurrency(monthlyGoal)} batida! Total de <strong>${formatCurrency(totalThisMonth)}</strong>.`
-                });
-            }
-        }
-        
-        const salesBySellerThisWeek = salesThisWeek.reduce((acc, sale) => {
-            acc[sale.vendedor] = (acc[sale.vendedor] || 0) + sale.total;
-            return acc;
-        }, {});
-        const rankedSellersThisWeek = Object.entries(salesBySellerThisWeek).sort((a, b) => b[1] - a[1]);
-        if (rankedSellersThisWeek.length > 0) {
-            const [topSellerName, topSellerTotal] = rankedSellersThisWeek[0];
-            summary.push({
-                icon: '🏆',
-                text: `Melhor vendedor da semana até agora: <strong>${topSellerName}</strong>, com ${formatCurrency(topSellerTotal)}.`
-            });
-        }
-
-        const salesToday = allStoreSales.filter(s => s.date.toDate() >= todayStart);
-        const totalToday = salesToday.reduce((sum, s) => sum + s.total, 0);
-        
-        if (totalToday === 0) {
-            alerts.push({
-                icon: '🚀',
-                text: 'Hoje ainda não teve vendas — uma boa oportunidade para incentivar sua equipe a oferecer promoções!'
-            });
+    // Função para renderizar a lista de custos fixos
+    const renderFixedCostsList = () => {
+        fixedCostsListEl.innerHTML = '';
+        const fixedCosts = state.db.settings.fixedCosts || [];
+        if (fixedCosts.length === 0) {
+            fixedCostsListEl.innerHTML = '<p class="text-xs text-slate-500 text-center">Nenhum custo fixo adicionado.</p>';
         } else {
-             alerts.push({
-                icon: '💰',
-                text: `Total de vendas hoje: <strong>${formatCurrency(totalToday)}</strong> em ${salesToday.length} venda(s).`,
-                
+            fixedCosts.forEach((cost, index) => {
+                const costEl = document.createElement('div');
+                costEl.className = 'flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-2 rounded-md text-sm';
+                costEl.innerHTML = `
+                    <div>
+                        <span class="font-medium text-slate-800 dark:text-slate-200">${cost.name}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold text-slate-700 dark:text-slate-300">${formatCurrency(cost.amount)}</span>
+                        <button data-index="${index}" class="remove-fixed-cost-btn text-red-500 hover:text-red-700">
+                            <i data-lucide="x" class="w-4 h-4 pointer-events-none"></i>
+                        </button>
+                    </div>
+                `;
+                fixedCostsListEl.appendChild(costEl);
             });
         }
-
-        const allSellers = state.db.users.filter(u => u.role === 'vendedor' && u.storeId === state.selectedStore.id);
-        const sellersWithSalesToday = new Set(salesToday.map(s => s.vendedor));
-        const sellersWithoutSalesToday = allSellers.filter(seller => !sellersWithSalesToday.has(seller.name));
-
-        if (sellersWithoutSalesToday.length > 0 && sellersWithSalesToday.size > 0) {
-            alerts.push({
-                icon: '🔥',
-                text: `Atenção: <strong>${sellersWithoutSalesToday.map(u=>u.name).join(', ')}</strong> está(ão) zerado(s) hoje. Um incentivo pode ajudar!`
-            });
-        }
-
-        if (salesThisWeek.length > 0) {
-            const ticketMedioThisWeek = totalThisWeek / salesThisWeek.length;
-            const proposedIncrease = 5;
-            const potentialNewTotal = (ticketMedioThisWeek + proposedIncrease) * salesThisWeek.length;
-            const percentageIncrease = totalThisWeek > 0 ? ((potentialNewTotal - totalThisWeek) / totalThisWeek) * 100 : 0;
-
-            alerts.push({
-                icon: '💡',
-                text: `O ticket médio da semana é <strong>${formatCurrency(ticketMedioThisWeek)}</strong>. Se aumentar em apenas ${formatCurrency(proposedIncrease)} por venda, o faturamento subiria <strong>${percentageIncrease.toFixed(0)}%</strong>.`
-            });
-        }
-
-        return { summary, alerts };
-    }
-
-    const init = () => {
-        const theme = localStorage.getItem('theme') || 'dark';
-        applyTheme(theme);
-        const themeToggleHandler = () => {
-            const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
-            localStorage.setItem('theme', newTheme);
-            applyTheme(newTheme);
-            if (['relatorios', 'metas', 'ranking', 'financeiro'].includes(state.currentView) && document.getElementById(`${state.currentView}-view`).classList.contains('active')) {
-                renderViewContent(state.currentView);
-            }
-        };
-        document.getElementById('theme-toggle').addEventListener('click', themeToggleHandler);
-        document.getElementById('theme-toggle-app').addEventListener('click', themeToggleHandler);
-
         window.lucide.createIcons();
-        loadInitialData();
     };
+
+    // Função para salvar os custos fixos no Firestore
+    const saveFixedCosts = async (newCosts) => {
+        try {
+            await setDoc(doc(db, "settings", state.selectedStore.id), { fixedCosts: newCosts }, { merge: true });
+            state.db.settings.fixedCosts = newCosts;
+            renderFixedCostsList(); // Atualiza a lista na tela
+            updateFinancialReport(); // Recalcula tudo com os novos custos
+        } catch (error) {
+            showToast('Erro ao salvar custo fixo.', 'error');
+            console.error(error);
+        }
+    };
+
+    const updateFinancialReport = () => {
+        const startDate = startDateInput.value ? new Date(startDateInput.value + 'T00:00:00') : null;
+        const endDate = endDateInput.value ? new Date(endDateInput.value + 'T23:59:59') : null;
+
+        const relevantSales = state.db.sales.filter(s => {
+            const saleDate = s.date.toDate();
+            if (startDate && saleDate < startDate) return false;
+            if (endDate && saleDate > endDate) return false;
+            return true;
+        });
+
+        const productCosts = new Map(state.db.products.map(p => [p.id, p.cost || 0]));
+        
+        let receitaBruta = 0;
+        let cpv = 0; // Custo do Produto Vendido
+        const salesByDay = {};
+
+        relevantSales.forEach(sale => {
+            receitaBruta += sale.total;
+            sale.items.forEach(item => {
+                if (item.cost !== undefined) {
+                    cpv += item.cost;
+                } else if (item.productId && productCosts.has(item.productId)) {
+                    cpv += productCosts.get(item.productId);
+                }
+            });
+            const dayKey = sale.date.toDate().toISOString().split('T')[0];
+            if (!salesByDay[dayKey]) {
+                salesByDay[dayKey] = { receita: 0, custo: 0 };
+            }
+            salesByDay[dayKey].receita += sale.total;
+            salesByDay[dayKey].custo += sale.items.reduce((acc, item) => acc + (item.cost !== undefined ? item.cost : (productCosts.get(item.productId) || 0)), 0);
+        });
+
+        const lucroBruto = receitaBruta - cpv;
+        const margemBruta = receitaBruta > 0 ? (lucroBruto / receitaBruta) * 100 : 0;
+        
+        const impostosPerc = parseFloat(view.querySelector('#cost-impostos').value) || 0;
+        const comissoesPerc = parseFloat(view.querySelector('#cost-comissoes').value) || 0;
+        // **AQUI ESTÁ A MUDANÇA PRINCIPAL:** Soma os custos da lista salva
+        const custosFixos = (state.db.settings.fixedCosts || []).reduce((sum, cost) => sum + cost.amount, 0);
+
+        const custoImpostos = (receitaBruta * impostosPerc) / 100;
+        const custoComissoes = (receitaBruta * comissoesPerc) / 100;
+        const totalCustosOperacionais = custoImpostos + custoComissoes + custosFixos;
+        
+        const lucroLiquido = lucroBruto - totalCustosOperacionais;
+        const margemLiquida = receitaBruta > 0 ? (lucroLiquido / receitaBruta) * 100 : 0;
+
+        summaryCardsContainer.innerHTML = `
+            <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Receita Bruta</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(receitaBruta)}</p></div>
+            <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Custo dos Produtos</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(cpv)}</p></div>
+            <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Lucro Bruto</p><p class="text-2xl font-bold text-green-600">${formatCurrency(lucroBruto)}</p></div>
+            <div class="custom-card p-4 rounded-lg"><p class="text-sm text-slate-500">Margem Bruta</p><p class="text-2xl font-bold text-green-600">${margemBruta.toFixed(1)}%</p></div>
+        `;
+        
+        netSummaryContainer.innerHTML = `
+            <div><p class="text-sm text-slate-500">Total Custos (Fixos + Variáveis)</p><p class="text-2xl font-bold text-red-500">${formatCurrency(totalCustosOperacionais)}</p></div>
+            <div><p class="text-sm text-slate-500">Lucro Líquido</p><p class="text-3xl font-extrabold text-green-700">${formatCurrency(lucroLiquido)}</p></div>
+            <div class="col-span-full"><p class="text-sm text-slate-500">Margem de Lucro Líquida</p><p class="text-3xl font-extrabold text-green-700">${margemLiquida.toFixed(1)}%</p></div>
+        `;
+
+        // Projections
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const revenueThisMonth = state.db.sales.filter(s => s.date.toDate() >= startOfMonth).reduce((acc, s) => acc + s.total, 0);
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const daysPassedMonth = now.getDate();
+        const dailyAvgMonth = daysPassedMonth > 0 ? revenueThisMonth / daysPassedMonth : 0;
+        const projectedMonthRevenue = dailyAvgMonth * daysInMonth;
+
+        projectionsContainer.innerHTML = `
+             <div><p class="text-sm text-slate-500">Projeção Fim do Mês</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(projectedMonthRevenue)}</p></div>
+             <div><p class="text-sm text-slate-500">Média Diária (Mês)</p><p class="text-2xl font-bold text-slate-800 dark:text-white">${formatCurrency(dailyAvgMonth)}</p></div>
+        `;
+        
+        // Chart
+        if (financeiroChartInstance) financeiroChartInstance.destroy();
+        const chartCtx = view.querySelector('#financeiro-chart')?.getContext('2d');
+        if (chartCtx) {
+            const sortedDays = Object.keys(salesByDay).sort();
+            const labels = sortedDays.map(day => new Date(day + 'T00:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}));
+            const receitaData = sortedDays.map(day => salesByDay[day].receita);
+            const custoData = sortedDays.map(day => salesByDay[day].custo);
+            const lucroData = sortedDays.map(day => salesByDay[day].receita - salesByDay[day].custo);
+
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
+            const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+
+            financeiroChartInstance = new window.Chart(chartCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Receita', data: receitaData, backgroundColor: 'rgba(59, 130, 246, 0.7)' },
+                        { label: 'Custo', data: custoData, backgroundColor: 'rgba(239, 68, 68, 0.7)' },
+                        { label: 'Lucro', data: lucroData, backgroundColor: 'rgba(34, 197, 94, 0.7)' }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } },
+                        x: { grid: { display: false }, ticks: { color: textColor } }
+                    },
+                    plugins: { legend: { labels: { color: textColor } } }
+                }
+            });
+        }
+    };
+    
+    filterForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        updateFinancialReport();
+    });
+
+    filterForm.addEventListener('reset', () => {
+        startDateInput.value = '';
+        endDateInput.value = '';
+        setTimeout(updateFinancialReport, 0);
+    });
+
+    view.querySelector('#financeiro-filter-this-month').addEventListener('click', () => {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        startDateInput.value = firstDay.toISOString().split('T')[0];
+        endDateInput.value = lastDay.toISOString().split('T')[0];
+        updateFinancialReport();
+    });
+
+    costInputs.forEach(input => input.addEventListener('input', updateFinancialReport));
+
+    // Event listener para adicionar um novo custo fixo
+    addFixedCostForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nameInput = view.querySelector('#fixed-cost-name');
+        const amountInput = view.querySelector('#fixed-cost-amount');
+        const newCost = {
+            name: nameInput.value.trim(),
+            amount: parseFloat(amountInput.value)
+        };
+        
+        if (!newCost.name || isNaN(newCost.amount) || newCost.amount <= 0) {
+            return showToast('Preencha um nome e um valor válido.', 'error');
+        }
+
+        const currentCosts = state.db.settings.fixedCosts || [];
+        saveFixedCosts([...currentCosts, newCost]);
+        addFixedCostForm.reset();
+        showToast('Custo fixo adicionado!', 'success');
+    });
+
+    // Event listener para remover um custo fixo (usando delegação de eventos)
+    fixedCostsListEl.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('.remove-fixed-cost-btn');
+        if (removeBtn) {
+            const indexToRemove = parseInt(removeBtn.dataset.index);
+            const currentCosts = (state.db.settings.fixedCosts || []).filter((_, index) => index !== indexToRemove);
+            saveFixedCosts(currentCosts);
+            showToast('Custo removido!', 'success');
+        }
+    });
+    
+    // Renderiza a lista de custos fixos e o relatório inicial
+    renderFixedCostsList();
+    view.querySelector('#financeiro-filter-this-month').click();
+}
 
     init();
 });
