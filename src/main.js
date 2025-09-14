@@ -1,4 +1,5 @@
-// Substitua todo o conteúdo de src/main.js por este
+// Substitua todo o conteúdo de src/main.js por este código final
+
 import { listenForAuthStateChanges, logout, login, getCurrentUser, getSelectedStore, setSelectedStore } from './auth.js';
 import { renderAppShell, renderView, showMobileMenu, applyTheme, setupThemeToggle, _renderUserSelection, _renderPasswordView, _renderStoreSelection } from './ui.js';
 import { getStores, getUsersForStore, getSettings } from './firebaseApi.js';
@@ -69,15 +70,16 @@ async function initializeApp(user, initialStore) {
     await switchView(initialView);
 }
 
-function setupGlobalEventListeners() {
+// CORREÇÃO: Passamos a lista de lojas para a função
+function setupGlobalEventListeners(initialStores) {
     let selectedUserForLogin = null;
-    let selectedStoreForLogin = null;
+    // CORREÇÃO: Pré-selecionamos a loja se houver apenas uma
+    let selectedStoreForLogin = initialStores.length === 1 ? initialStores[0] : null;
 
     document.body.addEventListener('click', async (e) => {
         const storeButton = e.target.closest('button[data-store-id]');
         if (storeButton) {
-            const stores = await getStores();
-            selectedStoreForLogin = stores.find(s => s.id === storeButton.dataset.storeId);
+            selectedStoreForLogin = initialStores.find(s => s.id === storeButton.dataset.storeId);
             const users = await getUsersForStore(selectedStoreForLogin.id);
             _renderUserSelection(users, selectedStoreForLogin);
             return;
@@ -96,8 +98,7 @@ function setupGlobalEventListeners() {
         const backToStores = e.target.closest('#back-to-stores');
         if (backToStores) {
             selectedStoreForLogin = null;
-            const stores = await getStores();
-            _renderStoreSelection(stores);
+            _renderStoreSelection(initialStores);
             return;
         }
         
@@ -123,8 +124,7 @@ function setupGlobalEventListeners() {
                 const userProfile = await login(selectedUserForLogin.name, password);
                 
                 if (userProfile.role === 'superadmin' && !selectedStoreForLogin) {
-                    const stores = await getStores();
-                    selectedStoreForLogin = stores[0];
+                    selectedStoreForLogin = initialStores[0];
                 }
                 
                 if (!selectedStoreForLogin) throw new Error("Loja não selecionada.");
@@ -144,7 +144,8 @@ function setupGlobalEventListeners() {
     });
 }
 
-function onDomReady() {
+// CORREÇÃO: A função agora é 'async' para buscar as lojas antes de tudo
+async function onDomReady() {
     const theme = localStorage.getItem('theme') || 'dark';
     applyTheme(theme);
     setupThemeToggle(() => {
@@ -153,7 +154,10 @@ function onDomReady() {
         }
     });
     
-    setupGlobalEventListeners();
+    // CORREÇÃO: Buscamos as lojas aqui para passar para o listener
+    const initialStores = await getStores();
+    setupGlobalEventListeners(initialStores);
+    
     listenForAuthStateChanges(initializeApp);
 
     if (DEBUG) {
