@@ -40,11 +40,7 @@
     </script>
 </head>
 
-<body class="text-slate-800 dark:text-slate-200">
-
-    <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden"></div>
-    <div id="toast-container" class="fixed bottom-5 right-5 z-[70]"></div>
-
+<div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4"></div>
 
     <div id="app" class="hidden">
         <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-dark-card border-r border-slate-800"></aside>
@@ -55,7 +51,7 @@
         </div>
     </div>
     
-    <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center p-4"></div>
+    <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden"></div>
     <div id="toast-container" class="fixed bottom-5 right-5 z-[70]"></div>
     
     <script type="module" src="./src/main.js"></script>
