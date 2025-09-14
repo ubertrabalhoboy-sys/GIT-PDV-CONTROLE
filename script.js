@@ -2101,7 +2101,6 @@ function renderProdutos() {
     function renderConfiguracoes() {
         const c=document.getElementById('configuracoes-view');
         c.innerHTML = document.getElementById('configuracoes-template').innerHTML;
-         c.querySelector('#config-owner-phone').value = state.db.settings.ownerPhone || '';
         c.querySelector('#config-store-name').value = state.db.settings.storeName;
         c.querySelector('#meta-diaria').value = state.db.settings.goals?.daily || 0;
         c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
@@ -2282,12 +2281,10 @@ function renderProdutos() {
 
         c.querySelector('#save-settings-button').addEventListener('click', async ()=> {
             const newStoreName = c.querySelector('#config-store-name').value;
-            const newOwnerPhone = c.querySelector('#config-owner-phone').value;
             try {
-                await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName }, { ownerPhone: newOwnerPhone}, { merge: true });
+                await setDoc(doc(db, "settings", state.selectedStore.id), { storeName: newStoreName }, { merge: true });
                 await setDoc(doc(db, "stores", state.selectedStore.id), { name: newStoreName }, { merge: true });
                 state.db.settings.storeName = newStoreName;
-                state.db.settings.ownerPhone = newOwnerPhone;
                 state.selectedStore.name = newStoreName;
                 document.getElementById('store-name-sidebar').textContent = newStoreName;
                 showToast('Configurações da loja salvas!', 'success');
