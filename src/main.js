@@ -60,11 +60,14 @@ async function initializeApp(user, initialStore) {
     await switchView(initialView);
 }
 
+// Em src/main.js, substitua a função setupGlobalEventListeners inteira por esta versão final:
+
 function setupGlobalEventListeners(initialStores) {
     let selectedUserForLogin = null;
     let selectedStoreForLogin = initialStores.length === 1 ? initialStores[0] : null;
 
     document.body.addEventListener('click', async (e) => {
+        // Lógica para o botão de usuário (já está funcionando)
         const userButton = e.target.closest('button[data-username]');
         if (userButton) {
             const usersInStore = await getUsersForStore(selectedStoreForLogin?.id);
@@ -80,11 +83,12 @@ function setupGlobalEventListeners(initialStores) {
             if (selectedUserForLogin) {
                 _renderPasswordView(selectedUserForLogin);
             } else {
-                console.error("ERRO: Usuário clicado não foi encontrado na lista de usuários disponíveis.");
+                console.error("ERRO: Usuário clicado não foi encontrado.");
             }
             return;
         }
 
+        // Lógica para o botão de loja
         const storeButton = e.target.closest('button[data-store-id]');
         if (storeButton) {
             selectedStoreForLogin = initialStores.find(s => s.id === storeButton.dataset.storeId);
@@ -92,6 +96,23 @@ function setupGlobalEventListeners(initialStores) {
             _renderUserSelection(users, selectedStoreForLogin);
             return;
         }
+
+        // --- INÍCIO DA CORREÇÃO ---
+        // Adiciona a lógica que faltava para os botões "Voltar"
+        const backToUsers = e.target.closest('#back-to-users');
+        if (backToUsers) {
+             const users = await getUsersForStore(selectedStoreForLogin.id);
+             _renderUserSelection(users, selectedStoreForLogin);
+             return;
+        }
+
+        const backToStores = e.target.closest('#back-to-stores');
+        if (backToStores) {
+            selectedStoreForLogin = null;
+            _renderStoreSelection(initialStores);
+            return;
+        }
+        // --- FIM DA CORREÇÃO ---
     });
     
     document.body.addEventListener('submit', async (e) => {
@@ -99,6 +120,17 @@ function setupGlobalEventListeners(initialStores) {
             e.preventDefault();
             const passwordInput = document.getElementById('password');
             const password = passwordInput.value;
+            const errorP = document.getElementById('login-error');
+            const formBox = document.getElementById('main-login-box');
+            
+            if (!selectedUserForLogin) {
+                console.error("Tentativa de login sem usuário selecionado.");
+                return;
+            }
+
+            passwordInput.disabled = true;
+            if(errorP) errorP.textContent = 'Verificando...';
+            
             try {
                 if (!selectedStoreForLogin) {
                     const stores = await getStores();
@@ -107,30 +139,16 @@ function setupGlobalEventListeners(initialStores) {
                 }
                 await login(selectedUserForLogin.name, password);
                 setSelectedStore(selectedStoreForLogin);
+                // O onAuthStateChanged cuidará da transição para o app
             } catch (error) {
-                const errorP = document.getElementById('login-error');
                 if(errorP) errorP.textContent = error.message;
+                if(formBox) {
+                    formBox.classList.add('animate-shake');
+                    setTimeout(() => formBox.classList.remove('animate-shake'), 500);
+                }
+            } finally {
+                passwordInput.disabled = false;
             }
         }
     });
-}
-
-async function onDomReady() {
-    const theme = localStorage.getItem('theme') || 'dark';
-    applyTheme(theme);
-    setupThemeToggle(() => {});
-    
-    const initialStores = await getStores();
-    setupGlobalEventListeners(initialStores);
-    listenForAuthStateChanges(initializeApp);
-
-    if (DEBUG) {
-        import('./dev-sanity-check.js').then(module => module.runChecks());
-    }
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', onDomReady);
-} else {
-    onDomReady();
 }
