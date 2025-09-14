@@ -1,5 +1,4 @@
 // Substitua todo o conteúdo de src/main.js por este
-
 import { listenForAuthStateChanges, logout, login, getCurrentUser, getSelectedStore, setSelectedStore } from './auth.js';
 import { renderAppShell, renderView, showMobileMenu, applyTheme, setupThemeToggle, _renderUserSelection, _renderPasswordView, _renderStoreSelection } from './ui.js';
 import { getStores, getUsersForStore, getSettings } from './firebaseApi.js';
@@ -9,9 +8,6 @@ const appState = {
     currentView: null,
 };
 
-/**
- * Navega para uma nova view, renderizando seu conteúdo.
- */
 async function switchView(viewId) {
     if (DEBUG) console.log(`Switching view to: ${viewId}`);
     appState.currentView = viewId;
@@ -27,7 +23,6 @@ async function switchView(viewId) {
         return;
     }
     
-    // Lazy-loading for modules
     switch (viewId) {
         case 'caixa':
             const { initCaixaView } = await import('./sales.js');
@@ -37,7 +32,6 @@ async function switchView(viewId) {
             const { initProductsView } = await import('./products.js');
             await initProductsView();
             break;
-        // Adicione outros casos de view aqui...
         default:
             renderView(viewId);
             break;
@@ -45,9 +39,6 @@ async function switchView(viewId) {
     showMobileMenu(false);
 }
 
-/**
- * Inicializa a aplicação principal após o login.
- */
 async function initializeApp(user, initialStore) {
     if (DEBUG) console.log("Initializing app for user:", user.name, "at store:", initialStore.name);
     
@@ -78,60 +69,54 @@ async function initializeApp(user, initialStore) {
     await switchView(initialView);
 }
 
-/**
- * NOVO: Gerencia todos os cliques e envios de formulário do corpo do documento.
- * Esta é uma abordagem mais robusta que funciona independentemente de quando a UI é renderizada.
- */
 function setupGlobalEventListeners() {
     let selectedUserForLogin = null;
     let selectedStoreForLogin = null;
 
     document.body.addEventListener('click', async (e) => {
-        // Botão de seleção de loja
         const storeButton = e.target.closest('button[data-store-id]');
         if (storeButton) {
             const stores = await getStores();
             selectedStoreForLogin = stores.find(s => s.id === storeButton.dataset.storeId);
             const users = await getUsersForStore(selectedStoreForLogin.id);
-            _renderUserSelection(users);
+            _renderUserSelection(users, selectedStoreForLogin);
             return;
         }
 
-        // Botão de seleção de usuário
         const userButton = e.target.closest('button[data-username]');
         if (userButton) {
              const allUsersForStore = await getUsersForStore(selectedStoreForLogin?.id);
              const superAdmin = await getUsersForStore(null, true);
-             const combinedUsers = [...allUsersForStore, ...superAdmin];
+             const combinedUsers = [...new Map([...allUsersForStore, ...superAdmin].map(item => [item['id'], item])).values()];
              selectedUserForLogin = combinedUsers.find(u => u.id === userButton.dataset.userid);
              _renderPasswordView(selectedUserForLogin);
              return;
         }
 
-        // Botão "Voltar para Lojas"
         const backToStores = e.target.closest('#back-to-stores');
         if (backToStores) {
             selectedStoreForLogin = null;
-            _renderStoreSelection(await getStores());
+            const stores = await getStores();
+            _renderStoreSelection(stores);
             return;
         }
         
-        // Botão "Voltar para Usuários"
         const backToUsers = e.target.closest('#back-to-users');
         if (backToUsers) {
-             _renderUserSelection(await getUsersForStore(selectedStoreForLogin.id));
+             _renderUserSelection(await getUsersForStore(selectedStoreForLogin.id), selectedStoreForLogin);
              return;
         }
     });
 
     document.body.addEventListener('submit', async (e) => {
-        // Formulário de senha
         if (e.target.id === 'password-form') {
             e.preventDefault();
-            const password = document.getElementById('password').value;
+            const passwordInput = document.getElementById('password');
+            const password = passwordInput.value;
             const errorP = document.getElementById('login-error');
             const formBox = document.getElementById('main-login-box');
             
+            passwordInput.disabled = true;
             errorP.textContent = '';
             
             try {
@@ -148,19 +133,17 @@ function setupGlobalEventListeners() {
                 selectedStoreForLogin.settings = settings;
 
                 setSelectedStore(selectedStoreForLogin);
-                // O onAuthStateChanged vai cuidar da transição para o app
             } catch (error) {
                 errorP.textContent = error.message;
                 formBox.classList.add('animate-shake');
                 setTimeout(() => formBox.classList.remove('animate-shake'), 500);
+            } finally {
+                passwordInput.disabled = false;
             }
         }
     });
 }
 
-/**
- * Função de inicialização do documento.
- */
 function onDomReady() {
     const theme = localStorage.getItem('theme') || 'dark';
     applyTheme(theme);
@@ -170,10 +153,7 @@ function onDomReady() {
         }
     });
     
-    // Configura os listeners globais uma única vez
     setupGlobalEventListeners();
-    
-    // Inicia o fluxo de autenticação
     listenForAuthStateChanges(initializeApp);
 
     if (DEBUG) {
