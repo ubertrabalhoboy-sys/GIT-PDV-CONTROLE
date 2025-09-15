@@ -32,7 +32,7 @@
         /* Estilos customizados para o novo design */
         .custom-card {
              background-color: rgba(255, 255, 255, 0.6);
-             border: 1px solid rgba(255, 255, 255, 0.1);
+             border: 1px solid rgba(226, 232, 240, 0.5); /* slate-200 */
              backdrop-filter: blur(10px);
         }
         html.dark .custom-card {
@@ -255,7 +255,7 @@
                 </div>
             </header>
 
-            <main class="p-4 md:p-6">
+            <main id="main-content" class="p-4 md:p-6">
                 <div id="caixa-view" class="view"></div>
                 <div id="pedidos-view" class="view"></div>
                 <div id="clientes-view" class="view"></div>
@@ -269,13 +269,14 @@
         </div>
     </div>
     
-    <div id="finalize-order-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
-    <div id="order-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
-    <div id="client-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
-    <div id="whatsapp-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
-    <div id="bonus-wheel-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
-    <div id="prize-won-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
-    <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div id="finalize-order-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"></div>
+    <div id="order-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"></div>
+    <div id="client-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"></div>
+    <div id="whatsapp-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"></div>
+    <div id="bonus-wheel-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"></div>
+    <div id="prize-won-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"></div>
+    <div id="edit-fixed-cost-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4"></div>
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Confirmação</h3>
             <p id="confirm-modal-message" class="mb-6 text-slate-600 dark:text-slate-400"></p>
@@ -286,7 +287,8 @@
         </div>
     </div>
 
-    <script type="text/html" id="caixa-template">
+    <!-- Templates para as Views -->
+    <template id="caixa-template">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Registrar Item</h3>
@@ -323,14 +325,14 @@
                 <button id="finalize-order-button" class="w-full mt-6 bg-brand-primary text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"><i data-lucide="check-circle" class="w-6 h-6"></i>Finalizar Pedido</button>
             </div>
         </div>
-    </script>
+    </template>
 
-    <script type="text/html" id="produtos-template">
+    <template id="produtos-template">
         <div class="space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-1">
                     <div class="custom-card p-6 rounded-lg shadow-md">
-                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Produto</h3>
+                        <h3 id="product-form-title" class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Produto</h3>
                         <form id="add-product-form" class="space-y-4">
                             <div>
                                 <label for="product-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Produto</label>
@@ -350,9 +352,12 @@
                                 <label for="product-quantity" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Quantidade em Estoque</label>
                                 <input type="number" id="product-quantity" step="1" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
                             </div>
-                            <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                                <i data-lucide="plus-circle" class="w-5 h-5"></i>Adicionar Produto
-                            </button>
+                            <div class="flex gap-2 justify-end">
+                                <button type="button" id="cancel-edit-btn" class="hidden py-2 px-4 border border-slate-300 dark:border-slate-600 rounded-md text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700">Cancelar</button>
+                                <button type="submit" class="inline-flex items-center justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-blue-700">
+                                    <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i><span id="product-form-btn-text">Adicionar</span>
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -378,9 +383,9 @@
                 </div>
             </div>
         </div>
-    </script>
+    </template>
     
-    <script type="text/html" id="clientes-template">
+    <template id="clientes-template">
         <div class="space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-1">
@@ -459,9 +464,9 @@
                 </div>
             </div>
         </div>
-    </script>
+    </template>
     
-    <script type="text/html" id="pedidos-template">
+    <template id="pedidos-template">
          <div class="space-y-6">
             <div id="vendedor-pedidos-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <div class="custom-card kpi-card-blue p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-blue-500/20 p-3 rounded-full"><i data-lucide="shopping-cart" class="w-6 h-6 text-blue-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Pedidos Finalizados</p><p id="pedidos-finalizados" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div></div>
@@ -503,13 +508,12 @@
                          </thead>
                          <tbody id="orders-table-body"></tbody>
                      </table>
-                     <div id="no-orders-found" class="text-center p-8 text-slate-500 hidden">Nenhum pedido encontrado.</div>
                 </div>
             </div>
         </div>
-    </script>
+    </template>
     
-    <script type="text/html" id="metas-template">
+    <template id="metas-template">
         <div class="space-y-6">
             <div class="custom-card p-6 rounded-lg shadow-md">
                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Meu Progresso</h3>
@@ -562,9 +566,9 @@
                 </div>
             </div>
         </div>
-    </script>
+    </template>
 
-    <script type="text/html" id="ranking-template">
+    <template id="ranking-template">
         <div class="space-y-6">
             <div class="custom-card p-2 rounded-lg shadow-md max-w-sm mx-auto">
                 <div class="flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-md">
@@ -579,9 +583,9 @@
                 <div id="ranking-list-container"></div>
             </div>
         </div>
-    </script>
+    </template>
     
-    <script type="text/html" id="relatorios-template">
+    <template id="relatorios-template">
         <div class="space-y-6">
              <div id="gerente-relatorios-vendedor-select-container" class="hidden custom-card p-4 rounded-lg shadow-md">
                  <label for="relatorios-vendedor-select" class="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Visualizar Relatório de:</label>
@@ -589,26 +593,11 @@
              </div>
              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                  <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas Hoje</p><p id="relatorio-vendas-hoje" class="text-2xl font-bold text-brand-primary">R$ 0,00</p></div>
-                 <div id="bonus-hoje-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus Hoje</p><p id="relatorio-bonus-dia" class="text-2xl font-bold text-brand-primary">0</p></div>
+                 <div id="comissao-hoje-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Comissão Hoje</p><p id="relatorio-comissao-dia" class="text-2xl font-bold text-brand-primary">R$ 0,00</p></div>
                  <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas na Semana</p><p id="relatorio-vendas-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
-                 <div id="bonus-semana-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus na Semana</p><p id="relatorio-bonus-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
+                 <div id="comissao-semana-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Comissão na Semana</p><p id="relatorio-comissao-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
                  <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas no Mês</p><p id="relatorio-vendas-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
-                 <div id="bonus-mes-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus no Mês</p><p id="relatorio-bonus-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
-             </div>
-
-             <div id="ai-analysis-section" class="hidden custom-card p-6 rounded-lg shadow-md">
-                  <div class="flex justify-between items-center mb-4">
-                      <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">Análise de Desempenho com IA <span class="text-xs bg-brand-primary/20 text-brand-primary dark:bg-brand-primary/20 dark:text-blue-300 px-2 py-0.5 rounded-full">NOVO</span></h3>
-                  </div>
-                  <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
-                      <button id="generate-ai-analysis-btn" class="w-full sm:w-auto bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                           <i data-lucide="sparkles" class="w-4 h-4"></i>
-                           Gerar Análise com IA
-                      </button>
-                      <div id="ai-analysis-result-container" class="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-2 prose dark:prose-invert max-w-none">
-                           <p class="text-slate-500 dark:text-slate-400">Clique no botão para gerar uma análise inteligente dos dados de vendas do período selecionado.</p>
-                      </div>
-                  </div>
+                 <div id="comissao-mes-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Comissão no Mês</p><p id="relatorio-comissao-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
              </div>
 
              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -622,249 +611,200 @@
                  </div>
              </div>
         </div>
-    </script>
+    </template>
     
-    <script type="text/html" id="configuracoes-template">
+    <template id="configuracoes-template">
         <div class="space-y-6">
-            <div class="custom-card p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Painel Administrativo</h3>
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
-                      <div>
-                          <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Configurações da Loja</h4>
-                          <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Loja</label>
-                          <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                          <button id="save-settings-button" class="mt-2 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Nome</button>
-                      </div>
-                      <div>
-                          <h4 class="text-md font-semibold text-red-600 dark:text-red-500 mb-2">Zona de Perigo</h4>
-                          <p class="text-xs text-slate-500 mb-2">Esta ação não pode ser desfeita e removerá permanentemente todas as vendas do sistema.</p>
-                          <button id="delete-all-sales-button" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm">Zerar Todas as Vendas</button>
-                      </div>
-                 </div>
-            </div>
-
-            <div class="custom-card p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Definir Metas e Bônus</h3>
-                <div class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label for="meta-diaria" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Diária (R$)</label>
-                            <input type="number" id="meta-diaria" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                        </div>
-                        <div>
-                            <label for="meta-semanal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Semanal (R$)</label>
-                            <input type="number" id="meta-semanal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                        </div>
-                         <div>
-                            <label for="meta-mensal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Mensal (R$)</label>
-                            <input type="number" id="meta-mensal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                        </div>
-                    </div>
-                    <div class="border-t border-slate-300 dark:border-slate-700 pt-4 space-y-2">
-                        <div class="flex items-center">
-                            <input id="enable-bonus" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
-                            <label for="enable-bonus" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar sistema de bônus</label>
-                        </div>
-                        <div id="bonus-value-container" class="hidden">
-                             <label for="bonus-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Ganha 2 pontos de bônus a cada (R$)</label>
-                            <input type="number" id="bonus-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                        </div>
-                    </div>
-                    <button id="save-goals-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Metas e Bônus</button>
-                </div>
-            </div>
-            
-            <div id="manage-expenses-section" class="hidden custom-card p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Despesas Mensais</h3>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
-                    <div>
-                        <h4 class="text-md font-semibold mb-2">Adicionar Despesa</h4>
-                        <form id="add-expense-form" class="space-y-4">
-                             <div>
-                                <label for="expense-month" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Mês/Ano da Despesa</label>
-                                <input type="month" id="expense-month" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 <div class="space-y-6">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Configurações Gerais</h3>
+                        <div class="space-y-4">
                             <div>
-                                <label for="expense-description" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Descrição</label>
-                                <input type="text" id="expense-description" required placeholder="Ex: Aluguel" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Nome da Loja</h4>
+                                <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                <button id="save-settings-button" class="mt-2 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Nome</button>
                             </div>
-                            <div class="grid grid-cols-2 gap-4">
+                        </div>
+                    </div>
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Definir Metas</h3>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label for="expense-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor (R$)</label>
-                                    <input type="number" id="expense-value" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                    <label for="meta-diaria" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Diária (R$)</label>
+                                    <input type="number" id="meta-diaria" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                                 </div>
                                 <div>
-                                    <label for="expense-type" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Tipo</label>
-                                    <select id="expense-type" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                                        <option value="Fixo">Fixo</option>
-                                        <option value="Variável">Variável</option>
-                                    </select>
+                                    <label for="meta-semanal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Semanal (R$)</label>
+                                    <input type="number" id="meta-semanal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                </div>
+                                 <div>
+                                    <label for="meta-mensal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Mensal (R$)</label>
+                                    <input type="number" id="meta-mensal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
                                 </div>
                             </div>
-                            <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Adicionar Despesa</button>
-                        </form>
+                            <button id="save-goals-button" class="mt-2 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Metas</button>
+                        </div>
                     </div>
-                    <div>
-                        <h4 class="text-md font-semibold mb-2">Despesas do Mês Selecionado</h4>
-                        <ul id="expenses-list" class="space-y-2 max-h-60 overflow-y-auto"></ul>
-                    </div>
-                </div>
-            </div>
-
-            <div class="custom-card p-6 rounded-lg shadow-md">
-                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Configurar Roleta de Prêmios</h3>
-                 <div class="space-y-4">
-                      <div class="flex items-center">
-                          <input id="enable-bonus-wheel" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
-                          <label for="enable-bonus-wheel" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar roleta de prêmios após a venda</label>
-                      </div>
-
-                      <div id="bonus-wheel-config-container" class="hidden">
-                          <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
-                              <div>
-                                  <label for="bonus-wheel-min-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor Mínimo da Compra para Girar (R$)</label>
-                                  <input type="number" id="bonus-wheel-min-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                              </div>
-                          </div>
-                          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4 mt-4">
-                              <div>
-                                  <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Adicionar Prêmio</h4>
-                                  <form id="add-prize-form" class="space-y-4">
-                                      <div>
-                                          <label for="prize-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Prêmio</label>
-                                          <input type="text" id="prize-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                                      </div>
-                                      <div>
-                                          <label for="prize-probability" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Chance de Sair (%)</label>
-                                          <input type="number" id="prize-probability" min="1" max="100" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                                      </div>
-                                      <button type="submit" class="w-full bg-brand-secondary text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">Adicionar Prêmio</button>
-                                  </form>
-                              </div>
-                               <div>
-                                  <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Prêmios Atuais</h4>
-                                  <p class="text-xs text-slate-500 mb-2">Probabilidade Total: <span id="total-probability">0%</span></p>
-                                  <ul id="prizes-list" class="space-y-2 max-h-48 overflow-y-auto"></ul>
-                              </div>
-                          </div>
-                           <button id="save-wheel-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Configurações da Roleta</button>
-                      </div>
-                 </div>
-             </div>
-            
-            <div id="manage-stores-section" class="hidden custom-card p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Lojas</h3>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
-                    <div>
-                        <h4 class="text-md font-semibold mb-2">Criar Nova Loja</h4>
-                        <form id="add-store-form" class="space-y-4">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Exportar Vendas (CSV)</h3>
+                        <div class="space-y-4">
                             <div>
-                                <label for="new-store-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Nova Loja</label>
-                                <input type="text" id="new-store-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                <label for="export-vendedor-select" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Filtrar por Vendedor</label>
+                                <select id="export-vendedor-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></select>
                             </div>
-                            <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Criar Loja</button>
-                        </form>
-                    </div>
-                    <div>
-                        <h4 class="text-md font-semibold mb-2">Lojas Cadastradas</h4>
-                        <ul id="stores-management-list" class="space-y-2"></ul>
-                    </div>
-                </div>
-            </div>
-
-            <div class="custom-card p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Exportar Vendas (CSV)</h3>
-                <div class="space-y-4 border-t border-slate-300 dark:border-slate-700 pt-4">
-                    <div>
-                        <label for="export-vendedor-select" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Filtrar por Vendedor</label>
-                        <select id="export-vendedor-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></select>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <button id="export-today-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas do Dia</button>
-                        <button id="export-week-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas da Semana</button>
-                        <button id="export-month-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas do Mês</button>
-                    </div>
-                    <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
-                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Exportar por data específica:</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="start-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Data de Início</label>
-                                <input type="date" id="start-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <button id="export-today-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Dia</button>
+                                <button id="export-week-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Semana</button>
+                                <button id="export-month-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Mês</button>
                             </div>
-                            <div>
-                                <label for="end-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Data Final</label>
-                                <input type="date" id="end-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                            <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
+                                <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Exportar por data específica:</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="start-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Início</label>
+                                        <input type="date" id="start-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="end-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Fim</label>
+                                        <input type="date" id="end-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                                    </div>
+                                </div>
+                                <button id="export-range-btn" class="w-full mt-2 bg-brand-primary text-white p-2 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4"></i>Exportar Período</button>
                             </div>
                         </div>
-                        <button id="export-range-btn" class="w-full mt-2 bg-brand-primary text-white p-2 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4"></i>Exportar Período</button>
                     </div>
                 </div>
+                <div class="space-y-6">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Usuários e Comissões</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="text-md font-semibold mb-2">Adicionar Usuário</h4>
+                                <form id="add-user-form" class="space-y-3 p-4 bg-slate-200/50 dark:bg-slate-800/50 rounded-lg">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label for="user-name" class="text-sm">Nome</label>
+                                            <input type="text" id="user-name" required class="mt-1 block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                        </div>
+                                        <div>
+                                            <label for="user-password" class="text-sm">Senha</label>
+                                            <input type="password" id="user-password" required class="mt-1 block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <input id="create-as-manager" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary">
+                                            <label for="create-as-manager" class="text-sm">Criar como Gerente</label>
+                                        </div>
+                                        <button type="submit" class="bg-brand-secondary text-white py-2 px-3 text-sm rounded-md hover:bg-green-700">Adicionar</button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div>
+                                <h4 class="text-md font-semibold mb-2">Comissões dos Vendedores</h4>
+                                <div id="commission-list" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
+                                <button id="save-commissions-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Comissões</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="manage-stores-section" class="hidden custom-card p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Lojas</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
+                            <div>
+                                <h4 class="text-md font-semibold mb-2">Criar Nova Loja</h4>
+                                <form id="add-store-form" class="space-y-4">
+                                    <div>
+                                        <label for="new-store-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome</label>
+                                        <input type="text" id="new-store-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                    </div>
+                                    <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700">Criar Loja</button>
+                                </form>
+                            </div>
+                            <div>
+                                <h4 class="text-md font-semibold mb-2">Lojas Cadastradas</h4>
+                                <ul id="stores-management-list" class="space-y-2"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="custom-card p-6 rounded-lg shadow-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50">
+                        <h4 class="text-md font-semibold text-red-600 dark:text-red-500 mb-2">Zona de Perigo</h4>
+                        <p class="text-xs text-slate-500 mb-2">Esta ação não pode ser desfeita e removerá permanentemente todas as vendas da loja atual.</p>
+                        <button id="delete-all-sales-button" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm">Zerar Todas as Vendas</button>
+                    </div>
+                 </div>
             </div>
+        </div>
+    </template>
       <template id="financeiro-template">
-  <div class="p-4 sm:p-6 space-y-6">
-      <div class="custom-card p-4 rounded-lg">
-          <form id="financeiro-filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
-              <div>
-                  <label for="financeiro-start-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Início</label>
-                  <input type="date" id="financeiro-start-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
-              </div>
-              <div>
-                  <label for="financeiro-end-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Fim</label>
-                  <input type="date" id="financeiro-end-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
-              </div>
-              <div>
-                  <label class="block text-sm">&nbsp;</label>
-                  <button type="button" id="financeiro-filter-this-month" class="w-full text-sm py-2 px-3 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">Este Mês</button>
-              </div>
-              <div>
-                  <label class="block text-sm">&nbsp;</label>
-                  <button type="submit" class="w-full bg-brand-primary text-white py-2 px-3 rounded-md hover:bg-blue-700">Filtrar</button>
-              </div>
-               <div>
-                  <label class="block text-sm">&nbsp;</label>
-                  <button type="reset" class="w-full bg-slate-500 text-white py-2 px-3 rounded-md hover:bg-slate-600">Limpar</button>
-              </div>
-          </form>
-      </div>
+        <div class="p-4 sm:p-6 space-y-6">
+            <div class="custom-card p-4 rounded-lg">
+                <form id="financeiro-filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                    <div>
+                        <label for="financeiro-start-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Início</label>
+                        <input type="date" id="financeiro-start-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
+                    </div>
+                    <div>
+                        <label for="financeiro-end-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Fim</label>
+                        <input type="date" id="financeiro-end-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm">&nbsp;</label>
+                        <button type="button" id="financeiro-filter-this-month" class="w-full text-sm py-2 px-3 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">Este Mês</button>
+                    </div>
+                    <div>
+                        <label class="block text-sm">&nbsp;</label>
+                        <button type="submit" class="w-full bg-brand-primary text-white py-2 px-3 rounded-md hover:bg-blue-700">Filtrar</button>
+                    </div>
+                     <div>
+                        <label class="block text-sm">&nbsp;</label>
+                        <button type="reset" class="w-full bg-slate-500 text-white py-2 px-3 rounded-md hover:bg-slate-600">Limpar</button>
+                    </div>
+                </form>
+            </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="financeiro-summary-cards"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="financeiro-summary-cards"></div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="md:col-span-1 custom-card p-6 rounded-lg flex flex-col">
-              <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Fixos e Operacionais</h3>
-              <div id="fixed-costs-list" class="space-y-2 mb-4 flex-grow overflow-y-auto max-h-48 pr-2">
-                  </div>
-              <form id="add-fixed-cost-form" class="mt-auto pt-4 border-t border-slate-300 dark:border-slate-700 space-y-2">
-                  <input type="text" id="fixed-cost-name" placeholder="Nome do Custo (ex: Aluguel)" required class="block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                  <div class="flex gap-2">
-                       <input type="number" id="fixed-cost-amount" placeholder="Valor (R$)" required step="0.01" class="block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                       <button type="submit" class="p-2 bg-brand-primary text-white rounded-md hover:bg-blue-700"><i data-lucide="plus" class="w-4 h-4"></i></button>
-                  </div>
-              </form>
-          </div>
-          <div class="md:col-span-2 custom-card p-6 rounded-lg">
-              <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Variáveis (Baseado na Receita)</h3>
-              <div class="space-y-3">
-                  <div><label for="cost-impostos" class="text-sm text-slate-600 dark:text-slate-400">Impostos (%)</label><input type="number" id="cost-impostos" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="6" step="0.1"></div>
-                  <div><label for="cost-comissoes" class="text-sm text-slate-600 dark:text-slate-400">Comissões (%)</label><input type="number" id="cost-comissoes" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="5" step="0.1"></div>
-              </div>
-              <div class="mt-6 pt-6 border-t border-slate-300 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-6" id="financeiro-net-summary">
-              </div>
-          </div>
-      </div>
-      
-      <div class="custom-card p-6 rounded-lg">
-           <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Projeções de Faturamento</h3>
-           <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="financeiro-projections">
-           </div>
-      </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-1 custom-card p-6 rounded-lg flex flex-col">
+                    <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Fixos e Operacionais</h3>
+                    <div id="fixed-costs-list" class="space-y-2 mb-4 flex-grow overflow-y-auto max-h-48 pr-2"></div>
+                    <form id="add-fixed-cost-form" class="mt-auto pt-4 border-t border-slate-300 dark:border-slate-700 space-y-2">
+                        <input type="text" id="fixed-cost-name" placeholder="Nome do Custo (ex: Aluguel)" required class="block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        <div class="flex gap-2">
+                             <input type="number" id="fixed-cost-amount" placeholder="Valor (R$)" required step="0.01" class="block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                             <button type="submit" class="p-2 bg-brand-primary text-white rounded-md hover:bg-blue-700"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                        </div>
+                    </form>
+                </div>
+                <div class="md:col-span-2 custom-card p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Variáveis (Baseado na Receita)</h3>
+                     <div class="space-y-3">
+                        <div>
+                            <label for="cost-impostos" class="text-sm text-slate-600 dark:text-slate-400">Impostos (%)</label>
+                            <input type="number" id="cost-impostos" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="6" step="0.1">
+                        </div>
+                    </div>
+                    <div class="mt-6 pt-6 border-t border-slate-300 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-6" id="financeiro-net-summary">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="custom-card p-6 rounded-lg">
+                 <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Projeções de Faturamento</h3>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="financeiro-projections">
+                 </div>
+            </div>
 
-      <div class="custom-card p-6 rounded-lg">
-          <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Receita vs Custo vs Lucro</h3>
-          <div class="h-80"><canvas id="financeiro-chart"></canvas></div>
-      </div>
-  </div>
-</template>
+            <div class="custom-card p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Receita vs Custo vs Lucro</h3>
+                <div class="h-80"><canvas id="financeiro-chart"></canvas></div>
+            </div>
+        </div>
+      </template>
 
     <script type="module" src="script.js"></script>
 
