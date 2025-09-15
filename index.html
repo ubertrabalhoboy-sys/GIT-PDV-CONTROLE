@@ -829,70 +829,72 @@
     </script>
 
       <template id="financeiro-template">
-  <div class="p-4 sm:p-6 space-y-6">
-      <div class="custom-card p-4 rounded-lg">
-          <form id="financeiro-filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
-              <div>
-                  <label for="financeiro-start-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Início</label>
-                  <input type="date" id="financeiro-start-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
-              </div>
-              <div>
-                  <label for="financeiro-end-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Fim</label>
-                  <input type="date" id="financeiro-end-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
-              </div>
-              <div>
-                  <label class="block text-sm">&nbsp;</label>
-                  <button type="button" id="financeiro-filter-this-month" class="w-full text-sm py-2 px-3 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">Este Mês</button>
-              </div>
-              <div>
-                  <label class="block text-sm">&nbsp;</label>
-                  <button type="submit" class="w-full bg-brand-primary text-white py-2 px-3 rounded-md hover:bg-blue-700">Filtrar</button>
-              </div>
-               <div>
-                  <label class="block text-sm">&nbsp;</label>
-                  <button type="reset" class="w-full bg-slate-500 text-white py-2 px-3 rounded-md hover:bg-slate-600">Limpar</button>
-              </div>
-          </form>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="financeiro-summary-cards"></div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="md:col-span-1 custom-card p-6 rounded-lg flex flex-col">
-              <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Fixos e Operacionais</h3>
-              <div id="fixed-costs-list" class="space-y-2 mb-4 flex-grow overflow-y-auto max-h-48 pr-2">
+      <div class="p-4 sm:p-6 space-y-6">
+          <div class="custom-card p-4 rounded-lg">
+              <form id="financeiro-filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                  <div>
+                      <label for="financeiro-start-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Início</label>
+                      <input type="date" id="financeiro-start-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
                   </div>
-              <form id="add-fixed-cost-form" class="mt-auto pt-4 border-t border-slate-300 dark:border-slate-700 space-y-2">
-                  <input type="text" id="fixed-cost-name" placeholder="Nome do Custo (ex: Aluguel)" required class="block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                  <div class="flex gap-2">
-                       <input type="number" id="fixed-cost-amount" placeholder="Valor (R$)" required step="0.01" class="block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
-                       <button type="submit" class="p-2 bg-brand-primary text-white rounded-md hover:bg-blue-700"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                  <div>
+                      <label for="financeiro-end-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Fim</label>
+                      <input type="date" id="financeiro-end-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
+                  </div>
+                  <div>
+                      <label class="block text-sm">&nbsp;</label>
+                      <button type="button" id="financeiro-filter-this-month" class="w-full text-sm py-2 px-3 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">Este Mês</button>
+                  </div>
+                  <div>
+                      <label class="block text-sm">&nbsp;</label>
+                      <button type="submit" class="w-full bg-brand-primary text-white py-2 px-3 rounded-md hover:bg-blue-700">Filtrar</button>
+                  </div>
+                   <div>
+                      <label class="block text-sm">&nbsp;</label>
+                      <button type="reset" class="w-full bg-slate-500 text-white py-2 px-3 rounded-md hover:bg-slate-600">Limpar</button>
                   </div>
               </form>
           </div>
-          <div class="md:col-span-2 custom-card p-6 rounded-lg">
-              <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Variáveis (Baseado na Receita)</h3>
-              <div class="space-y-3">
-                  <div><label for="cost-impostos" class="text-sm text-slate-600 dark:text-slate-400">Impostos (%)</label><input type="number" id="cost-impostos" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="6" step="0.1"></div>
-                  <div><label for="cost-comissoes" class="text-sm text-slate-600 dark:text-slate-400">Comissões (%)</label><input type="number" id="cost-comissoes" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="5" step="0.1"></div>
-              </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="financeiro-summary-cards"></div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div class="md:col-span-1 custom-card p-6 rounded-lg flex flex-col">
+                  <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Fixos e Operacionais</h3>
+                  <div id="fixed-costs-list" class="space-y-2 mb-4 flex-grow overflow-y-auto max-h-48 pr-2">
+          </div>
+                  <form id="add-fixed-cost-form" class="mt-auto pt-4 border-t border-slate-300 dark:border-slate-700 space-y-2">
+                      <input type="text" id="fixed-cost-name" placeholder="Nome do Custo (ex: Aluguel)" required class="block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                      <div class="flex gap-2">
+                          <input type="number" id="fixed-cost-amount" placeholder="Valor (R$)" required step="0.01" class="block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                           <button type="submit" class="p-2 bg-brand-primary text-white rounded-md hover:bg-blue-700"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                      </div>
+                 </form>
+             </div>
+              <div class="md:col-span-2 custom-card p-6 rounded-lg">
+                 <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Variáveis (Baseado na Receita)</h3>
+                   
+            <div class="space-y-3">
+                      <div><label for="cost-impostos" class="text-sm text-slate-600 dark:text-slate-400">Impostos (%)</label><input type="number" id="cost-impostos" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="6" step="0.1"></div>
+                     <div><label for="cost-comissoes" class="text-sm text-slate-600 dark:text-slate-400">Comissões (%)</label><input type="number" id="cost-comissoes" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="5" step="0.1"></div>
+                   
+                  </div>
               <div class="mt-6 pt-6 border-t border-slate-300 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-6" id="financeiro-net-summary">
-              </div>
+               </div>
+          </div>
+          
+          <div class="custom-card p-6 rounded-lg">
+               <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Projeções de Faturamento</h3>
+               <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="financeiro-projections">
+               </div>
+          </div>
+
+          <div class="custom-card p-6 rounded-lg">
+              <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Receita vs Custo vs Lucro</h3>
+              <div class="h-80"><canvas id="financeiro-chart"></canvas></div>
           </div>
       </div>
-      
-      <div class="custom-card p-6 rounded-lg">
-           <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Projeções de Faturamento</h3>
-           <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="financeiro-projections">
-           </div>
-      </div>
-
-      <div class="custom-card p-6 rounded-lg">
-          <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Receita vs Custo vs Lucro</h3>
-          <div class="h-80"><canvas id="financeiro-chart"></canvas></div>
-      </div>
-  </div>
-</template>
+    </template>
+    </script>
 
     <script type="module" src="script.js"></script>
 
