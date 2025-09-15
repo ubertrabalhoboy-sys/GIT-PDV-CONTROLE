@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
             settings: {
                 storeName: "Minha Loja",
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                commission: { percentage: 5 }, // NOVO: Sistema de comissão
+                bonusSystem: { enabled: true, value: 80 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
             },
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await setDoc(doc(db, "settings", storeRef.id), {
                     storeName: storeName,
                     goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                    commission: { percentage: 5 }, // NOVO: Sistema de comissão
+                    bonusSystem: { enabled: true, value: 80 },
                     bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                     ownerPhone: ''
                 });
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const defaultSettings = {
                 storeName: state.selectedStore.name,
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                commission: { percentage: 5 }, // NOVO: Sistema de comissão
+                bonusSystem: { enabled: true, value: 80 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
             };
@@ -203,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const headers = [
             "Data da Compra", "ID da Venda", "Nome do Cliente", "Telefone do Cliente", "Vendedor",
-            "Itens Vendidos", "Forma de Pagamento", "Total da Venda", "Comissão da Venda" // ALTERADO: Bônus -> Comissão
+            "Itens Vendidos", "Forma de Pagamento", "Total da Venda", "Bônus da Venda"
         ];
 
         const formatItemsForCSV = (items) => {
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formatItemsForCSV(sale.items),
             formatPaymentsForCSV(sale.paymentMethods || sale.paymentMethod),
             (sale.total || 0).toFixed(2).replace('.', ','),
-            (sale.commission || 0).toFixed(2).replace('.', ',') // ALTERADO: bonus -> commission
+            sale.bonus
         ]);
 
         let csvContent = "data:text/csv;charset=utf-8,\uFEFF"
@@ -441,13 +441,13 @@ document.addEventListener('DOMContentLoaded', () => {
             switchView('caixa');
         } else {
             const managerMenuHTML = createMenuItem('relatorios', 'layout-dashboard', 'Dashboard') +
-                                          createMenuItem('financeiro', 'dollar-sign', 'Financeiro') +
-                                          createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
-                                          createMenuItem('clientes', 'users', 'Clientes') + 
-                                          createMenuItem('produtos', 'package', 'Produtos') + 
-                                          createMenuItem('ranking', 'trophy', 'Ranking') + 
-                                          createMenuItem('configuracoes', 'settings', 'Configurações') + 
-                                          createLogoutItem();
+                                      createMenuItem('financeiro', 'dollar-sign', 'Financeiro') +
+                                      createMenuItem('pedidos', 'list-ordered', 'Pedidos') + 
+                                      createMenuItem('clientes', 'users', 'Clientes') + 
+                                      createMenuItem('produtos', 'package', 'Produtos') + 
+                                      createMenuItem('ranking', 'trophy', 'Ranking') + 
+                                      createMenuItem('configuracoes', 'settings', 'Configurações') + 
+                                      createLogoutItem();
             
             gM.innerHTML = managerMenuHTML;
             gM.classList.remove('hidden'); vM.classList.add('hidden');
@@ -1031,10 +1031,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const total = orderTotal;
-                let commission = 0; // ALTERADO: de bonus para commission
-                const commissionConfig = state.db.settings.commission;
-                if (commissionConfig && commissionConfig.percentage > 0) {
-                    commission = (total * commissionConfig.percentage) / 100; // ALTERADO: Lógica de cálculo
+                let bonus = 0;
+                const bonusConfig = state.db.settings.bonusSystem;
+                if (bonusConfig && bonusConfig.enabled && bonusConfig.value > 0) {
+                    bonus = Math.floor(total / bonusConfig.value) * 2;
                 }
 
                 const saleData = {
@@ -1046,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     paymentMethodTypes: paymentMethods.map(p => p.method),
                     items: state.currentOrder,
                     total: total,
-                    commission: commission, // ALTERADO: de bonus para commission
+                    bonus: bonus,
                     date: Timestamp.now(),
                     vendedor: state.loggedInUser.name,
                     status: 'Finalizado',
@@ -1313,6 +1313,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // CORRIGIDO: Esta função agora define e injeta seu próprio HTML e gerencia seus próprios eventos.
+  // CORRIGIDO: Esta função agora define e injeta seu próprio HTML e gerencia seus próprios eventos.
 function renderProdutos() {
     const view = document.getElementById('produtos-view');
     const productsTemplateHTML = `
@@ -1624,9 +1625,9 @@ function renderProdutos() {
                           }).join('')
                         : `<li>${order.paymentMethod}: ${formatCurrency(order.total)}</li>`;
                     
-                           let prizeDetails = '';
+                             let prizeDetails = '';
                              if(order.prizeWon){
-                                 prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
+                                   prizeDetails = `<hr class="my-2 dark:border-slate-700"><p><strong>Prêmio Ganho:</strong> ${order.prizeWon}</p>`;
                              }
 
                     m.innerHTML = `<div class="custom-card rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><div class="flex justify-between items-center border-b dark:border-slate-700 pb-3 mb-4"><h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Detalhes do Pedido</h2><button id="close-details-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><p><strong>Cliente:</strong> ${order.clientName}</p><p><strong>Telefone:</strong> ${order.clientPhone || 'Não informado'}</p><p><strong>Data:</strong> ${new Date(order.date.seconds * 1000).toLocaleString('pt-BR')}</p><p><strong>Vendedor:</strong> ${order.vendedor}</p><hr class="my-2 dark:border-slate-700"><p><strong>Itens:</strong></p><ul class="list-disc list-inside ml-4">${itemsList}</ul><hr class="my-2 dark:border-slate-700"><p><strong>Pagamento:</strong></p><ul class="list-disc list-inside ml-4">${paymentDetails}</ul><p class="text-lg font-bold mt-2"><strong>Total:</strong> ${formatCurrency(order.total)}</p>${prizeDetails}</div></div>`;
@@ -1937,12 +1938,10 @@ function renderProdutos() {
             mainContent.parentNode.appendChild(alertsContainer);
         }
 
-        // ALTERADO: Oculta os cards de bônus e exibe os de comissão
-        const bonusCards = c.querySelectorAll('#bonus-hoje-card, #bonus-semana-card, #bonus-mes-card');
-        bonusCards.forEach(card => card?.classList.add('hidden'));
-        
-        const commissionCards = c.querySelectorAll('#comissao-hoje-card, #comissao-semana-card, #comissao-mes-card');
-        commissionCards.forEach(card => card?.classList.remove('hidden'));
+        if (!state.db.settings.bonusSystem?.enabled) {
+            const bonusCards = c.querySelectorAll('#bonus-hoje-card, #bonus-semana-card, #bonus-mes-card');
+            bonusCards.forEach(card => card?.classList.add('hidden'));
+        }
 
         const updateDashboardUI = (sales, allStoreSales) => {
             if (vendasChartInstance) vendasChartInstance.destroy();
@@ -1958,13 +1957,13 @@ function renderProdutos() {
                 `).join('');
 
                 alertsContainer.innerHTML = insights.alerts.map(alert => `
-                        <div class="custom-card p-4 flex items-start gap-3 rounded-lg bg-amber-50 border-l-4 border-amber-400 dark:bg-amber-900/20 dark:border-amber-500">
+                       <div class="custom-card p-4 flex items-start gap-3 rounded-lg bg-amber-50 border-l-4 border-amber-400 dark:bg-amber-900/20 dark:border-amber-500">
                            <span class="text-xl">${alert.icon}</span>
                            <div class="flex-1">
                                <p class="text-sm text-amber-800 dark:text-amber-200">${alert.text}</p>
                                ${alert.action ? `<div class="mt-2">${alert.action}</div>` : ''}
                            </div>
-                        </div>
+                       </div>
                 `).join('');
                 window.lucide.createIcons();
             } else {
@@ -1987,10 +1986,11 @@ function renderProdutos() {
             c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + s.total, 0));
             c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
             
-            // ALTERADO: Calcula comissões em vez de bônus
-            c.querySelector('#relatorio-comissao-dia').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + (s.commission || 0), 0));
-            c.querySelector('#relatorio-comissao-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + (s.commission || 0), 0));
-            c.querySelector('#relatorio-comissao-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + (s.commission || 0), 0));
+            if(state.db.settings.bonusSystem?.enabled){
+                 c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
+                 c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
+                 c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
+            }
             
             const salesLast7Days = {};
             for (let i = 6; i >= 0; i--) {
@@ -2106,9 +2106,17 @@ function renderProdutos() {
         c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
         c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
         
-        // NOVO: Configuração de Comissão
-        const commissionInput = c.querySelector('#commission-percentage');
-        commissionInput.value = state.db.settings.commission?.percentage ?? 5;
+        const enableBonusCheckbox = c.querySelector('#enable-bonus');
+        const bonusValueContainer = c.querySelector('#bonus-value-container');
+        const bonusValueInput = c.querySelector('#bonus-value');
+
+        enableBonusCheckbox.checked = state.db.settings.bonusSystem?.enabled ?? true;
+        bonusValueInput.value = state.db.settings.bonusSystem?.value ?? 80;
+
+        bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
+        enableBonusCheckbox.addEventListener('change', () => {
+            bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
+        });
         
         const exportVendedorSelect = c.querySelector('#export-vendedor-select');
         exportVendedorSelect.innerHTML = '<option value="Todos">Todos os Vendedores</option>';
@@ -2289,36 +2297,37 @@ function renderProdutos() {
                 weekly: parseFloat(c.querySelector('#meta-semanal').value) || 0,
                 monthly: parseFloat(c.querySelector('#meta-mensal').value) || 0,
             };
-             const newCommissionSystem = {
-                percentage: parseFloat(c.querySelector('#commission-percentage').value) || 0,
+             const newBonusSystem = {
+                 enabled: c.querySelector('#enable-bonus').checked,
+                 value: parseFloat(c.querySelector('#bonus-value').value) || 80,
             };
 
             try {
                 await setDoc(doc(db, "settings", state.selectedStore.id), {
                     goals: newGoals,
-                    commission: newCommissionSystem // ALTERADO: de bonusSystem para commission
+                    bonusSystem: newBonusSystem
                 }, { merge: true });
                 state.db.settings.goals = newGoals;
-                state.db.settings.commission = newCommissionSystem; // ALTERADO
-                showToast('Metas e comissão salvos com sucesso!', 'success');
+                state.db.settings.bonusSystem = newBonusSystem;
+                showToast('Metas e bônus salvos com sucesso!', 'success');
             } catch(error) {
-                showToast('Erro ao salvar metas e comissão.', 'error');
+                showToast('Erro ao salvar metas e bônus.', 'error');
             }
         });
         
          c.querySelector('#delete-all-sales-button').addEventListener('click', async () => {
-             showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
-                 try {
-                     const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-                     const salesSnapshot = await getDocs(q);
-                     if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
-                     const batch = writeBatch(db);
-                     salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-                     await batch.commit();
-                     showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
-                 } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
-             });
-        });
+               showConfirmModal(`TEM CERTEZA? Esta ação removerá PERMANENTEMENTE todas as vendas da loja "${state.selectedStore.name}".`, async () => {
+                   try {
+                       const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
+                       const salesSnapshot = await getDocs(q);
+                       if (salesSnapshot.empty) { showToast('Nenhuma venda para apagar.', 'success'); return; }
+                       const batch = writeBatch(db);
+                       salesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+                       await batch.commit();
+                       showToast(`Todas as vendas da loja "${state.selectedStore.name}" foram zeradas!`, 'success');
+                   } catch (error) { showToast('Ocorreu um erro ao zerar as vendas.', 'error'); }
+               });
+         });
         
         const manageStoresSection = c.querySelector('#manage-stores-section');
         if (state.loggedInUser.role === 'superadmin') {
@@ -2340,7 +2349,7 @@ function renderProdutos() {
                     await setDoc(doc(db, "settings", storeRef.id), {
                         storeName: newStoreName,
                         goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                        commission: { percentage: 5 } // ALTERADO
+                        bonusSystem: { enabled: true, value: 80 }
                     });
                     showToast(`Loja "${newStoreName}" criada!`, 'success');
                     newStoreNameInput.value = '';
@@ -2481,56 +2490,6 @@ function renderProdutos() {
         const filterForm = view.querySelector('#financeiro-filter-form');
         const startDateInput = view.querySelector('#financeiro-start-date');
         const endDateInput = view.querySelector('#financeiro-end-date');
-        const fixedCostsListEl = view.querySelector('#fixed-costs-list');
-        const addFixedCostForm = view.querySelector('#add-fixed-cost-form');
-        const editCostModal = document.getElementById('edit-cost-modal');
-
-        // MELHORIA: Função para renderizar a lista de custos fixos com botões de ação
-        const renderFixedCostsList = () => {
-            fixedCostsListEl.innerHTML = '';
-            const fixedCosts = state.db.settings.fixedCosts || [];
-            if (fixedCosts.length === 0) {
-                fixedCostsListEl.innerHTML = '<p class="text-xs text-slate-500 text-center col-span-full">Nenhum custo fixo adicionado.</p>';
-            } else {
-                fixedCosts.forEach((cost, index) => {
-                    const costEl = document.createElement('div');
-                    costEl.className = 'flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-3 rounded-lg text-sm';
-                    costEl.innerHTML = `
-                        <div>
-                            <span class="font-medium text-slate-800 dark:text-slate-200">${cost.name}</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="font-semibold text-slate-700 dark:text-slate-300">${formatCurrency(cost.amount)}</span>
-                            <div class="flex items-center gap-1">
-                                <button data-index="${index}" class="edit-fixed-cost-btn text-amber-500 hover:text-amber-700 p-1 rounded-full" title="Editar Custo">
-                                    <i data-lucide="edit-2" class="w-4 h-4 pointer-events-none"></i>
-                                </button>
-                                <button data-index="${index}" class="remove-fixed-cost-btn text-red-500 hover:text-red-700 p-1 rounded-full" title="Remover Custo">
-                                    <i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    fixedCostsListEl.appendChild(costEl);
-                });
-            }
-            window.lucide.createIcons();
-        };
-
-
-        // Função para salvar os custos fixos no Firestore
-        const saveFixedCosts = async (newCosts) => {
-            try {
-                await setDoc(doc(db, "settings", state.selectedStore.id), { fixedCosts: newCosts }, { merge: true });
-                state.db.settings.fixedCosts = newCosts;
-                // Não mostra toast para não poluir a tela, a atualização visual é suficiente
-                renderFixedCostsList(); // Atualiza a lista na UI
-                updateFinancialReport(); // Recalcula tudo com os novos custos
-            } catch (error) {
-                showToast('Erro ao salvar custo fixo.', 'error');
-                console.error(error);
-            }
-        };
 
         const updateFinancialReport = () => {
             const startDate = startDateInput.value ? new Date(startDateInput.value + 'T00:00:00') : null;
@@ -2572,13 +2531,12 @@ function renderProdutos() {
             
             const impostosPerc = parseFloat(view.querySelector('#cost-impostos').value) || 0;
             const comissoesPerc = parseFloat(view.querySelector('#cost-comissoes').value) || 0;
-            const custosFixos = (state.db.settings.fixedCosts || []).reduce((sum, cost) => sum + cost.amount, 0);
-
+            const outrosCustos = parseFloat(view.querySelector('#cost-outros').value) || 0;
 
             const custoImpostos = (receitaBruta * impostosPerc) / 100;
             const custoComissoes = (receitaBruta * comissoesPerc) / 100;
-            const totalCustosVariaveis = custoImpostos + custoComissoes + custosFixos;
-             
+            const totalCustosVariaveis = custoImpostos + custoComissoes + outrosCustos;
+            
             const lucroLiquido = lucroBruto - totalCustosVariaveis;
             const margemLiquida = receitaBruta > 0 ? (lucroLiquido / receitaBruta) * 100 : 0;
 
@@ -2590,7 +2548,7 @@ function renderProdutos() {
             `;
             
             netSummaryContainer.innerHTML = `
-                <div><p class="text-sm text-slate-500">Total Custos (Fixos + Variáveis)</p><p class="text-2xl font-bold text-red-500">${formatCurrency(totalCustosVariaveis)}</p></div>
+                <div><p class="text-sm text-slate-500">Total Custos Variáveis</p><p class="text-2xl font-bold text-red-500">${formatCurrency(totalCustosVariaveis)}</p></div>
                 <div><p class="text-sm text-slate-500">Lucro Líquido</p><p class="text-3xl font-extrabold text-green-700">${formatCurrency(lucroLiquido)}</p></div>
                 <div class="col-span-full"><p class="text-sm text-slate-500">Margem de Lucro Líquida</p><p class="text-3xl font-extrabold text-green-700">${margemLiquida.toFixed(1)}%</p></div>
             `;
@@ -2668,65 +2626,7 @@ function renderProdutos() {
 
         costInputs.forEach(input => input.addEventListener('input', updateFinancialReport));
 
-        addFixedCostForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const nameInput = view.querySelector('#fixed-cost-name');
-            const amountInput = view.querySelector('#fixed-cost-amount');
-            if (!nameInput.value.trim() || !amountInput.value) {
-                showToast('Preencha o nome e o valor do custo.', 'error');
-                return;
-            }
-            const newCost = {
-                name: nameInput.value.trim(),
-                amount: parseFloat(amountInput.value)
-            };
-            const currentCosts = state.db.settings.fixedCosts || [];
-            saveFixedCosts([...currentCosts, newCost]);
-            addFixedCostForm.reset();
-        });
-        
-        fixedCostsListEl.addEventListener('click', (e) => {
-            const removeBtn = e.target.closest('.remove-fixed-cost-btn');
-            const editBtn = e.target.closest('.edit-fixed-cost-btn');
-            
-            if (removeBtn) {
-                const indexToRemove = parseInt(removeBtn.dataset.index);
-                showConfirmModal('Tem certeza que deseja remover este custo?', () => {
-                    const currentCosts = (state.db.settings.fixedCosts || []).filter((_, index) => index !== indexToRemove);
-                    saveFixedCosts(currentCosts);
-                });
-            } else if (editBtn) {
-                 const indexToEdit = parseInt(editBtn.dataset.index);
-                 const currentCosts = state.db.settings.fixedCosts || [];
-                 const costToEdit = currentCosts[indexToEdit];
-                 
-                 editCostModal.classList.remove('hidden');
-                 const form = editCostModal.querySelector('#edit-cost-form');
-                 form.querySelector('#edit-cost-name').value = costToEdit.name;
-                 form.querySelector('#edit-cost-amount').value = costToEdit.amount;
-                 
-                 const close = () => editCostModal.classList.add('hidden');
-                 editCostModal.querySelector('#cancel-edit-cost-btn').onclick = close;
-                 
-                 form.onsubmit = (event) => {
-                     event.preventDefault();
-                     const updatedName = form.querySelector('#edit-cost-name').value.trim();
-                     const updatedAmount = parseFloat(form.querySelector('#edit-cost-amount').value);
-                     if (!updatedName || isNaN(updatedAmount)) {
-                        showToast('Por favor, preencha os dados corretamente.', 'error');
-                        return;
-                     }
-                     
-                     const updatedCosts = [...currentCosts];
-                     updatedCosts[indexToEdit] = { name: updatedName, amount: updatedAmount };
-                     saveFixedCosts(updatedCosts);
-                     close();
-                 };
-            }
-        });
-
         // Initial render for the current month
-        renderFixedCostsList();
         view.querySelector('#financeiro-filter-this-month').click();
     }
 
