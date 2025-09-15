@@ -717,7 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const couponText = `🧾 *Comprovante de Venda* 🧾\n\n*${storeName}*\n\n*Data:* ${saleDate}\n*Cliente:* ${saleData.clientName}\n\n*Itens:*\n${itemsText}\n\n*Pagamento:*\n${paymentText}\n\n*Total:* *${formatCurrency(saleData.total)}*\n*Vendedor:* ${saleData.vendedor}${prizeText}\n\nObrigado pela sua compra!`;
+        const couponText = `🧾 *Comprovante de Venda* 🧾\n\n*${storeName}*\n\n*Data:* ${saleDate}\n*Cliente:* ${saleData.clientName}\n\n*Itens:*\n${itemsText}\n\n*Pagamento:*\n${paymentText}\n\n*Total:* *${formatCurrency(saleData.total)}*\n*Vendedor:* ${state.loggedInUser.name}${prizeText}\n\nObrigado pela sua compra!`;
 
         const whatsAppNumber = saleData.clientPhone.replace(/\D/g, '');
         const encodedText = encodeURIComponent(couponText);
@@ -1313,7 +1313,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // CORRIGIDO: Esta função agora define e injeta seu próprio HTML e gerencia seus próprios eventos.
-  // CORRIGIDO: Esta função agora define e injeta seu próprio HTML e gerencia seus próprios eventos.
 function renderProdutos() {
     const view = document.getElementById('produtos-view');
     const productsTemplateHTML = `
@@ -1671,7 +1670,7 @@ function renderProdutos() {
                 date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay()||7));
                 const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
                 const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
-                return `${date.getUTCFullYear()}-W${weekNo}`;
+                return `${date.getUTCFull-Year()}-W${weekNo}`;
             }
 
             const salesByWeek = sales.reduce((acc, s) => {
