@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
             settings: {
                 storeName: "Minha Loja",
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                commissionSystem: { enabled: true, commissionPercentage: 5 },
+                commissionSystem: { enabled: true, percentage: 5 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
             },
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await setDoc(doc(db, "settings", storeRef.id), {
                     storeName: storeName,
                     goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                    commissionSystem: { enabled: true, commissionPercentage: 5 },
+                    commissionSystem: { enabled: true, percentage: 5 },
                     bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                     ownerPhone: ''
                 });
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const defaultSettings = {
                 storeName: state.selectedStore.name,
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                commissionSystem: { enabled: true, commissionPercentage: 5 },
+                commissionSystem: { enabled: true, percentage: 5 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
             };
@@ -1045,8 +1045,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const total = orderTotal;
                 let commission = 0;
                 const commissionConfig = state.db.settings.commissionSystem;
-                if (commissionConfig && commissionConfig.enabled && commissionConfig.commissionPercentage > 0) {
-                    commission = (total * commissionConfig.commissionPercentage) / 100;
+                if (commissionConfig && commissionConfig.enabled && commissionConfig.percentage > 0) {
+                    commission = (total * commissionConfig.percentage) / 100;
                 }
 
                 const saleData = {
@@ -1950,7 +1950,7 @@ function renderProdutos() {
         }
 
         if (!state.db.settings.commissionSystem?.enabled) {
-            const commissionCards = c.querySelectorAll('#commission-hoje-card, #commission-semana-card, #commission-mes-card');
+            const commissionCards = c.querySelectorAll('#comissao-hoje-card, #comissao-semana-card, #comissao-mes-card');
             commissionCards.forEach(card => card?.classList.add('hidden'));
         }
 
@@ -2118,15 +2118,15 @@ function renderProdutos() {
         c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
         
         const enableCommissionCheckbox = c.querySelector('#enable-commission');
-        const commissionValueContainer = c.querySelector('#commission-value-container');
-        const commissionValueInput = c.querySelector('#commission-value');
+        const commissionPercentageContainer = c.querySelector('#commission-percentage-container');
+        const commissionPercentageInput = c.querySelector('#commission-percentage');
 
         enableCommissionCheckbox.checked = state.db.settings.commissionSystem?.enabled ?? true;
-        commissionValueInput.value = state.db.settings.commissionSystem?.commissionPercentage ?? 5;
+        commissionPercentageInput.value = state.db.settings.commissionSystem?.percentage ?? 5;
 
-        commissionValueContainer.classList.toggle('hidden', !enableCommissionCheckbox.checked);
+        commissionPercentageContainer.classList.toggle('hidden', !enableCommissionCheckbox.checked);
         enableCommissionCheckbox.addEventListener('change', () => {
-            commissionValueContainer.classList.toggle('hidden', !enableCommissionCheckbox.checked);
+            commissionPercentageContainer.classList.toggle('hidden', !enableCommissionCheckbox.checked);
         });
         
         const exportVendedorSelect = c.querySelector('#export-vendedor-select');
@@ -2310,7 +2310,7 @@ function renderProdutos() {
             };
              const newCommissionSystem = {
                  enabled: c.querySelector('#enable-commission').checked,
-                 commissionPercentage: parseFloat(c.querySelector('#commission-value').value) || 5,
+                 percentage: parseFloat(c.querySelector('#commission-percentage').value) || 5,
             };
 
             try {
@@ -2360,7 +2360,7 @@ function renderProdutos() {
                     await setDoc(doc(db, "settings", storeRef.id), {
                         storeName: newStoreName,
                         goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                        commissionSystem: { enabled: true, commissionPercentage: 5 }
+                        commissionSystem: { enabled: true, percentage: 5 }
                     });
                     showToast(`Loja "${newStoreName}" criada!`, 'success');
                     newStoreNameInput.value = '';
