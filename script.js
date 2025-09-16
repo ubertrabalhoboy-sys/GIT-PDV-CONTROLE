@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
             settings: {
                 storeName: "Minha Loja",
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                bonusSystem: { enabled: true, value: 80 },
+                commissionSystem: { enabled: true, commissionPercentage: 5 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
             },
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await setDoc(doc(db, "settings", storeRef.id), {
                     storeName: storeName,
                     goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                    bonusSystem: { enabled: true, value: 80 },
+                    commissionSystem: { enabled: true, commissionPercentage: 5 },
                     bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                     ownerPhone: ''
                 });
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const defaultSettings = {
                 storeName: state.selectedStore.name,
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                bonusSystem: { enabled: true, value: 80 },
+                commissionSystem: { enabled: true, commissionPercentage: 5 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
             };
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const headers = [
             "Data da Compra", "ID da Venda", "Nome do Cliente", "Telefone do Cliente", "Vendedor",
-            "Itens Vendidos", "Forma de Pagamento", "Total da Venda", "Bônus da Venda"
+            "Itens Vendidos", "Forma de Pagamento", "Total da Venda", "Comissão da Venda"
         ];
 
         const formatItemsForCSV = (items) => {
@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formatItemsForCSV(sale.items),
             formatPaymentsForCSV(sale.paymentMethods || sale.paymentMethod),
             (sale.total || 0).toFixed(2).replace('.', ','),
-            sale.bonus
+            (sale.commission || 0).toFixed(2).replace('.', ',')
         ]);
 
         let csvContent = "data:text/csv;charset=utf-8,\uFEFF"
@@ -1043,10 +1043,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const total = orderTotal;
-                let bonus = 0;
-                const bonusConfig = state.db.settings.bonusSystem;
-                if (bonusConfig && bonusConfig.enabled && bonusConfig.value > 0) {
-                    bonus = Math.floor(total / bonusConfig.value) * 2;
+                let commission = 0;
+                const commissionConfig = state.db.settings.commissionSystem;
+                if (commissionConfig && commissionConfig.enabled && commissionConfig.commissionPercentage > 0) {
+                    commission = (total * commissionConfig.commissionPercentage) / 100;
                 }
 
                 const saleData = {
@@ -1058,7 +1058,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     paymentMethodTypes: paymentMethods.map(p => p.method),
                     items: state.currentOrder,
                     total: total,
-                    bonus: bonus,
+                    commission: commission,
                     date: Timestamp.now(),
                     vendedor: state.loggedInUser.name,
                     status: 'Finalizado',
@@ -1949,9 +1949,9 @@ function renderProdutos() {
             mainContent.parentNode.appendChild(alertsContainer);
         }
 
-        if (!state.db.settings.bonusSystem?.enabled) {
-            const bonusCards = c.querySelectorAll('#bonus-hoje-card, #bonus-semana-card, #bonus-mes-card');
-            bonusCards.forEach(card => card?.classList.add('hidden'));
+        if (!state.db.settings.commissionSystem?.enabled) {
+            const commissionCards = c.querySelectorAll('#commission-hoje-card, #commission-semana-card, #commission-mes-card');
+            commissionCards.forEach(card => card?.classList.add('hidden'));
         }
 
         const updateDashboardUI = (sales, allStoreSales) => {
@@ -1997,10 +1997,10 @@ function renderProdutos() {
             c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + s.total, 0));
             c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
             
-            if(state.db.settings.bonusSystem?.enabled){
-                 c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
-                 c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
-                 c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
+            if(state.db.settings.commissionSystem?.enabled){
+                 c.querySelector('#relatorio-comissao-dia').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + (s.commission || 0), 0));
+                 c.querySelector('#relatorio-comissao-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + (s.commission || 0), 0));
+                 c.querySelector('#relatorio-comissao-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + (s.commission || 0), 0));
             }
             
             const salesLast7Days = {};
@@ -2117,16 +2117,16 @@ function renderProdutos() {
         c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
         c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
         
-        const enableBonusCheckbox = c.querySelector('#enable-bonus');
-        const bonusValueContainer = c.querySelector('#bonus-value-container');
-        const bonusValueInput = c.querySelector('#bonus-value');
+        const enableCommissionCheckbox = c.querySelector('#enable-commission');
+        const commissionValueContainer = c.querySelector('#commission-value-container');
+        const commissionValueInput = c.querySelector('#commission-value');
 
-        enableBonusCheckbox.checked = state.db.settings.bonusSystem?.enabled ?? true;
-        bonusValueInput.value = state.db.settings.bonusSystem?.value ?? 80;
+        enableCommissionCheckbox.checked = state.db.settings.commissionSystem?.enabled ?? true;
+        commissionValueInput.value = state.db.settings.commissionSystem?.commissionPercentage ?? 5;
 
-        bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
-        enableBonusCheckbox.addEventListener('change', () => {
-            bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
+        commissionValueContainer.classList.toggle('hidden', !enableCommissionCheckbox.checked);
+        enableCommissionCheckbox.addEventListener('change', () => {
+            commissionValueContainer.classList.toggle('hidden', !enableCommissionCheckbox.checked);
         });
         
         const exportVendedorSelect = c.querySelector('#export-vendedor-select');
@@ -2308,21 +2308,21 @@ function renderProdutos() {
                 weekly: parseFloat(c.querySelector('#meta-semanal').value) || 0,
                 monthly: parseFloat(c.querySelector('#meta-mensal').value) || 0,
             };
-             const newBonusSystem = {
-                 enabled: c.querySelector('#enable-bonus').checked,
-                 value: parseFloat(c.querySelector('#bonus-value').value) || 80,
+             const newCommissionSystem = {
+                 enabled: c.querySelector('#enable-commission').checked,
+                 commissionPercentage: parseFloat(c.querySelector('#commission-value').value) || 5,
             };
 
             try {
                 await setDoc(doc(db, "settings", state.selectedStore.id), {
                     goals: newGoals,
-                    bonusSystem: newBonusSystem
+                    commissionSystem: newCommissionSystem
                 }, { merge: true });
                 state.db.settings.goals = newGoals;
-                state.db.settings.bonusSystem = newBonusSystem;
-                showToast('Metas e bônus salvos com sucesso!', 'success');
+                state.db.settings.commissionSystem = newCommissionSystem;
+                showToast('Metas e comissão salvos com sucesso!', 'success');
             } catch(error) {
-                showToast('Erro ao salvar metas e bônus.', 'error');
+                showToast('Erro ao salvar metas e comissão.', 'error');
             }
         });
         
@@ -2360,7 +2360,7 @@ function renderProdutos() {
                     await setDoc(doc(db, "settings", storeRef.id), {
                         storeName: newStoreName,
                         goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                        bonusSystem: { enabled: true, value: 80 }
+                        commissionSystem: { enabled: true, commissionPercentage: 5 }
                     });
                     showToast(`Loja "${newStoreName}" criada!`, 'success');
                     newStoreNameInput.value = '';
