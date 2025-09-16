@@ -38,9 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
             },
-            sales: []
+            sales: [],
+            fixedCosts: []
         },
-        listeners: { users: null, sales: null, stores: null, products: null, clients: null, orders: null, metas: null, ranking: null, relatorios: null },
+        listeners: { users: null, sales: null, stores: null, products: null, clients: null, orders: null, metas: null, ranking: null, relatorios: null, fixedCosts: null },
         selectedStore: null
     };
     let selectedUserForLogin = null;
@@ -308,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 listener();
             }
         });
-        state.listeners = { users: null, sales: null, stores: null, products: null, clients: null, orders: null, metas: null, ranking: null, relatorios: null };
+        state.listeners = { users: null, sales: null, stores: null, products: null, clients: null, orders: null, metas: null, ranking: null, relatorios: null, fixedCosts: null };
         Object.assign(state, {
             loggedInUser: null,
             selectedStore: null,
@@ -326,6 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.listeners.products) state.listeners.products();
         if (state.listeners.clients) state.listeners.clients();
         if (state.listeners.sales) state.listeners.sales();
+        if (state.listeners.fixedCosts) state.listeners.fixedCosts();
 
         const productsQuery = query(collection(db, "products"), where("storeId", "==", storeId));
         state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
@@ -354,6 +356,16 @@ document.addEventListener('DOMContentLoaded', () => {
             state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         }, (error) => {
             console.error("Erro ao carregar dados de vendas:", error);
+        });
+
+        const fixedCostsQuery = query(collection(db, "fixedCosts"), where("storeId", "==", storeId));
+        state.listeners.fixedCosts = onSnapshot(fixedCostsQuery, (snapshot) => {
+            state.db.fixedCosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (state.currentView === 'financeiro' && document.getElementById('financeiro-view').classList.contains('active')) {
+                renderFinanceiro();
+            }
+        }, (error) => {
+            console.error("Erro ao carregar custos fixos:", error);
         });
     }
 
@@ -2489,6 +2501,11 @@ function renderProdutos() {
         const filterForm = view.querySelector('#financeiro-filter-form');
         const startDateInput = view.querySelector('#financeiro-start-date');
         const endDateInput = view.querySelector('#financeiro-end-date');
+        const fixedCostsList = view.querySelector('#fixed-costs-list');
+        const addFixedCostForm = view.querySelector('#add-fixed-cost-form');
+        const fixedCostNameInput = view.querySelector('#fixed-cost-name');
+        const fixedCostAmountInput = view.querySelector('#fixed-cost-amount');
+        let currentFixedCostId = null;
 
         const updateFinancialReport = () => {
             const startDate = startDateInput.value ? new Date(startDateInput.value + 'T00:00:00') : null;
@@ -2524,6 +2541,8 @@ function renderProdutos() {
                 salesByDay[dayKey].receita += sale.total;
                 salesByDay[dayKey].custo += sale.items.reduce((acc, item) => acc + (item.cost !== undefined ? item.cost : (productCosts.get(item.productId) || 0)), 0);
             });
+            
+            const totalFixedCosts = state.db.fixedCosts.reduce((acc, cost) => acc + cost.amount, 0);
 
             const lucroBruto = receitaBruta - cpv;
             const margemBruta = receitaBruta > 0 ? (lucroBruto / receitaBruta) * 100 : 0;
@@ -2534,9 +2553,10 @@ function renderProdutos() {
 
             const custoImpostos = (receitaBruta * impostosPerc) / 100;
             const custoComissoes = (receitaBruta * comissoesPerc) / 100;
-            const totalCustosVariaveis = custoImpostos + custoComissoes + outrosCustos;
+            const totalCustosVariaveis = custoImpostos + custoComissoes;
+            const totalCustosOperacionais = totalFixedCosts + totalCustosVariaveis + outrosCustos;
             
-            const lucroLiquido = lucroBruto - totalCustosVariaveis;
+            const lucroLiquido = lucroBruto - totalCustosOperacionais;
             const margemLiquida = receitaBruta > 0 ? (lucroLiquido / receitaBruta) * 100 : 0;
 
             summaryCardsContainer.innerHTML = `
@@ -2547,7 +2567,7 @@ function renderProdutos() {
             `;
             
             netSummaryContainer.innerHTML = `
-                <div><p class="text-sm text-slate-500">Total Custos Variáveis</p><p class="text-2xl font-bold text-red-500">${formatCurrency(totalCustosVariaveis)}</p></div>
+                <div><p class="text-sm text-slate-500">Total Custos Operacionais</p><p class="text-2xl font-bold text-red-500">${formatCurrency(totalCustosOperacionais)}</p></div>
                 <div><p class="text-sm text-slate-500">Lucro Líquido</p><p class="text-3xl font-extrabold text-green-700">${formatCurrency(lucroLiquido)}</p></div>
                 <div class="col-span-full"><p class="text-sm text-slate-500">Margem de Lucro Líquida</p><p class="text-3xl font-extrabold text-green-700">${margemLiquida.toFixed(1)}%</p></div>
             `;
@@ -2602,6 +2622,86 @@ function renderProdutos() {
                 });
             }
         };
+
+        const renderFixedCosts = () => {
+            if (state.db.fixedCosts.length === 0) {
+                fixedCostsList.innerHTML = '<p class="text-center text-sm text-slate-500">Nenhum custo fixo adicionado.</p>';
+                return;
+            }
+            fixedCostsList.innerHTML = state.db.fixedCosts.map(cost => `
+                <li class="flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-2 rounded-md">
+                    <span>${cost.name}</span>
+                    <div class="flex items-center gap-2">
+                         <span class="text-sm font-semibold">${formatCurrency(cost.amount)}</span>
+                         <button data-cost-id="${cost.id}" class="edit-cost-btn text-brand-primary"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                         <button data-cost-id="${cost.id}" class="remove-cost-btn text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                </li>
+            `).join('');
+            window.lucide.createIcons();
+            updateFinancialReport();
+        };
+
+        const saveFixedCost = async (e) => {
+            e.preventDefault();
+            const name = fixedCostNameInput.value.trim();
+            const amount = parseFloat(fixedCostAmountInput.value);
+
+            if (!name || isNaN(amount) || amount <= 0) {
+                return showToast('Preencha os campos de custo fixo corretamente.', 'error');
+            }
+
+            const costData = { name, amount, storeId: state.selectedStore.id };
+
+            try {
+                if (currentFixedCostId) {
+                    await updateDoc(doc(db, 'fixedCosts', currentFixedCostId), costData);
+                    showToast('Custo fixo atualizado!', 'success');
+                } else {
+                    await addDoc(collection(db, 'fixedCosts'), costData);
+                    showToast('Custo fixo adicionado!', 'success');
+                }
+                fixedCostNameInput.value = '';
+                fixedCostAmountInput.value = '';
+                currentFixedCostId = null;
+            } catch (error) {
+                showToast('Erro ao salvar o custo fixo.', 'error');
+                console.error('Erro ao salvar custo fixo:', error);
+            }
+        };
+
+        const editFixedCost = (id) => {
+            const cost = state.db.fixedCosts.find(c => c.id === id);
+            if (cost) {
+                fixedCostNameInput.value = cost.name;
+                fixedCostAmountInput.value = cost.amount;
+                currentFixedCostId = id;
+                fixedCostNameInput.focus();
+            }
+        };
+
+        const removeFixedCost = (id) => {
+            showConfirmModal('Tem certeza que deseja remover este custo fixo?', async () => {
+                try {
+                    await deleteDoc(doc(db, 'fixedCosts', id));
+                    showToast('Custo fixo removido!', 'success');
+                } catch (error) {
+                    showToast('Erro ao remover custo fixo.', 'error');
+                }
+            });
+        };
+
+        addFixedCostForm.addEventListener('submit', saveFixedCost);
+
+        fixedCostsList.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-cost-btn');
+            const removeBtn = e.target.closest('.remove-cost-btn');
+            if (editBtn) {
+                editFixedCost(editBtn.dataset.costId);
+            } else if (removeBtn) {
+                removeFixedCost(removeBtn.dataset.costId);
+            }
+        });
         
         filterForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -2625,8 +2725,8 @@ function renderProdutos() {
 
         costInputs.forEach(input => input.addEventListener('input', updateFinancialReport));
 
-        // Initial render for the current month
-        view.querySelector('#financeiro-filter-this-month').click();
+        renderFixedCosts(); // Initial render of fixed costs
+        updateFinancialReport(); // Initial financial report render
     }
 
 
