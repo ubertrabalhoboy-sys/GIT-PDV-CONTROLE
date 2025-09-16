@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
             settings: {
                 storeName: "Minha Loja",
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                bonusSystem: { enabled: true, value: 80 },
+                commissionSystem: { enabled: true, percentage: 5 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
             },
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await setDoc(doc(db, "settings", storeRef.id), {
                     storeName: storeName,
                     goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                    bonusSystem: { enabled: true, value: 80 },
+                    commissionSystem: { enabled: true, percentage: 5 },
                     bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                     ownerPhone: ''
                 });
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const defaultSettings = {
                 storeName: state.selectedStore.name,
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                bonusSystem: { enabled: true, value: 80 },
+                commissionSystem: { enabled: true, percentage: 5 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
             };
@@ -1044,9 +1044,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const total = orderTotal;
                 let bonus = 0;
-                const bonusConfig = state.db.settings.bonusSystem;
-                if (bonusConfig && bonusConfig.enabled && bonusConfig.value > 0) {
-                    bonus = Math.floor(total / bonusConfig.value) * 2;
+                const commissionConfig = state.db.settings.commissionSystem;
+                if (commissionConfig && commissionConfig.enabled && commissionConfig.percentage > 0) {
+                    bonus = total * (commissionConfig.percentage / 100);
                 }
 
                 const saleData = {
@@ -1865,250 +1865,6 @@ function renderProdutos() {
         });
     }
 
-    function renderDashboard() {
-        const c = document.getElementById('relatorios-view');
-        c.innerHTML = document.getElementById('relatorios-template').innerHTML;
-        if (!c) return;
-        const isManager = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
-
-        const aiSection = c.querySelector('#ai-analysis-section');
-        if (aiSection) {
-            aiSection.classList.toggle('hidden', !isManager);
-
-            if (isManager) {
-                const generateAiBtn = aiSection.querySelector('#generate-ai-analysis-btn');
-                const aiResultContainer = aiSection.querySelector('#ai-analysis-result-container');
-
-                if (generateAiBtn && aiResultContainer) {
-                    const newGenerateAiBtn = generateAiBtn.cloneNode(true);
-                    generateAiBtn.parentNode.replaceChild(newGenerateAiBtn, generateAiBtn);
-
-                    newGenerateAiBtn.addEventListener('click', () => {
-                        const selectedVendedor = isManager ? c.querySelector('#relatorios-vendedor-select')?.value : 'total';
-                        const salesData = selectedVendedor === 'total' || !isManager
-                            ? state.db.sales
-                            : state.db.sales.filter(s => s.vendedor === selectedVendedor);
-
-                        if (salesData.length === 0) {
-                            aiResultContainer.innerHTML = `<p class="text-amber-600 dark:text-amber-400">Não há dados de vendas suficientes para gerar uma análise.</p>`;
-                            return;
-                        }
-
-                        newGenerateAiBtn.disabled = true;
-                        aiResultContainer.innerHTML = `
-                            <div class="flex items-center gap-2 text-slate-500">
-                                <div class="w-5 h-5 border-2 border-dashed rounded-full animate-spin border-brand-primary"></div>
-                                Analisando dados e gerando insights...
-                            </div>
-                        `;
-
-                        setTimeout(() => {
-                            const totalSales = salesData.reduce((sum, s) => sum + s.total, 0);
-                            const numOrders = salesData.length;
-                            const avgTicket = totalSales / numOrders;
-                            const salesByDay = salesData.reduce((acc, s) => {
-                                const day = s.date.toDate().toLocaleDateString('pt-BR');
-                                acc[day] = (acc[day] || 0) + s.total;
-                                return acc;
-                            }, {});
-                            const bestDay = Object.entries(salesByDay).sort((a, b) => b[1] - a[1])[0];
-                            const paymentMethods = salesData.flatMap(s => s.paymentMethods || [{ method: s.paymentMethod }])
-                                .reduce((acc, p) => { acc[p.method] = (acc[p.method] || 0) + 1; return acc; }, {});
-                            const mostUsedPayment = Object.entries(paymentMethods).sort((a, b) => b[1] - a[1])[0];
-
-                            const analysisHTML = `
-                                <h4>Resumo do Período:</h4>
-                                <ul class="list-disc pl-5 space-y-1">
-                                    <li><strong>Total de Vendas:</strong> ${formatCurrency(totalSales)} em ${numOrders} pedido(s).</li>
-                                    <li><strong>Ticket Médio:</strong> ${formatCurrency(avgTicket)} por pedido.</li>
-                                    ${bestDay ? `<li><strong>Dia de Maior Movimento:</strong> ${bestDay[0]} com ${formatCurrency(bestDay[1])}.</li>` : ''}
-                                    ${mostUsedPayment ? `<li><strong>Forma de Pagamento Mais Usada:</strong> ${mostUsedPayment[0]}.</li>` : ''}
-                                </ul>
-                                <p class="mt-3 text-xs text-slate-400">*Análise gerada automaticamente com base nos dados disponíveis.</p>
-                            `;
-                            
-                            aiResultContainer.innerHTML = analysisHTML;
-                            newGenerateAiBtn.disabled = false;
-                        }, 1500);
-                    });
-                }
-            }
-        }
-
-        const summaryContainer = c.querySelector('#intelligent-summary') || document.createElement('div');
-        summaryContainer.id = 'intelligent-summary';
-        summaryContainer.className = 'mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
-
-        const alertsContainer = c.querySelector('#intelligent-alerts') || document.createElement('div');
-        alertsContainer.id = 'intelligent-alerts';
-        alertsContainer.className = 'mt-6 space-y-3';
-
-        const mainContent = c.querySelector('.grid');
-        if (mainContent && !c.querySelector('#intelligent-summary')) {
-            mainContent.parentNode.insertBefore(summaryContainer, mainContent);
-            mainContent.parentNode.appendChild(alertsContainer);
-        }
-
-        if (!state.db.settings.bonusSystem?.enabled) {
-            const bonusCards = c.querySelectorAll('#bonus-hoje-card, #bonus-semana-card, #bonus-mes-card');
-            bonusCards.forEach(card => card?.classList.add('hidden'));
-        }
-
-        const updateDashboardUI = (sales, allStoreSales) => {
-            if (vendasChartInstance) vendasChartInstance.destroy();
-            if (pagamentoChartInstance) pagamentoChartInstance.destroy();
-            
-            if (isManager) {
-                const insights = generateIntelligentInsights(sales, allStoreSales);
-                summaryContainer.innerHTML = insights.summary.map(insight => `
-                    <div class="custom-card p-4 flex items-start gap-3 rounded-lg">
-                        <span class="text-xl">${insight.icon}</span>
-                        <p class="text-sm text-slate-700 dark:text-slate-300">${insight.text}</p>
-                    </div>
-                `).join('');
-
-                alertsContainer.innerHTML = insights.alerts.map(alert => `
-                       <div class="custom-card p-4 flex items-start gap-3 rounded-lg bg-amber-50 border-l-4 border-amber-400 dark:bg-amber-900/20 dark:border-amber-500">
-                           <span class="text-xl">${alert.icon}</span>
-                           <div class="flex-1">
-                               <p class="text-sm text-amber-800 dark:text-amber-200">${alert.text}</p>
-                               ${alert.action ? `<div class="mt-2">${alert.action}</div>` : ''}
-                           </div>
-                       </div>
-                `).join('');
-                window.lucide.createIcons();
-            } else {
-                summaryContainer.innerHTML = '';
-                alertsContainer.innerHTML = '';
-            }
-
-            const now = new Date();
-            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-            const dayOfWeek = now.getDay();
-            const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
-
-            const salesToday = sales.filter(s => s.date.toDate().getTime() >= startOfToday.getTime());
-            const salesWeek = sales.filter(s => s.date.toDate().getTime() >= startOfWeek.getTime());
-            const salesMonth = sales.filter(s => s.date.toDate().getTime() >= startOfMonth.getTime());
-
-            c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + s.total, 0));
-            c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + s.total, 0));
-            c.querySelector('#relatorio-vendas-mes').textContent = formatCurrency(salesMonth.reduce((sum, s) => sum + s.total, 0));
-            
-            if(state.db.settings.bonusSystem?.enabled){
-                 c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + s.bonus, 0);
-                 c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + s.bonus, 0);
-                 c.querySelector('#relatorio-bonus-mes').textContent = salesMonth.reduce((sum, s) => sum + s.bonus, 0);
-            }
-            
-            const salesLast7Days = {};
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setHours(0, 0, 0, 0);
-                d.setDate(d.getDate() - i);
-                salesLast7Days[d.toISOString().split('T')[0]] = { label: d.toLocaleDateString('pt-BR', {weekday: 'short'}).slice(0,3), total: 0 };
-            }
-            sales.forEach(sale => {
-                const saleDate = sale.date.toDate();
-                const dayKey = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate()).toISOString().split('T')[0];
-                if (salesLast7Days[dayKey]) {
-                    salesLast7Days[dayKey].total += sale.total;
-                }
-            });
-
-            const isDarkMode = document.documentElement.classList.contains('dark');
-            const gridColor = isDarkMode ? 'rgba(51, 65, 85, 0.5)' : 'rgba(203, 213, 225, 0.5)';
-            const textColor = isDarkMode ? '#cbd5e1' : '#475569';
-            
-            const vendasCtx = document.getElementById('vendas-semana-chart')?.getContext('2d');
-            if(vendasCtx) {
-                const gradient = vendasCtx.createLinearGradient(0, 0, 0, vendasCtx.canvas.height);
-                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
-                gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
-                
-                vendasChartInstance = new window.Chart(vendasCtx, {
-                    type: 'line',
-                    data: { 
-                        labels: Object.values(salesLast7Days).map(d => d.label), 
-                        datasets: [{ 
-                            label: 'Vendas Diárias', 
-                            data: Object.values(salesLast7Days).map(d => d.total), 
-                            backgroundColor: gradient,
-                            borderColor: '#3b82f6',
-                            borderWidth: 2,
-                            pointBackgroundColor: '#3b82f6',
-                            pointRadius: 4,
-                            fill: true,
-                            tension: 0.4
-                        }] 
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
-                });
-            }
-
-            const paymentData = sales.reduce((acc, sale) => {
-                (sale.paymentMethods || [{method: sale.paymentMethod, amount: sale.total}]).forEach(p => {
-                    acc[p.method] = (acc[p.method] || 0) + p.amount;
-                });
-                return acc;
-            }, {});
-
-            const pagamentosCtx = document.getElementById('pagamento-chart')?.getContext('2d');
-            if(pagamentosCtx) {
-                pagamentoChartInstance = new window.Chart(pagamentosCtx, {
-                    type: 'doughnut',
-                    data: { 
-                        labels: Object.keys(paymentData), 
-                        datasets: [{ 
-                            data: Object.values(paymentData), 
-                            backgroundColor: ['#3b82f6', '#22c55e', '#ec4899', '#f59e0b'], 
-                            borderColor: isDarkMode ? '#0f172a' : '#f1f5f9', 
-                            borderWidth: 4 
-                        }] 
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
-                });
-            }
-        };
-        
-        const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
-        
-        let q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-        
-        if(state.listeners.relatorios) state.listeners.relatorios();
-        state.listeners.relatorios = onSnapshot(q, (snapshot) => {
-            let allStoreSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            allStoreSales.sort((a, b) => b.date.seconds - a.date.seconds);
-            
-            if (isManager) {
-                vendedorSelectContainer.classList.remove('hidden');
-                const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
-                const vendedores = [...new Set(allStoreSales.map(s => s.vendedor))];
-                vendedorSelect.innerHTML = '<option value="total">Relatório Total da Loja</option>';
-                vendedores.forEach(name => { vendedorSelect.innerHTML += `<option value="${name}">${name}</option>`; });
-                
-                const newSelect = vendedorSelect.cloneNode(true);
-                vendedorSelect.parentNode.replaceChild(newSelect, vendedorSelect);
-                
-                newSelect.addEventListener('change', (e) => {
-                    const salesToReport = e.target.value === 'total' ? allStoreSales : allStoreSales.filter(s => s.vendedor === e.target.value);
-                    updateDashboardUI(salesToReport, allStoreSales);
-                });
-                
-                updateDashboardUI(allStoreSales, allStoreSales);
-            } else {
-                vendedorSelectContainer.classList.add('hidden');
-                const mySales = allStoreSales.filter(s => s.vendedor === state.loggedInUser.name);
-                updateDashboardUI(mySales, allStoreSales);
-            }
-        }, (error) => {
-            console.error("Erro ao buscar dados para o dashboard: ", error);
-            c.innerHTML = `<div class="text-center p-8 text-red-500"><b>Erro:</b> Não foi possível carregar o dashboard.</div>`;
-        });
-    }
-
     function renderConfiguracoes() {
         const c=document.getElementById('configuracoes-view');
         c.innerHTML = document.getElementById('configuracoes-template').innerHTML;
@@ -2117,16 +1873,16 @@ function renderProdutos() {
         c.querySelector('#meta-semanal').value = state.db.settings.goals?.weekly || 0;
         c.querySelector('#meta-mensal').value = state.db.settings.goals?.monthly || 0;
         
-        const enableBonusCheckbox = c.querySelector('#enable-bonus');
-        const bonusValueContainer = c.querySelector('#bonus-value-container');
-        const bonusValueInput = c.querySelector('#bonus-value');
+        const enableCommissionCheckbox = c.querySelector('#enable-commission');
+        const commissionPercentageContainer = c.querySelector('#commission-percentage-container');
+        const commissionPercentageInput = c.querySelector('#commission-percentage');
 
-        enableBonusCheckbox.checked = state.db.settings.bonusSystem?.enabled ?? true;
-        bonusValueInput.value = state.db.settings.bonusSystem?.value ?? 80;
+        enableCommissionCheckbox.checked = state.db.settings.commissionSystem?.enabled ?? true;
+        commissionPercentageInput.value = state.db.settings.commissionSystem?.percentage ?? 5;
+        commissionPercentageContainer.classList.toggle('hidden', !enableCommissionCheckbox.checked);
 
-        bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
-        enableBonusCheckbox.addEventListener('change', () => {
-            bonusValueContainer.classList.toggle('hidden', !enableBonusCheckbox.checked);
+        enableCommissionCheckbox.addEventListener('change', () => {
+            commissionPercentageContainer.classList.toggle('hidden', !enableCommissionCheckbox.checked);
         });
         
         const exportVendedorSelect = c.querySelector('#export-vendedor-select');
@@ -2308,21 +2064,21 @@ function renderProdutos() {
                 weekly: parseFloat(c.querySelector('#meta-semanal').value) || 0,
                 monthly: parseFloat(c.querySelector('#meta-mensal').value) || 0,
             };
-             const newBonusSystem = {
-                 enabled: c.querySelector('#enable-bonus').checked,
-                 value: parseFloat(c.querySelector('#bonus-value').value) || 80,
+            const newCommissionSystem = {
+                enabled: c.querySelector('#enable-commission').checked,
+                percentage: parseFloat(c.querySelector('#commission-percentage').value) || 0
             };
-
+            
             try {
                 await setDoc(doc(db, "settings", state.selectedStore.id), {
                     goals: newGoals,
-                    bonusSystem: newBonusSystem
+                    commissionSystem: newCommissionSystem
                 }, { merge: true });
                 state.db.settings.goals = newGoals;
-                state.db.settings.bonusSystem = newBonusSystem;
-                showToast('Metas e bônus salvos com sucesso!', 'success');
+                state.db.settings.commissionSystem = newCommissionSystem;
+                showToast('Metas e comissão salvos com sucesso!', 'success');
             } catch(error) {
-                showToast('Erro ao salvar metas e bônus.', 'error');
+                showToast('Erro ao salvar metas e comissão.', 'error');
             }
         });
         
@@ -2360,7 +2116,7 @@ function renderProdutos() {
                     await setDoc(doc(db, "settings", storeRef.id), {
                         storeName: newStoreName,
                         goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                        bonusSystem: { enabled: true, value: 80 }
+                        commissionSystem: { enabled: true, percentage: 5 }
                     });
                     showToast(`Loja "${newStoreName}" criada!`, 'success');
                     newStoreNameInput.value = '';
@@ -2664,6 +2420,9 @@ function renderProdutos() {
                 fixedCostNameInput.value = '';
                 fixedCostAmountInput.value = '';
                 currentFixedCostId = null;
+                view.querySelector('#fixed-cost-form-title').textContent = 'Adicionar Despesa Fixa';
+                view.querySelector('#save-fixed-cost-btn').textContent = 'Salvar Despesa';
+                view.querySelector('#cancel-fixed-cost-btn').classList.add('hidden');
             } catch (error) {
                 showToast('Erro ao salvar o custo fixo.', 'error');
                 console.error('Erro ao salvar custo fixo:', error);
@@ -2676,6 +2435,9 @@ function renderProdutos() {
                 fixedCostNameInput.value = cost.name;
                 fixedCostAmountInput.value = cost.amount;
                 currentFixedCostId = id;
+                view.querySelector('#fixed-cost-form-title').textContent = 'Editar Despesa Fixa';
+                view.querySelector('#save-fixed-cost-btn').textContent = 'Atualizar';
+                view.querySelector('#cancel-fixed-cost-btn').classList.remove('hidden');
                 fixedCostNameInput.focus();
             }
         };
@@ -2692,6 +2454,15 @@ function renderProdutos() {
         };
 
         addFixedCostForm.addEventListener('submit', saveFixedCost);
+
+        view.querySelector('#cancel-fixed-cost-btn').addEventListener('click', () => {
+            fixedCostNameInput.value = '';
+            fixedCostAmountInput.value = '';
+            currentFixedCostId = null;
+            view.querySelector('#fixed-cost-form-title').textContent = 'Adicionar Despesa Fixa';
+            view.querySelector('#save-fixed-cost-btn').textContent = 'Salvar Despesa';
+            view.querySelector('#cancel-fixed-cost-btn').classList.add('hidden');
+        });
 
         fixedCostsList.addEventListener('click', (e) => {
             const editBtn = e.target.closest('.edit-cost-btn');
@@ -2755,7 +2526,7 @@ function renderProdutos() {
             text: `Total vendido na semana: <strong>${formatCurrency(totalThisWeek)}</strong> (${formatCurrency(avgDailyThisWeek)}/dia em média).`
         });
 
-        const sellerCount = state.db.users.filter(u => u.storeId === state.selectedStore.id && u.role === 'vendedor').length || 1;
+        const sellerCount = state.db.users.filter(u => u.role === 'vendedor' && u.storeId === state.selectedStore.id).length || 1;
         const individualMonthlyGoal = state.db.settings.goals?.monthly || 0;
         const monthlyGoal = individualMonthlyGoal * sellerCount;
 
