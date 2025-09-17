@@ -1,20 +1,3 @@
-// Firebase Imports
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, writeBatch, Timestamp, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-document.addEventListener('DOMContentLoaded', () => {
-    // A configuração do Firebase permanece aqui.
-    // ATENÇÃO: Em um ambiente de produção, mova estas chaves para variáveis de ambiente ou um serviço de configuração remota para evitar exposição.
-    const firebaseConfig = {
-        apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
-        authDomain: "pdv-vendas-8a65a.firebaseapp.com",
-        projectId: "pdv-vendas-8a65a",
-        storageBucket: "pdv-vendas-8a65a.appspot.com",
-        messagingSenderId: "37533259212",
-        appId: "1:37533259212:web:9e79fecb52aa2b4765b969",
-        measurementId: "G-7PYWX52SEG"
-    };
 
     // Inicialização do Firebase
     const app = initializeApp(firebaseConfig);
@@ -2848,4 +2831,3 @@ function renderProdutos() {
     };
 
     init();
-});

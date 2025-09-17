@@ -1,33 +1,11 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+// firestore.rules
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
+match /stores/{storeId} {
+    allow read: if true;
+    allow write: if false; // Esta linha proíbe QUALQUER escrita na coleção 'stores'
+}
 
-    match /users/{userId} {
-      allow list: if true;
-      allow get: if getUserData().storeId == resource.data.storeId;
-      allow update: if request.auth.uid == userId 
-                    && request.resource.data.storeId == resource.data.storeId
-                    && request.resource.data.role == resource.data.role;
-      allow create: if getUserData().role in ['gerente', 'superadmin']
-                    && request.resource.data.storeId == getUserData().storeId;
-    }
-
-    match /stores/{storeId} {
-        allow read: if true; 
-        allow write: if false;
-    }
-    
-    match /settings/{storeId} {
-      allow read: if getUserData().storeId == storeId;
-      allow write: if false;
-    }
-    
-    match /{collection}/{docId} {
-        allow read, write: if getUserData().storeId == resource.data.storeId;
-    }
-  }
+match /settings/{storeId} {
+  allow read: if getUserData().storeId == storeId;
+  allow write: if false; // Esta linha proíbe QUALQUER escrita na coleção 'settings'
 }
