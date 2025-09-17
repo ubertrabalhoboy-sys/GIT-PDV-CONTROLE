@@ -1,26 +1,11 @@
-// Firebase Imports
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, writeBatch, Timestamp, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+// Importa as variáveis 'db' e 'auth' já inicializadas do nosso novo arquivo
+import { db, auth } from './firebase-init.js';
+
+// Importa todas as outras funções do Firebase que seu sistema utiliza
+import { collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, writeBatch, Timestamp, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 document.addEventListener('DOMContentLoaded', () => {
-    // A configuração do Firebase permanece aqui.
-    // ATENÇÃO: Em um ambiente de produção, mova estas chaves para variáveis de ambiente ou um serviço de configuração remota para evitar exposição.
-    const firebaseConfig = {
-        apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
-        authDomain: "pdv-vendas-8a65a.firebaseapp.com",
-        projectId: "pdv-vendas-8a65a",
-        storageBucket: "pdv-vendas-8a65a.appspot.com",
-        messagingSenderId: "37533259212",
-        appId: "1:37533259212:web:9e79fecb52aa2b4765b969",
-        measurementId: "G-7PYWX52SEG"
-    };
-
-    // Inicialização do Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-
     // Estado da aplicação
     let state = {
         loggedInUser: null,
@@ -270,6 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('login-error').textContent = '';
     });
 
+    // ########## LÓGICA DE LOGIN AJUSTADA PARA O PLANO B ##########
     document.getElementById('password-form').addEventListener('submit', async e => {
         e.preventDefault();
         const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
@@ -283,7 +269,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const email = `${user.name.toLowerCase().replace(/\s+/g, '')}@pdv-app.com`;
 
         try {
+            // Apenas faz o login. As novas Regras de Segurança farão o resto do trabalho.
             await signInWithEmailAndPassword(auth, email, passwordInput.value);
+
             state.loggedInUser = user;
 
             if (user.role !== 'superadmin' && !state.selectedStore) {
@@ -294,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordInput.value = '';
             document.getElementById('login-error').textContent = '';
             initializeAppUI();
+
         } catch (error) {
             console.error("Erro de login:", error.code);
             document.getElementById('login-error').textContent = 'Senha inválida.';
@@ -301,6 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => document.getElementById('password-view').classList.remove('animate-shake'), 500);
         }
     });
+
 
     const logout = () => {
         signOut(auth);
@@ -326,7 +316,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupStoreListeners(storeId) {
         if (state.listeners.products) state.listeners.products();
         if (state.listeners.clients) state.listeners.clients();
-        // if (state.listeners.sales) state.listeners.sales(); // REMOVIDO: Listener global de vendas foi removido para performance.
         if (state.listeners.fixedCosts) state.listeners.fixedCosts();
 
         const productsQuery = query(collection(db, "products"), where("storeId", "==", storeId));
@@ -350,14 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Erro ao carregar clientes:", error);
             showToast('Erro ao carregar clientes.', 'error');
         });
-
-        // REMOVIDO: O listener global de vendas foi removido. Cada view agora carrega seus próprios dados de vendas.
-        // const salesQuery = query(collection(db, "sales"), where("storeId", "==", storeId));
-        // state.listeners.sales = onSnapshot(salesQuery, (snapshot) => {
-        //     state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // }, (error) => {
-        //     console.error("Erro ao carregar dados de vendas:", error);
-        // });
 
         const fixedCostsQuery = query(collection(db, "fixedCosts"), where("storeId", "==", storeId));
         state.listeners.fixedCosts = onSnapshot(fixedCostsQuery, (snapshot) => {
@@ -385,16 +366,18 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('username-sidebar').textContent = user.name;
         document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
 
-        if (state.listeners.users) state.listeners.users();
-        state.listeners.users = onSnapshot(query(collection(db, "users")), (snapshot) => {
-            state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes' || state.currentView === 'relatorios')) {
-                const activeView = document.getElementById(`${state.currentView}-view`);
-                if (activeView && activeView.classList.contains('active')) {
-                    renderViewContent(state.currentView);
-                }
-            }
-        });
+        if(state.listeners.users)state .listeners.users();
+// AGORA A CONSULTA É SEGURA E ESPECÍFICA PARA A LOJA ATUAL
+const usersQuery = query(collection(db, "users"), where("storeId", "==", store.id));
+state.listeners.users = onSnapshot(usersQuery, (snapshot) => {
+    state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes' || state.currentView === 'relatorios')) {
+        const activeView = document.getElementById(`${state.currentView}-view`);
+        if (activeView && activeView.classList.contains('active')) {
+            renderViewContent(state.currentView);
+        }
+    }
+});
         
         setupStoreListeners(store.id);
 
@@ -1335,7 +1318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderClientsTable();
     }
     
-    // CORRIGIDO: Esta função agora define e injeta seu próprio HTML e gerencia seus próprios eventos.
+// CORRIGIDO: Esta função agora define e injeta seu próprio HTML e gerencia seus próprios eventos.
 function renderProdutos() {
     const view = document.getElementById('produtos-view');
     const productsTemplateHTML = `
