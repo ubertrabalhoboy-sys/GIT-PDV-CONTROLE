@@ -2801,4 +2801,3 @@ function renderProdutos() {
     };
 
     init();
-});
