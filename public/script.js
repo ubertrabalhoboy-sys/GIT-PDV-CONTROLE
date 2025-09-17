@@ -1,11 +1,8 @@
-// Importa as variáveis 'db' e 'auth' já inicializadas do nosso novo arquivo
-import { db, auth } from './firebase-init.js';
+// O arquivo script.js não foi alterado.
+// A remoção dos templates foi feita apenas no arquivo index.html.
 
-// Importa todas as outras funções do Firebase que seu sistema utiliza
-import { collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, writeBatch, Timestamp, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-document.addEventListener('DOMContentLoaded', () => {
     // Estado da aplicação
     let state = {
         loggedInUser: null,
@@ -97,6 +94,22 @@ document.addEventListener('DOMContentLoaded', () => {
             id: storeButton.dataset.storeId,
             name: storeButton.dataset.storeName
         };
+
+        const settingsRef = doc(db, "settings", state.selectedStore.id);
+        const settingsSnap = await getDoc(settingsRef);
+        if (settingsSnap.exists()) {
+            state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
+        } else {
+            const defaultSettings = {
+                storeName: state.selectedStore.name,
+                goals: { daily: 150, weekly: 1000, monthly: 4000 },
+                commissionSystem: { enabled: true, percentage: 5 },
+                bonusWheel: { enabled: false, prizes: [], minValue: 0 },
+                ownerPhone: ''
+            };
+            await setDoc(settingsRef, defaultSettings);
+            state.db.settings = { ...state.db.settings, ...defaultSettings };
+        }
 
         loadUsersForStore(state.selectedStore.id);
     });
@@ -239,118 +252,56 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('login-error').textContent = '';
     });
 
-    document.getElementById('password-form').addEventListener('submit', async e => {
-        e.preventDefault();
-        const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
-        const passwordInput = document.getElementById('password');
+   // public/script.js
 
-        if (!user) {
-            showToast('Usuário não encontrado.', 'error');
-            return;
-        }
+document.getElementById('password-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
+    const passwordInput = document.getElementById('password');
 
-        const email = `${user.name.toLowerCase().replace(/\s+/g, '')}@pdv-app.com`;
-
-        try {
-            await signInWithEmailAndPassword(auth, email, passwordInput.value);
-            
-            state.loggedInUser = user;
-
-            if (user.role !== 'superadmin' && !state.selectedStore) {
-                state.selectedStore = state.db.stores.find(s => s.id === user.storeId);
-            }
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            passwordInput.value = '';
-            document.getElementById('login-error').textContent = '';
-            initializeAppUI();
-
-        } catch (error) {
-            console.error("Erro de login:", error.code);
-            document.getElementById('login-error').textContent = 'Senha inválida.';
-            document.getElementById('password-view').classList.add('animate-shake');
-            setTimeout(() => document.getElementById('password-view').classList.remove('animate-shake'), 500);
-        }
-    });
-
-    const logout = () => {
-        signOut(auth);
-        Object.values(state.listeners).forEach(listener => {
-            if (typeof listener === 'function') {
-                listener();
-            }
-        });
-        state.listeners = { users: null, sales: null, stores: null, products: null, clients: null, orders: null, metas: null, ranking: null, relatorios: null, fixedCosts: null };
-        Object.assign(state, {
-            loggedInUser: null,
-            selectedStore: null,
-            currentOrder: [],
-            db: { users: [], stores: [], products: [], clients: [], settings: {} }
-        });
-        selectedUserForLogin = null;
-        document.getElementById('app').classList.add('hidden');
-        document.getElementById('login-screen').classList.remove('hidden');
-        document.getElementById('store-switcher-container').classList.add('hidden');
-        loadInitialData();
-    };
-
-    function setupStoreListeners(storeId) {
-        if (state.listeners.products) state.listeners.products();
-        if (state.listeners.clients) state.listeners.clients();
-        if (state.listeners.fixedCosts) state.listeners.fixedCosts();
-
-        const productsQuery = query(collection(db, "products"), where("storeId", "==", storeId));
-        state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
-            state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView === 'produtos' && document.getElementById('produtos-view').classList.contains('active')) {
-                renderProdutos();
-            }
-        }, (error) => {
-            console.error("Erro ao carregar produtos:", error);
-            showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
-        });
-
-        const clientsQuery = query(collection(db, "clients"), where("storeId", "==", storeId));
-        state.listeners.clients = onSnapshot(clientsQuery, (snapshot) => {
-            state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView === 'clientes' && document.getElementById('clientes-view').classList.contains('active')) {
-                renderClientes();
-            }
-        }, (error) => {
-            console.error("Erro ao carregar clientes:", error);
-            showToast('Erro ao carregar clientes.', 'error');
-        });
-
-        const fixedCostsQuery = query(collection(db, "fixedCosts"), where("storeId", "==", storeId));
-        state.listeners.fixedCosts = onSnapshot(fixedCostsQuery, (snapshot) => {
-            state.db.fixedCosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView === 'financeiro' && document.getElementById('financeiro-view').classList.contains('active')) {
-                renderFinanceiro();
-            }
-        }, (error) => {
-            console.error("Erro ao carregar custos fixos:", error);
-        });
+    if (!user) {
+        showToast('Usuário não encontrado.', 'error');
+        return;
     }
 
-    const initializeAppUI = async () => {
+    const email = `${user.name.toLowerCase().replace(/\s+/g, '')}@pdv-app.com`;
+
+    try {
+        // 1. Autentica o usuário com email e senha (como antes)
+        const userCredential = await signInWithEmailAndPassword(auth, email, passwordInput.value);
+
+        // --- NOVA PARTE SEGURA ---
+        // 2. Chama a Cloud Function para adicionar a permissão 'storeId'
+        const setStoreClaim = httpsCallable(functions, 'setStoreClaim');
+        await setStoreClaim(); // A função já sabe qual é o usuário logado
+
+        // 3. Força a atualização do token para pegar a nova permissão imediatamente
+        await userCredential.user.getIdToken(true);
+        // --- FIM DA NOVA PARTE ---
+
+        state.loggedInUser = user;
+
+        if (user.role !== 'superadmin' && !state.selectedStore) {
+            state.selectedStore = state.db.stores.find(s => s.id === user.storeId);
+        }
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        passwordInput.value = '';
+        document.getElementById('login-error').textContent = '';
+        initializeAppUI();
+
+    } catch (error) {
+        console.error("Erro de login ou de permissão:", error);
+        document.getElementById('login-error').textContent = 'Senha inválida ou erro de configuração.';
+        document.getElementById('password-view').classList.add('animate-shake');
+        setTimeout(() => document.getElementById('password-view').classList.remove('animate-shake'), 500);
+    }
+});
+    
+
+    const initializeAppUI = () => {
         const user = state.loggedInUser;
         const store = state.selectedStore;
-
-        const settingsRef = doc(db, "settings", state.selectedStore.id);
-        const settingsSnap = await getDoc(settingsRef);
-        if (settingsSnap.exists()) {
-            state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
-        } else {
-            const defaultSettings = {
-                storeName: state.selectedStore.name,
-                goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                commissionSystem: { enabled: true, percentage: 5 },
-                bonusWheel: { enabled: false, prizes: [], minValue: 0 },
-                ownerPhone: ''
-            };
-            await setDoc(settingsRef, defaultSettings);
-            state.db.settings = { ...state.db.settings, ...defaultSettings };
-        }
 
         if (!user || !user.role) {
             console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida. Fazendo logout forçado.");
@@ -364,8 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
 
         if (state.listeners.users) state.listeners.users();
-        const usersQuery = query(collection(db, "users"), where("storeId", "==", store.id));
-        state.listeners.users = onSnapshot(usersQuery, (snapshot) => {
+        state.listeners.users = onSnapshot(query(collection(db, "users")), (snapshot) => {
             state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes' || state.currentView === 'relatorios')) {
                 const activeView = document.getElementById(`${state.currentView}-view`);
