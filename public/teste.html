@@ -1,9 +1,149 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dark">
+
 <head>
-    <title>Página de Teste</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDV de Vendas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        html.dark body { background-color: #020617; background-image: radial-gradient(circle at 1px 1px, #1e293b 1px, transparent 0); background-size: 20px 20px; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out forwards; }
+        .animate-shake { animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both; }
+        .view { display: none; }
+        .view.active { display: block; }
+        .progress-bar { transition: width 0.5s ease-in-out; }
+        .custom-card { background-color: rgba(255, 255, 255, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
+        html.dark .custom-card { background-color: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.5); }
+        .wheel-container { position: relative; width: 300px; height: 300px; margin: 20px auto; }
+        .wheel { width: 100%; height: 100%; border-radius: 50%; background-image: conic-gradient(#0ff 0deg, #0ff 45deg, #f0f 45deg, #f0f 90deg, #8A2BE2 90deg, #8A2BE2 135deg, #39FF14 135deg, #39FF14 180deg, #FF69B4 180deg, #FF69B4 225deg, #1E90FF 225deg, #1E90FF 270deg, #FFD700 270deg, #FFD700 315deg, #FF4500 315deg, #FF4500 360deg); position: relative; overflow: hidden; border: 4px solid #fff; box-shadow: 0 0 15px #0ff, 0 0 30px #0ff, inset 0 0 10px rgba(0,0,0,0.5); transition: transform 6s cubic-bezier(0.1, 0.5, 0.2, 1); }
+        .wheel-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 35px solid #fff; z-index: 10; filter: drop-shadow(0 -3px 2px rgba(0,0,0,0.3)) drop-shadow(0 0 5px #fff); }
+        .wheel-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; background: #020617; border-radius: 50%; border: 5px solid #fff; box-shadow: 0 0 15px #0ff; z-index: 11; }
+        .wheel-segment { position: absolute; width: 50%; height: 50%; transform-origin: 100% 100%; display: flex; align-items: center; justify-content: center; }
+        .segment-label { font-size: 2.5rem; transform: rotate(-45deg) translateY(-80px); text-shadow: 0 0 5px rgba(0,0,0,0.7); }
+        #spin-wheel-btn { background: linear-gradient(45deg, #39FF14, #22c55e); box-shadow: 0 5px 20px rgba(57, 255, 20, 0.4); border: none; }
+        .confetti-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
+        .confetti { position: absolute; width: 10px; height: 10px; background-color: #f00; opacity: 0; animation: confetti-fall 3s ease-out forwards; }
+        @keyframes confetti-fall { 0% { transform: translateY(-100px) rotateZ(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotateZ(720deg); opacity: 0; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+    </style>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { 'brand-primary': '#3b82f6', 'brand-secondary': '#22c55e', 'brand-tertiary': '#ec4899', 'dark-bg': '#020617', 'dark-card': '#0f172a' } } } }
+    </script>
 </head>
-<body>
-    <h1>Se você está vendo esta página, o deploy funcionou!</h1>
+
+<body class="text-slate-800 dark:text-slate-200">
+
+    <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-sm mx-auto">
+            <div class="absolute top-5 right-5">
+                <button id="theme-toggle" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 focus:outline-none rounded-lg text-sm p-2.5">
+                    <i id="theme-icon-sun" data-lucide="sun" class="w-5 h-5 hidden"></i>
+                    <i id="theme-icon-moon" data-lucide="moon" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="main-login-box" class="custom-card p-8 rounded-2xl shadow-lg text-center">
+                <div class="mx-auto mb-4 inline-block p-3 bg-brand-primary/20 rounded-full">
+                    <i data-lucide="shopping-basket" class="w-8 h-8 text-brand-primary"></i>
+                </div>
+                <h1 id="login-store-name" class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sistema de Vendas</h1>
+                <div id="first-run-view" class="hidden text-left"></div>
+                <div id="store-selection-view" class="hidden">
+                    <p class="text-slate-600 dark:text-slate-400 mb-8">Selecione a sua loja</p>
+                    <div id="store-list" class="space-y-2"></div>
+                </div>
+                <div id="user-selection-view" class="hidden">
+                    <p class="text-slate-600 dark:text-slate-400 mb-8">Quem está acessando?</p>
+                    <div id="user-list" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+                    <button id="back-to-stores" class="mt-6 text-sm text-slate-500 hover:text-brand-primary">Voltar para seleção de lojas</button>
+                </div>
+                <div id="password-view" class="hidden">
+                    <div id="selected-user-info" class="mb-4"></div>
+                    <form id="password-form">
+                        <input type="password" id="password" class="w-full px-4 py-2 text-center text-lg bg-slate-100/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-brand-primary focus:border-brand-primary" placeholder="Digite sua senha" required>
+                        <p id="login-error" class="text-red-500 text-sm mt-2 h-5"></p>
+                        <div class="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
+                            <button type="button" id="back-to-users" class="w-full sm:w-auto px-5 py-2.5 text-sm font-medium focus:outline-none bg-slate-200/50 dark:bg-slate-700/50 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700">Voltar</button>
+                            <button type="submit" class="w-full sm:w-auto text-white bg-brand-primary hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Entrar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
+        <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-dark-card border-r border-slate-800">
+            <div class="h-full px-3 py-4 overflow-y-auto">
+                <div class="flex flex-col items-center mb-6 pb-4 border-b border-slate-700">
+                    <div id="user-icon" class="w-16 h-16 mb-2 rounded-full bg-brand-primary flex items-center justify-center text-white text-3xl font-bold"></div>
+                    <h5 id="username-sidebar" class="text-xl font-semibold text-white"></h5>
+                    <span id="store-name-sidebar" class="text-sm text-slate-400"></span>
+                </div>
+                <ul id="vendedor-menu" class="space-y-2 font-medium"></ul>
+                <ul id="gerente-menu" class="space-y-2 font-medium"></ul>
+            </div>
+        </aside>
+        <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 sm:hidden"></div>
+        <div class="sm:ml-64">
+            <header class="sticky top-0 bg-slate-100/80 dark:bg-dark-bg/80 backdrop-blur-sm z-20 border-b border-slate-200 dark:border-slate-800">
+                <div class="p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <button id="mobile-menu-button" class="sm:hidden text-slate-600 dark:text-slate-300">
+                            <i data-lucide="menu" class="w-6 h-6"></i>
+                        </button>
+                        <h2 id="current-view-title" class="text-xl font-bold text-slate-900 dark:text-white"></h2>
+                    </div>
+                     <div class="flex items-center gap-4">
+                         <div id="store-switcher-container" class="hidden">
+                              <select id="store-switcher-select" class="block w-full rounded-md border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 text-sm py-1.5"></select>
+                         </div>
+                        <button id="theme-toggle-app" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 focus:outline-none rounded-lg text-sm p-2.5">
+                           <i id="theme-icon-sun-app" data-lucide="sun" class="w-5 h-5 hidden"></i>
+                           <i id="theme-icon-moon-app" data-lucide="moon" class="w-5 h-5"></i>
+                        </button>
+                     </div>
+                </div>
+            </header>
+            <main class="p-4 md:p-6">
+                <div id="caixa-view" class="view"></div>
+                <div id="pedidos-view" class="view"></div>
+                <div id="clientes-view" class="view"></div>
+                <div id="produtos-view" class="view"></div>
+                <div id="metas-view" class="view"></div>
+                <div id="ranking-view" class="view"></div>
+                <div id="relatorios-view" class="view"></div>
+                <div id="configuracoes-view" class="view"></div>
+                <div id="financeiro-view" class="view"></div>
+            </main>
+        </div>
+    </div>
+    
+    <div id="finalize-order-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
+    <div id="order-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
+    <div id="client-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
+    <div id="whatsapp-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
+    <div id="bonus-wheel-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
+    <div id="prize-won-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"></div>
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Confirmação</h3>
+            <p id="confirm-modal-message" class="mb-6 text-slate-600 dark:text-slate-400"></p>
+            <div class="flex justify-end gap-4">
+                <button id="confirm-modal-cancel" class="bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 py-2 px-4 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors">Cancelar</button>
+                <button id="confirm-modal-confirm" class="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="firebase-init.js"></script>
+    <script type="module" src="script.js"></script>
+
 </body>
 </html>
