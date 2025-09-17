@@ -11,30 +11,162 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-        html.dark body { background-color: #020617; background-image: radial-gradient(circle at 1px 1px, #1e293b 1px, transparent 0); background-size: 20px 20px; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9; /* bg-slate-100 */
+        }
+        html.dark body {
+            background-color: #020617; /* bg-slate-950 */
+            background-image: radial-gradient(circle at 1px 1px, #1e293b 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+
+        /* Animações */
         .fade-in { animation: fadeIn 0.5s ease-in-out forwards; }
         .animate-shake { animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both; }
         .view { display: none; }
         .view.active { display: block; }
         .progress-bar { transition: width 0.5s ease-in-out; }
-        .custom-card { background-color: rgba(255, 255, 255, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
-        html.dark .custom-card { background-color: rgba(15, 23, 42, 0.6); border: 1px solid rgba(51, 65, 85, 0.5); }
-        .wheel-container { position: relative; width: 300px; height: 300px; margin: 20px auto; }
-        .wheel { width: 100%; height: 100%; border-radius: 50%; background-image: conic-gradient(#0ff 0deg, #0ff 45deg, #f0f 45deg, #f0f 90deg, #8A2BE2 90deg, #8A2BE2 135deg, #39FF14 135deg, #39FF14 180deg, #FF69B4 180deg, #FF69B4 225deg, #1E90FF 225deg, #1E90FF 270deg, #FFD700 270deg, #FFD700 315deg, #FF4500 315deg, #FF4500 360deg); position: relative; overflow: hidden; border: 4px solid #fff; box-shadow: 0 0 15px #0ff, 0 0 30px #0ff, inset 0 0 10px rgba(0,0,0,0.5); transition: transform 6s cubic-bezier(0.1, 0.5, 0.2, 1); }
-        .wheel-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 35px solid #fff; z-index: 10; filter: drop-shadow(0 -3px 2px rgba(0,0,0,0.3)) drop-shadow(0 0 5px #fff); }
-        .wheel-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; background: #020617; border-radius: 50%; border: 5px solid #fff; box-shadow: 0 0 15px #0ff; z-index: 11; }
-        .wheel-segment { position: absolute; width: 50%; height: 50%; transform-origin: 100% 100%; display: flex; align-items: center; justify-content: center; }
-        .segment-label { font-size: 2.5rem; transform: rotate(-45deg) translateY(-80px); text-shadow: 0 0 5px rgba(0,0,0,0.7); }
-        #spin-wheel-btn { background: linear-gradient(45deg, #39FF14, #22c55e); box-shadow: 0 5px 20px rgba(57, 255, 20, 0.4); border: none; }
-        .confetti-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
-        .confetti { position: absolute; width: 10px; height: 10px; background-color: #f00; opacity: 0; animation: confetti-fall 3s ease-out forwards; }
-        @keyframes confetti-fall { 0% { transform: translateY(-100px) rotateZ(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotateZ(720deg); opacity: 0; } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+        
+        /* Estilos customizados para o novo design */
+        .custom-card {
+             background-color: rgba(255, 255, 255, 0.6);
+             border: 1px solid rgba(255, 255, 255, 0.1);
+             backdrop-filter: blur(10px);
+        }
+        html.dark .custom-card {
+            background-color: rgba(15, 23, 42, 0.6); /* bg-slate-900/60 */
+            border: 1px solid rgba(51, 65, 85, 0.5); /* border-slate-700/50 */
+        }
+        .kpi-card-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+        .kpi-card-green { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
+        .kpi-card-pink { box-shadow: 0 0 20px rgba(219, 39, 119, 0.3); }
+
+        /* Estilos da Roleta Futurista */
+        .wheel-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+        }
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-image: conic-gradient(
+                #0ff 0deg, #0ff 45deg,
+                #f0f 45deg, #f0f 90deg,
+                #8A2BE2 90deg, #8A2BE2 135deg,
+                #39FF14 135deg, #39FF14 180deg,
+                #FF69B4 180deg, #FF69B4 225deg,
+                #1E90FF 225deg, #1E90FF 270deg,
+                #FFD700 270deg, #FFD700 315deg,
+                #FF4500 315deg, #FF4500 360deg
+            );
+            position: relative;
+            overflow: hidden;
+            border: 4px solid #fff;
+            box-shadow: 0 0 15px #0ff, 0 0 30px #0ff, inset 0 0 10px rgba(0,0,0,0.5);
+            transition: transform 6s cubic-bezier(0.1, 0.5, 0.2, 1);
+        }
+        .wheel-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 35px solid #fff;
+            z-index: 10;
+            filter: drop-shadow(0 -3px 2px rgba(0,0,0,0.3)) drop-shadow(0 0 5px #fff);
+        }
+         .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: #020617;
+            border-radius: 50%;
+            border: 5px solid #fff;
+            box-shadow: 0 0 15px #0ff;
+            z-index: 11;
+        }
+        .wheel-segment {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .segment-label {
+            font-size: 2.5rem;
+            transform: rotate(-45deg) translateY(-80px);
+            text-shadow: 0 0 5px rgba(0,0,0,0.7);
+        }
+        
+        #spin-wheel-btn {
+            background: linear-gradient(45deg, #39FF14, #22c55e);
+            box-shadow: 0 5px 20px rgba(57, 255, 20, 0.4);
+            border: none;
+        }
+
+        /* Animação de Confete */
+        .confetti-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100px) rotateZ(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotateZ(720deg); opacity: 0; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
     </style>
     <script>
-        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { 'brand-primary': '#3b82f6', 'brand-secondary': '#22c55e', 'brand-tertiary': '#ec4899', 'dark-bg': '#020617', 'dark-card': '#0f172a' } } } }
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-primary': '#3b82f6', // Azul
+                        'brand-secondary': '#22c55e', // Verde
+                        'brand-tertiary': '#ec4899', // Rosa/Magenta
+                        'dark-bg': '#020617',
+                        'dark-card': '#0f172a'
+                    }
+                }
+            }
+        }
     </script>
 </head>
 
@@ -42,27 +174,35 @@
 
     <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-sm mx-auto">
-            <div class="absolute top-5 right-5">
-                <button id="theme-toggle" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 focus:outline-none rounded-lg text-sm p-2.5">
-                    <i id="theme-icon-sun" data-lucide="sun" class="w-5 h-5 hidden"></i>
-                    <i id="theme-icon-moon" data-lucide="moon" class="w-5 h-5"></i>
-                </button>
-            </div>
+              <div class="absolute top-5 right-5">
+                  <button id="theme-toggle" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 focus:outline-none rounded-lg text-sm p-2.5">
+                      <i id="theme-icon-sun" data-lucide="sun" class="w-5 h-5 hidden"></i>
+                      <i id="theme-icon-moon" data-lucide="moon" class="w-5 h-5"></i>
+                  </button>
+              </div>
+            
             <div id="main-login-box" class="custom-card p-8 rounded-2xl shadow-lg text-center">
                 <div class="mx-auto mb-4 inline-block p-3 bg-brand-primary/20 rounded-full">
                     <i data-lucide="shopping-basket" class="w-8 h-8 text-brand-primary"></i>
                 </div>
                 <h1 id="login-store-name" class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sistema de Vendas</h1>
-                <div id="first-run-view" class="hidden text-left"></div>
-                <div id="store-selection-view" class="hidden">
-                    <p class="text-slate-600 dark:text-slate-400 mb-8">Selecione a sua loja</p>
-                    <div id="store-list" class="space-y-2"></div>
+
+                <div id="first-run-view" class="hidden text-left">
+                     <p class="text-slate-600 dark:text-slate-400 mb-6 text-center">Configurando o sistema pela primeira vez...</p>
+                     <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-brand-primary mx-auto"></div>
                 </div>
+
+                <div id="store-selection-view" class="hidden">
+                     <p class="text-slate-600 dark:text-slate-400 mb-8">Selecione a sua loja</p>
+                     <div id="store-list" class="space-y-2"></div>
+                </div>
+
                 <div id="user-selection-view" class="hidden">
                     <p class="text-slate-600 dark:text-slate-400 mb-8">Quem está acessando?</p>
                     <div id="user-list" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
                     <button id="back-to-stores" class="mt-6 text-sm text-slate-500 hover:text-brand-primary">Voltar para seleção de lojas</button>
                 </div>
+
                 <div id="password-view" class="hidden">
                     <div id="selected-user-info" class="mb-4"></div>
                     <form id="password-form">
@@ -78,6 +218,7 @@
         </div>
     </div>
 
+
     <div id="app" class="hidden">
         <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-dark-card border-r border-slate-800">
             <div class="h-full px-3 py-4 overflow-y-auto">
@@ -90,7 +231,9 @@
                 <ul id="gerente-menu" class="space-y-2 font-medium"></ul>
             </div>
         </aside>
+
         <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 sm:hidden"></div>
+
         <div class="sm:ml-64">
             <header class="sticky top-0 bg-slate-100/80 dark:bg-dark-bg/80 backdrop-blur-sm z-20 border-b border-slate-200 dark:border-slate-800">
                 <div class="p-4 flex items-center justify-between">
@@ -111,6 +254,7 @@
                      </div>
                 </div>
             </header>
+
             <main class="p-4 md:p-6">
                 <div id="caixa-view" class="view"></div>
                 <div id="pedidos-view" class="view"></div>
@@ -142,7 +286,616 @@
         </div>
     </div>
 
-    <script type="module" src="firebase-init.js"></script>
+    <script type="text/html" id="caixa-template">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Registrar Item</h3>
+                <form id="add-item-form" class="space-y-4">
+                    <div class="relative">
+                        <label for="product-search" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Procurar Produto</label>
+                        <input type="text" id="product-search" autocomplete="off" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary" placeholder="Digite para buscar no estoque...">
+                        <div id="product-search-results" class="absolute z-10 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                    </div>
+                    
+                    <div><label for="item-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Item</label><input type="text" id="item-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary"></div>
+                    <div><label for="item-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor (R$)</label><input type="number" id="item-value" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary"></div>
+                    <div>
+                        <label for="item-exchange" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Prazo de Troca</label>
+                        <select id="item-exchange" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                            <option>Sem Troca</option>
+                            <option>7 dias</option>
+                            <option>15 dias</option>
+                            <option>30 dias</option>
+                            <option>45 dias</option>
+                            <option>60 dias</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"><i data-lucide="plus-circle" class="w-5 h-5"></i>Adicionar Item</button>
+                </form>
+            </div>
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Pedido Atual</h3>
+                <div id="current-order-items" class="space-y-2 mb-4 min-h-[120px]"></div>
+                <div class="border-t border-slate-300 dark:border-slate-700 pt-4 flex justify-between items-center">
+                    <span class="text-xl font-bold text-slate-800 dark:text-slate-100">Total:</span>
+                    <span id="current-order-total" class="text-2xl font-bold text-brand-primary dark:text-brand-primary">R$ 0,00</span>
+                </div>
+                <button id="finalize-order-button" class="w-full mt-6 bg-brand-primary text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"><i data-lucide="check-circle" class="w-6 h-6"></i>Finalizar Pedido</button>
+            </div>
+        </div>
+    </script>
+
+    <script type="text/html" id="produtos-template">
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Produto</h3>
+                        <form id="add-product-form" class="space-y-4">
+                            <div>
+                                <label for="product-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Produto</label>
+                                <input type="text" id="product-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="product-cost" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Custo (R$)</label>
+                                    <input type="number" id="product-cost" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label for="product-price" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Preço Venda (R$)</label>
+                                    <input type="number" id="product-price" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="product-quantity" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Quantidade em Estoque</label>
+                                <input type="number" id="product-quantity" step="1" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 focus:border-brand-primary focus:ring-brand-primary">
+                            </div>
+                            <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="plus-circle" class="w-5 h-5"></i>Adicionar Produto
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="lg:col-span-2">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Produtos Cadastrados</h3>
+                        <div class="relative overflow-x-auto">
+                            <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                                <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">Produto</th>
+                                        <th scope="col" class="px-6 py-3 text-center">Estoque</th>
+                                        <th scope="col" class="px-6 py-3 text-right">Custo</th>
+                                        <th scope="col" class="px-6 py-3 text-right">Preço</th>
+                                        <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </script>
+    
+    <script type="text/html" id="clientes-template">
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <h3 id="client-form-title" class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Cliente</h3>
+                        <form id="add-client-form" class="space-y-4">
+                            <input type="hidden" id="client-form-id">
+                            <div>
+                                <label for="client-form-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome Completo</label>
+                                <input type="text" id="client-form-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                             <div>
+                                <label for="client-form-phone" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Telefone (WhatsApp)</label>
+                                <input type="tel" id="client-form-phone" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                             <div>
+                                <label for="client-form-email" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">E-mail</label>
+                                <input type="email" id="client-form-email" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                            <div>
+                                <label for="client-form-address" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Endereço</label>
+                                <textarea id="client-form-address" rows="3" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></textarea>
+                            </div>
+                            <div class="flex flex-col sm:flex-row gap-2 pt-2">
+                                <button type="reset" id="client-form-cancel" class="hidden w-full sm:w-auto px-5 py-2.5 text-sm font-medium focus:outline-none bg-slate-200/50 dark:bg-slate-700/50 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700">Cancelar</button>
+                                <button type="submit" class="w-full bg-brand-primary text-white py-2.5 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                                    <i data-lucide="user-plus" class="w-5 h-5"></i><span id="client-form-btn-text">Salvar Cliente</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="lg:col-span-2">
+                    <div class="custom-card p-6 rounded-lg shadow-md">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Clientes Cadastrados</h3>
+                            <div id="client-count" class="text-sm text-slate-500"></div>
+                        </div>
+                        
+                        <form id="client-filter-form" class="mb-4 p-4 bg-slate-200/50 dark:bg-slate-800/50 rounded-lg space-y-4">
+                            <h4 class="text-sm font-semibold">Filtros Avançados</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="filter-last-purchase" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Comprou no dia</label>
+                                    <input type="date" id="filter-last-purchase" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                                </div>
+                                <div>
+                                    <label for="filter-product-purchased" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Comprou o produto</label>
+                                    <input type="text" id="filter-product-purchased" placeholder="Nome do produto..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                                </div>
+                            </div>
+                             <div class="flex gap-2">
+                                <button type="submit" class="w-full sm:w-auto bg-brand-primary text-white p-2 rounded-md flex items-center justify-center gap-2 text-sm"><i data-lucide="search" class="w-4 h-4"></i>Filtrar</button>
+                                <button type="reset" class="w-full sm:w-auto bg-slate-500 hover:bg-slate-600 text-white p-2 rounded-md flex items-center justify-center gap-2 text-sm"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Limpar</button>
+                            </div>
+                        </form>
+                        
+                        <div class="mb-4">
+                             <input type="text" id="client-search" placeholder="Buscar por nome ou telefone..." class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                        <div class="relative overflow-y-auto max-h-[60vh]">
+                            <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                                <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50 sticky top-0">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">Nome</th>
+                                        <th scope="col" class="px-6 py-3">Telefone</th>
+                                        <th scope="col" class="px-6 py-3 text-center">Contato</th>
+                                        <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clients-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </script>
+    
+    <script type="text/html" id="pedidos-template">
+         <div class="space-y-6">
+            <div id="vendedor-pedidos-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div class="custom-card kpi-card-blue p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-blue-500/20 p-3 rounded-full"><i data-lucide="shopping-cart" class="w-6 h-6 text-blue-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Pedidos Finalizados</p><p id="pedidos-finalizados" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div></div>
+                 <div class="custom-card kpi-card-green p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-green-500/20 p-3 rounded-full"><i data-lucide="dollar-sign" class="w-6 h-6 text-green-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Valor Total</p><p id="valor-total" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
+                 <div class="custom-card kpi-card-pink p-4 rounded-lg shadow-md flex items-center gap-4"><div class="bg-pink-500/20 p-3 rounded-full"><i data-lucide="receipt-text" class="w-6 h-6 text-pink-400"></i></div><div><p class="text-sm text-slate-500 dark:text-slate-400">Ticket Médio</p><p id="ticket-medio" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div></div>
+            </div>
+            
+            <div class="custom-card p-4 rounded-lg shadow-md">
+                 <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end pb-4 border-b border-slate-300 dark:border-slate-700">
+                      <div class="lg:col-span-2">
+                          <label for="filter-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Data</label>
+                          <input type="date" id="filter-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                      </div>
+                      <div>
+                          <label for="filter-payment" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Pagamento</label>
+                          <select id="filter-payment" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                               <option>Todos</option><option>Pix</option><option>Cartão</option><option>Dinheiro</option>
+                          </select>
+                      </div>
+                      <div id="gerente-vendedor-filter-container" class="hidden">
+                           <label for="filter-vendedor" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Vendedor</label>
+                           <select id="filter-vendedor" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></select>
+                      </div>
+                      <div class="flex gap-2">
+                           <button type="submit" class="w-full bg-brand-primary text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="search" class="w-4 h-4"></i>Buscar</button>
+                           <button type="reset" class="w-full bg-slate-500 hover:bg-slate-600 text-white p-2 rounded-md flex items-center justify-center gap-2"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Limpar</button>
+                      </div>
+                 </form>
+                <div class="relative overflow-x-auto pt-4">
+                     <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                         <thead class="text-xs text-slate-700 uppercase bg-slate-200/50 dark:bg-slate-800/50">
+                             <tr id="orders-table-header-row">
+                                 <th scope="col" class="px-6 py-3">Cliente</th>
+                                 <th scope="col" class="px-6 py-3">Data</th>
+                                 <th scope="col" class="px-6 py-3">Pagamento</th>
+                                 <th scope="col" class="px-6 py-3 text-right">Total</th>
+                                 <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                             </tr>
+                         </thead>
+                         <tbody id="orders-table-body"></tbody>
+                     </table>
+                     <div id="no-orders-found" class="text-center p-8 text-slate-500 hidden">Nenhum pedido encontrado.</div>
+                </div>
+            </div>
+        </div>
+    </script>
+    
+    <script type="text/html" id="metas-template">
+        <div class="space-y-6">
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Meu Progresso</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Diária</span>
+                            <span id="progresso-diario-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
+                            <div id="progresso-diario-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Semanal</span>
+                            <span id="progresso-semanal-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
+                            <div id="progresso-semanal-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium text-slate-700 dark:text-slate-300">Meta Mensal</span>
+                            <span id="progresso-mensal-texto" class="text-sm font-medium text-slate-700 dark:text-slate-300">R$ 0 / R$ 0</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
+                            <div id="progresso-mensal-barra" class="bg-brand-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="custom-card p-4 rounded-lg shadow-md text-center">
+                    <i data-lucide="flame" class="w-8 h-8 mx-auto mb-2 text-red-500"></i>
+                    <p class="text-sm text-slate-500">Meta Batida (Dias seguidos)</p>
+                    <p id="recorde-dias-consecutivos" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p>
+                </div>
+                <div class="custom-card p-4 rounded-lg shadow-md text-center">
+                    <i data-lucide="award" class="w-8 h-8 mx-auto mb-2 text-amber-500"></i>
+                    <p class="text-sm text-slate-500">Melhor Dia</p>
+                    <p id="recorde-melhor-dia" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p>
+                </div>
+                <div class="custom-card p-4 rounded-lg shadow-md text-center">
+                    <i data-lucide="trophy" class="w-8 h-8 mx-auto mb-2 text-sky-500"></i>
+                    <p class="text-sm text-slate-500">Melhor Semana</p>
+                    <p id="recorde-melhor-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p>
+                </div>
+            </div>
+        </div>
+    </script>
+
+    <script type="text/html" id="ranking-template">
+        <div class="space-y-6">
+            <div class="custom-card p-2 rounded-lg shadow-md max-w-sm mx-auto">
+                <div class="flex justify-between items-center bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-md">
+                    <button data-period="day" class="ranking-period-btn flex-1 bg-white dark:bg-slate-900 text-brand-primary rounded shadow px-3 py-1.5 text-sm font-medium">Dia</button>
+                    <button data-period="week" class="ranking-period-btn flex-1 text-slate-500 dark:text-slate-400 px-3 py-1.5 text-sm font-medium">Semana</button>
+                    <button data-period="month" class="ranking-period-btn flex-1 text-slate-500 dark:text-slate-400 px-3 py-1.5 text-sm font-medium">Mês</button>
+                </div>
+            </div>
+    
+            <div id="ranking-podium-container" class="min-h-[350px]"></div>
+            <div class="custom-card p-4 rounded-lg shadow-md">
+                <div id="ranking-list-container"></div>
+            </div>
+        </div>
+    </script>
+    
+    <script type="text/html" id="relatorios-template">
+        <div class="space-y-6">
+             <div id="gerente-relatorios-vendedor-select-container" class="hidden custom-card p-4 rounded-lg shadow-md">
+                 <label for="relatorios-vendedor-select" class="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Visualizar Relatório de:</label>
+                 <select id="relatorios-vendedor-select" class="w-full md:w-1/3 block rounded-md border-slate-300 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-800/50"></select>
+             </div>
+             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                 <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas Hoje</p><p id="relatorio-vendas-hoje" class="text-2xl font-bold text-brand-primary">R$ 0,00</p></div>
+                 <div id="bonus-hoje-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus Hoje</p><p id="relatorio-bonus-dia" class="text-2xl font-bold text-brand-primary">0</p></div>
+                 <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas na Semana</p><p id="relatorio-vendas-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
+                 <div id="bonus-semana-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus na Semana</p><p id="relatorio-bonus-semana" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
+                 <div class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Vendas no Mês</p><p id="relatorio-vendas-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">R$ 0,00</p></div>
+                 <div id="bonus-mes-card" class="custom-card p-4 rounded-lg shadow-md"><p class="text-sm text-slate-500 dark:text-slate-400">Bônus no Mês</p><p id="relatorio-bonus-mes" class="text-2xl font-bold text-slate-800 dark:text-slate-100">0</p></div>
+             </div>
+
+             <div id="ai-analysis-section" class="hidden custom-card p-6 rounded-lg shadow-md">
+                  <div class="flex justify-between items-center mb-4">
+                      <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">Análise de Desempenho com IA <span class="text-xs bg-brand-primary/20 text-brand-primary dark:bg-brand-primary/20 dark:text-blue-300 px-2 py-0.5 rounded-full">NOVO</span></h3>
+                  </div>
+                  <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
+                      <button id="generate-ai-analysis-btn" class="w-full sm:w-auto bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                           <i data-lucide="sparkles" class="w-4 h-4"></i>
+                           Gerar Análise com IA
+                      </button>
+                      <div id="ai-analysis-result-container" class="mt-4 text-sm text-slate-600 dark:text-slate-300 space-y-2 prose dark:prose-invert max-w-none">
+                           <p class="text-slate-500 dark:text-slate-400">Clique no botão para gerar uma análise inteligente dos dados de vendas do período selecionado.</p>
+                      </div>
+                  </div>
+             </div>
+
+             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                 <div class="lg:col-span-2 custom-card p-6 rounded-lg shadow-md">
+                     <h3 class="font-bold mb-4 text-slate-900 dark:text-white">Vendas nos últimos 7 dias</h3>
+                     <div class="h-80"><canvas id="vendas-semana-chart"></canvas></div>
+                 </div>
+                 <div class="custom-card p-6 rounded-lg shadow-md">
+                     <h3 class="font-bold mb-4 text-slate-900 dark:text-white">Formas de Pagamento</h3>
+                     <div class="h-80"><canvas id="pagamento-chart"></canvas></div>
+                 </div>
+             </div>
+        </div>
+    </script>
+    
+    <script type="text/html" id="configuracoes-template">
+        <div class="space-y-6">
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Painel Administrativo</h3>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
+                      <div>
+                          <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Configurações da Loja</h4>
+                          <label class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Loja</label>
+                          <input type="text" id="config-store-name" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                          <button id="save-settings-button" class="mt-2 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Nome</button>
+                      </div>
+                      <div>
+                          <h4 class="text-md font-semibold text-red-600 dark:text-red-500 mb-2">Zona de Perigo</h4>
+                          <p class="text-xs text-slate-500 mb-2">Esta ação não pode ser desfeita e removerá permanentemente todas as vendas do sistema.</p>
+                          <button id="delete-all-sales-button" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors text-sm">Zerar Todas as Vendas</button>
+                      </div>
+                 </div>
+            </div>
+
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Definir Metas e Bônus</h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="meta-diaria" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Diária (R$)</label>
+                            <input type="number" id="meta-diaria" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                        <div>
+                            <label for="meta-semanal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Semanal (R$)</label>
+                            <input type="number" id="meta-semanal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                         <div>
+                            <label for="meta-mensal" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Meta Mensal (R$)</label>
+                            <input type="number" id="meta-mensal" step="0.01" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-300 dark:border-slate-700 pt-4 space-y-2">
+                        <div class="flex items-center">
+                            <input id="enable-bonus" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
+                            <label for="enable-bonus" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar sistema de bônus</label>
+                        </div>
+                        <div id="bonus-value-container" class="hidden">
+                             <label for="bonus-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Ganha 2 pontos de bônus a cada (R$)</label>
+                            <input type="number" id="bonus-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                    </div>
+                    <button id="save-goals-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Metas e Bônus</button>
+                </div>
+            </div>
+            
+            <div id="manage-expenses-section" class="hidden custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Despesas Mensais</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Adicionar Despesa</h4>
+                        <form id="add-expense-form" class="space-y-4">
+                             <div>
+                                <label for="expense-month" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Mês/Ano da Despesa</label>
+                                <input type="month" id="expense-month" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                            <div>
+                                <label for="expense-description" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Descrição</label>
+                                <input type="text" id="expense-description" required placeholder="Ex: Aluguel" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="expense-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor (R$)</label>
+                                    <input type="number" id="expense-value" step="0.01" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                </div>
+                                <div>
+                                    <label for="expense-type" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Tipo</label>
+                                    <select id="expense-type" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                        <option value="Fixo">Fixo</option>
+                                        <option value="Variável">Variável</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Adicionar Despesa</button>
+                        </form>
+                    </div>
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Despesas do Mês Selecionado</h4>
+                        <ul id="expenses-list" class="space-y-2 max-h-60 overflow-y-auto"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                 <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Configurar Roleta de Prêmios</h3>
+                 <div class="space-y-4">
+                      <div class="flex items-center">
+                          <input id="enable-bonus-wheel" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
+                          <label for="enable-bonus-wheel" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Habilitar roleta de prêmios após a venda</label>
+                      </div>
+
+                      <div id="bonus-wheel-config-container" class="hidden">
+                          <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
+                              <div>
+                                  <label for="bonus-wheel-min-value" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Valor Mínimo da Compra para Girar (R$)</label>
+                                  <input type="number" id="bonus-wheel-min-value" step="0.01" class="block w-full md:w-1/3 rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                              </div>
+                          </div>
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4 mt-4">
+                              <div>
+                                  <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Adicionar Prêmio</h4>
+                                  <form id="add-prize-form" class="space-y-4">
+                                      <div>
+                                          <label for="prize-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome do Prêmio</label>
+                                          <input type="text" id="prize-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                      </div>
+                                      <div>
+                                          <label for="prize-probability" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Chance de Sair (%)</label>
+                                          <input type="number" id="prize-probability" min="1" max="100" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                                      </div>
+                                      <button type="submit" class="w-full bg-brand-secondary text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">Adicionar Prêmio</button>
+                                  </form>
+                              </div>
+                               <div>
+                                  <h4 class="text-md font-semibold text-slate-800 dark:text-slate-200 mb-2">Prêmios Atuais</h4>
+                                  <p class="text-xs text-slate-500 mb-2">Probabilidade Total: <span id="total-probability">0%</span></p>
+                                  <ul id="prizes-list" class="space-y-2 max-h-48 overflow-y-auto"></ul>
+                              </div>
+                          </div>
+                           <button id="save-wheel-button" class="mt-4 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm">Salvar Configurações da Roleta</button>
+                      </div>
+                 </div>
+             </div>
+            
+            <div id="manage-stores-section" class="hidden custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Gerenciar Lojas</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-300 dark:border-slate-700 pt-4">
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Criar Nova Loja</h4>
+                        <form id="add-store-form" class="space-y-4">
+                            <div>
+                                <label for="new-store-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome da Nova Loja</label>
+                                <input type="text" id="new-store-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                            </div>
+                            <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Criar Loja</button>
+                        </form>
+                    </div>
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Lojas Cadastradas</h4>
+                        <ul id="stores-management-list" class="space-y-2"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="custom-card p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Exportar Vendas (CSV)</h3>
+                <div class="space-y-4 border-t border-slate-300 dark:border-slate-700 pt-4">
+                    <div>
+                        <label for="export-vendedor-select" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Filtrar por Vendedor</label>
+                        <select id="export-vendedor-select" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50"></select>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button id="export-today-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas do Dia</button>
+                        <button id="export-week-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas da Semana</button>
+                        <button id="export-month-btn" class="w-full bg-slate-500 text-white p-2 rounded-md hover:bg-slate-600 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Vendas do Mês</button>
+                    </div>
+                    <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Exportar por data específica:</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="start-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Data de Início</label>
+                                <input type="date" id="start-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                            </div>
+                            <div>
+                                <label for="end-date" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Data Final</label>
+                                <input type="date" id="end-date" class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 text-sm">
+                            </div>
+                        </div>
+                        <button id="export-range-btn" class="w-full mt-2 bg-brand-primary text-white p-2 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center justify-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4"></i>Exportar Período</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="custom-card p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Adicionar Novo Usuário</h3>
+                    <form id="add-user-form" class="space-y-4">
+                        <div>
+                            <label for="user-name" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Nome</label>
+                            <input type="text" id="user-name" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                        <div>
+                            <label for="user-password" class="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Senha</label>
+                            <input type="password" id="user-password" required class="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                        </div>
+                        <div class="flex items-center">
+                            <input id="create-as-manager" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary">
+                            <label for="create-as-manager" class="ml-2 block text-sm text-slate-900 dark:text-slate-300">Criar como Gerente</label>
+                        </div>
+                        <button type="submit" class="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Salvar Usuário</button>
+                    </form>
+                </div>
+                <div class="custom-card p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold mb-4 text-slate-900 dark:text-white">Usuários Cadastrados</h3>
+                    <ul id="users-list" class="space-y-2"></ul>
+                </div>
+            </div>
+        </div>
+    </script>
+
+      <template id="financeiro-template">
+      <div class="p-4 sm:p-6 space-y-6">
+          <div class="custom-card p-4 rounded-lg">
+              <form id="financeiro-filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                  <div>
+                      <label for="financeiro-start-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Início</label>
+                      <input type="date" id="financeiro-start-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
+                  </div>
+                  <div>
+                      <label for="financeiro-end-date" class="block text-sm font-medium text-slate-600 dark:text-slate-400">Data Fim</label>
+                      <input type="date" id="financeiro-end-date" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50 shadow-sm">
+                  </div>
+                  <div>
+                      <label class="block text-sm">&nbsp;</label>
+                      <button type="button" id="financeiro-filter-this-month" class="w-full text-sm py-2 px-3 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">Este Mês</button>
+                  </div>
+                  <div>
+                      <label class="block text-sm">&nbsp;</label>
+                      <button type="submit" class="w-full bg-brand-primary text-white py-2 px-3 rounded-md hover:bg-blue-700">Filtrar</button>
+                  </div>
+                   <div>
+                      <label class="block text-sm">&nbsp;</label>
+                      <button type="reset" class="w-full bg-slate-500 text-white py-2 px-3 rounded-md hover:bg-slate-600">Limpar</button>
+                  </div>
+              </form>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="financeiro-summary-cards"></div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div class="md:col-span-1 custom-card p-6 rounded-lg flex flex-col">
+                  <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Fixos e Operacionais</h3>
+                  <div id="fixed-costs-list" class="space-y-2 mb-4 flex-grow overflow-y-auto max-h-48 pr-2">
+          </div>
+                  <form id="add-fixed-cost-form" class="mt-auto pt-4 border-t border-slate-300 dark:border-slate-700 space-y-2">
+                      <input type="text" id="fixed-cost-name" placeholder="Nome do Custo (ex: Aluguel)" required class="block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                      <div class="flex gap-2">
+                          <input type="number" id="fixed-cost-amount" placeholder="Valor (R$)" required step="0.01" class="block w-full text-sm rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50">
+                           <button type="submit" class="p-2 bg-brand-primary text-white rounded-md hover:bg-blue-700"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                      </div>
+                 </form>
+             </div>
+              <div class="md:col-span-2 custom-card p-6 rounded-lg">
+                 <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Custos Variáveis (Baseado na Receita)</h3>
+                   
+            <div class="space-y-3">
+                      <div><label for="cost-impostos" class="text-sm text-slate-600 dark:text-slate-400">Impostos (%)</label><input type="number" id="cost-impostos" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="6" step="0.1"></div>
+                     <div><label for="cost-comissoes" class="text-sm text-slate-600 dark:text-slate-400">Comissões (%)</label><input type="number" id="cost-comissoes" class="financial-cost-input mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-slate-200/50 dark:bg-slate-800/50" value="5" step="0.1"></div>
+                   
+                  </div>
+              <div class="mt-6 pt-6 border-t border-slate-300 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-6" id="financeiro-net-summary">
+               </div>
+          </div>
+          
+          <div class="custom-card p-6 rounded-lg">
+               <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Projeções de Faturamento</h3>
+               <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="financeiro-projections">
+               </div>
+          </div>
+
+          <div class="custom-card p-6 rounded-lg">
+              <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Receita vs Custo vs Lucro</h3>
+              <div class="h-80"><canvas id="financeiro-chart"></canvas></div>
+          </div>
+      </div>
+    </template>
+    </script>
+
     <script type="module" src="script.js"></script>
 
 </body>
