@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
                 ownerPhone: ''
             },
-            sales: [],
+            // sales: [], // REMOVIDO: As vendas não serão mais carregadas globalmente.
             fixedCosts: []
         },
         listeners: { users: null, sales: null, stores: null, products: null, clients: null, orders: null, metas: null, ranking: null, relatorios: null, fixedCosts: null },
@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loggedInUser: null,
             selectedStore: null,
             currentOrder: [],
-            db: { users: [], stores: [], sales: [], products: [], clients: [], settings: {} }
+            db: { users: [], stores: [], products: [], clients: [], settings: {} }
         });
         selectedUserForLogin = null;
         document.getElementById('app').classList.add('hidden');
@@ -326,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupStoreListeners(storeId) {
         if (state.listeners.products) state.listeners.products();
         if (state.listeners.clients) state.listeners.clients();
-        if (state.listeners.sales) state.listeners.sales();
+        // if (state.listeners.sales) state.listeners.sales(); // REMOVIDO: Listener global de vendas foi removido para performance.
         if (state.listeners.fixedCosts) state.listeners.fixedCosts();
 
         const productsQuery = query(collection(db, "products"), where("storeId", "==", storeId));
@@ -351,12 +351,13 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Erro ao carregar clientes.', 'error');
         });
 
-        const salesQuery = query(collection(db, "sales"), where("storeId", "==", storeId));
-        state.listeners.sales = onSnapshot(salesQuery, (snapshot) => {
-            state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        }, (error) => {
-            console.error("Erro ao carregar dados de vendas:", error);
-        });
+        // REMOVIDO: O listener global de vendas foi removido. Cada view agora carrega seus próprios dados de vendas.
+        // const salesQuery = query(collection(db, "sales"), where("storeId", "==", storeId));
+        // state.listeners.sales = onSnapshot(salesQuery, (snapshot) => {
+        //     state.db.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // }, (error) => {
+        //     console.error("Erro ao carregar dados de vendas:", error);
+        // });
 
         const fixedCostsQuery = query(collection(db, "fixedCosts"), where("storeId", "==", storeId));
         state.listeners.fixedCosts = onSnapshot(fixedCostsQuery, (snapshot) => {
@@ -472,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (logoutBtn) { logout(); }
         });
 
-        document.getElementById('app').addEventListener('click', e => {
+        document.getElementById('app').addEventListener('click', async (e) => {
             const shareBtn = e.target.closest('.share-daily-report-btn');
             if(shareBtn) {
                 const ownerPhone = state.db.settings.ownerPhone?.replace(/\D/g, '');
@@ -482,7 +483,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const now = new Date();
                 const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const salesToday = state.db.sales.filter(s => s.date.toDate() >= todayStart);
+                
+                // MODIFICADO: Busca as vendas de hoje sob demanda
+                const salesTodayQuery = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id), where("date", ">=", todayStart));
+                const salesSnapshot = await getDocs(salesTodayQuery);
+                const salesToday = salesSnapshot.docs.map(doc => doc.data());
                 const totalToday = salesToday.reduce((sum, s) => sum + s.total, 0);
 
                 const summaryText = `*Resumo do Dia - ${now.toLocaleDateString('pt-BR')}*\n\n` +
@@ -1182,16 +1187,18 @@ document.addEventListener('DOMContentLoaded', () => {
             tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-slate-500">Filtrando clientes...</td></tr>`;
             searchInput.value = '';
 
-            let filteredSales = state.db.sales;
+            let salesConditions = [where("storeId", "==", state.selectedStore.id)];
 
             if (dateValue) {
                 const startDate = new Date(dateValue + 'T00:00:00');
                 const endDate = new Date(dateValue + 'T23:59:59');
-                filteredSales = filteredSales.filter(sale => {
-                    const saleDate = sale.date.toDate();
-                    return saleDate >= startDate && saleDate <= endDate;
-                });
+                salesConditions.push(where("date", ">=", startDate));
+                salesConditions.push(where("date", "<=", endDate));
             }
+            
+            const salesQuery = query(collection(db, "sales"), ...salesConditions);
+            const salesSnapshot = await getDocs(salesQuery);
+            let filteredSales = salesSnapshot.docs.map(doc => doc.data());
 
             if (productValue) {
                 filteredSales = filteredSales.filter(sale => 
@@ -1271,7 +1278,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (btn.classList.contains('view-client-btn')) {
                  const client = state.db.clients.find(c => c.id === clientId);
-                 const clientSales = state.db.sales.filter(sale => sale.clientId === clientId);
+                 
+                 // MODIFICADO: Busca as vendas do cliente sob demanda
+                 const salesQuery = query(collection(db, "sales"), where("clientId", "==", clientId));
+                 const salesSnapshot = await getDocs(salesQuery);
+                 const clientSales = salesSnapshot.docs.map(doc => doc.data());
 
                  const modal = document.getElementById('client-details-modal');
                  modal.classList.remove('hidden');
@@ -1509,6 +1520,7 @@ function renderProdutos() {
         const c = document.getElementById('pedidos-view');
         c.innerHTML = document.getElementById('pedidos-template').innerHTML;
         const isGerente = state.loggedInUser.role === 'gerente' || state.loggedInUser.role === 'superadmin';
+        let currentSalesData = []; // Cache for the currently displayed sales
 
         if (isGerente) {
             c.querySelector('#vendedor-pedidos-dashboard')?.classList.add('hidden');
@@ -1601,6 +1613,7 @@ function renderProdutos() {
             state.listeners.orders = onSnapshot(finalQuery, (snapshot) => {
                 let sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 sales.sort((a, b) => b.date.seconds - a.date.seconds);
+                currentSalesData = sales; // Atualiza o cache
                 renderTable(sales);
                 if (!isGerente) {
                     updateDashboard(sales);
@@ -1619,7 +1632,7 @@ function renderProdutos() {
         c.querySelector('#orders-table-body').addEventListener('click', e => {
             const b = e.target.closest('.view-details-btn');
             if (b) {
-                const order = state.db.sales.find(s => s.id == b.dataset.orderId);
+                const order = currentSalesData.find(s => s.id == b.dataset.orderId);
                 if (order) {
                     const m = document.getElementById('order-details-modal');
                     m.classList.remove('hidden');
@@ -1725,8 +1738,12 @@ function renderProdutos() {
             document.getElementById('recorde-melhor-semana').textContent = formatCurrency(melhorSemanaValor);
         };
         
+        // MODIFICADO: Busca apenas as vendas do mês corrente para otimização
         const storeId = state.selectedStore.id;
-        const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), where("storeId", "==", storeId));
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const q = query(collection(db, "sales"), where("vendedor", "==", state.loggedInUser.name), where("storeId", "==", storeId), where("date", ">=", startOfMonth));
+        
         if (state.listeners.metas) state.listeners.metas();
         state.listeners.metas = onSnapshot(q, (snapshot) => {
             const mySales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1745,6 +1762,7 @@ function renderProdutos() {
         const podiumContainer = view.querySelector('#ranking-podium-container');
         const listContainer = view.querySelector('#ranking-list-container');
         let currentPeriod = 'day';
+        let monthlySalesData = []; // Cache para as vendas do mês
 
         const updateRankingUI = (sales, period) => {
             const now = new Date();
@@ -1757,7 +1775,7 @@ function renderProdutos() {
                 case 'week':
                     const dayOfWeek = now.getDay();
                     const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-                    startDate = new Date(now.setDate(diff));
+                    startDate = new Date(now.getFullYear(), now.getMonth(), diff);
                     break;
                 case 'day':
                 default:
@@ -1841,10 +1859,14 @@ function renderProdutos() {
             window.lucide.createIcons();
         };
         
-        const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
+        // MODIFICADO: Busca apenas as vendas do mês corrente para otimização
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id), where("date", ">=", startOfMonth));
+        
         state.listeners.ranking = onSnapshot(q, (snapshot) => {
-            const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            updateRankingUI(allSales, currentPeriod);
+            monthlySalesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            updateRankingUI(monthlySalesData, currentPeriod);
         }, (error) => {
              console.error("Erro ao carregar ranking:", error);
              podiumContainer.innerHTML = '<p class="text-center text-red-500">Erro ao carregar dados do ranking.</p>';
@@ -1855,12 +1877,7 @@ function renderProdutos() {
                 currentPeriod = e.target.dataset.period;
                 view.querySelectorAll('.ranking-period-btn').forEach(b => b.classList.remove('bg-white', 'dark:bg-slate-900', 'text-brand-primary', 'shadow'));
                 e.target.classList.add('bg-white', 'dark:bg-slate-900', 'text-brand-primary', 'shadow');
-                
-                const q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
-                getDocs(q).then(snapshot => {
-                     const allSales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                     updateRankingUI(allSales, currentPeriod);
-                });
+                updateRankingUI(monthlySalesData, currentPeriod); // Usa os dados já carregados
             });
         });
     }
@@ -2075,7 +2092,10 @@ function renderProdutos() {
         
         const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
         
-        let q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id));
+        // MODIFICADO: Busca apenas as vendas do mês corrente para otimização
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        let q = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id), where("date", ">=", startOfMonth));
         
         if(state.listeners.relatorios) state.listeners.relatorios();
         state.listeners.relatorios = onSnapshot(q, (snapshot) => {
@@ -2139,19 +2159,19 @@ function renderProdutos() {
         const handleExport = async (startDate, endDate, filename) => {
             const selectedVendedor = exportVendedorSelect.value;
             try {
-                let baseConditions = [
+                let conditions = [
                     where("storeId", "==", state.selectedStore.id),
                     where("date", ">=", startDate),
                     where("date", "<=", endDate)
                 ];
 
-                const baseQuery = query(collection(db, "sales"), ...baseConditions);
-                const salesSnapshot = await getDocs(baseQuery);
-                let salesToExport = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
                 if (selectedVendedor !== 'Todos') {
-                    salesToExport = salesToExport.filter(sale => sale.vendedor === selectedVendedor);
+                    conditions.push(where("vendedor", "==", selectedVendedor));
                 }
+
+                const exportQuery = query(collection(db, "sales"), ...conditions);
+                const salesSnapshot = await getDocs(exportQuery);
+                let salesToExport = salesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
                 exportToCSV(salesToExport, filename);
             } catch (error) {
@@ -2490,7 +2510,7 @@ function renderProdutos() {
     }
 
     // NOVA FUNÇÃO: Renderiza o Relatório Financeiro
-    function renderFinanceiro() {
+    async function renderFinanceiro() {
         const view = document.getElementById('financeiro-view');
         view.innerHTML = document.getElementById('financeiro-template').innerHTML;
 
@@ -2507,16 +2527,18 @@ function renderProdutos() {
         const fixedCostAmountInput = view.querySelector('#fixed-cost-amount');
         let currentFixedCostId = null;
 
-        const updateFinancialReport = () => {
+        const updateFinancialReport = async () => {
             const startDate = startDateInput.value ? new Date(startDateInput.value + 'T00:00:00') : null;
             const endDate = endDateInput.value ? new Date(endDateInput.value + 'T23:59:59') : null;
 
-            const relevantSales = state.db.sales.filter(s => {
-                const saleDate = s.date.toDate();
-                if (startDate && saleDate < startDate) return false;
-                if (endDate && saleDate > endDate) return false;
-                return true;
-            });
+            // MODIFICADO: Busca de vendas sob demanda
+            let salesConditions = [where("storeId", "==", state.selectedStore.id)];
+            if (startDate) salesConditions.push(where("date", ">=", startDate));
+            if (endDate) salesConditions.push(where("date", "<=", endDate));
+            
+            const salesQuery = query(collection(db, "sales"), ...salesConditions);
+            const salesSnapshot = await getDocs(salesQuery);
+            const relevantSales = salesSnapshot.docs.map(doc => doc.data());
 
             const productCosts = new Map(state.db.products.map(p => [p.id, p.cost || 0]));
             
@@ -2527,11 +2549,10 @@ function renderProdutos() {
             relevantSales.forEach(sale => {
                 receitaBruta += sale.total;
                 sale.items.forEach(item => {
-                    // Prioriza o custo salvo na venda. Se não existir (venda antiga), busca o custo atual.
                     if (item.cost !== undefined) {
                         cpv += item.cost;
                     } else if (item.productId && productCosts.has(item.productId)) {
-                        cpv += productCosts.get(item.productId); // Fallback para vendas antigas
+                        cpv += productCosts.get(item.productId);
                     }
                 });
                 const dayKey = sale.date.toDate().toISOString().split('T')[0];
@@ -2572,13 +2593,16 @@ function renderProdutos() {
                 <div class="col-span-full"><p class="text-sm text-slate-500">Margem de Lucro Líquida</p><p class="text-3xl font-extrabold text-green-700">${margemLiquida.toFixed(1)}%</p></div>
             `;
 
-            // Projections
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
             const daysInMonth = endOfMonth.getDate();
             const daysPassedMonth = now.getDate();
-            const revenueThisMonth = state.db.sales.filter(s => s.date.toDate() >= startOfMonth).reduce((acc, s) => acc + s.total, 0);
+            
+            const monthSalesQuery = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id), where("date", ">=", startOfMonth));
+            const monthSalesSnapshot = await getDocs(monthSalesQuery);
+            const revenueThisMonth = monthSalesSnapshot.docs.reduce((acc, doc) => acc + doc.data().total, 0);
+            
             const dailyAvgMonth = daysPassedMonth > 0 ? revenueThisMonth / daysPassedMonth : 0;
             const projectedMonthRevenue = dailyAvgMonth * daysInMonth;
 
