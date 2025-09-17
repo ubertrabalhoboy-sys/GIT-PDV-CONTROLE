@@ -1,49 +1,38 @@
-// firestore.rules - LÓGICA DO PLANO B
+// firestore.rules - LÓGICA DO PLANO B (ATUALIZADA)
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Função interna para checar os dados do usuário que está fazendo a requisição
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Regra para a coleção de usuários
     match /users/{userId} {
-      // Um usuário só pode ler documentos de outros usuários se forem da mesma loja.
-      allow read: if getUserData().storeId == resource.data.storeId;
+      // NOVA REGRA: Permite que qualquer pessoa LISTE os usuários (necessário para a tela de login).
+      allow list: if true;
+      // NOVA REGRA: Permite que um usuário logado PEGUE os dados de outro usuário apenas se for da mesma loja.
+      allow get: if getUserData().storeId == resource.data.storeId;
 
-      // Um usuário só pode atualizar seu próprio documento, e não pode mudar seu storeId ou role.
       allow update: if request.auth.uid == userId 
                     && request.resource.data.storeId == resource.data.storeId
                     && request.resource.data.role == resource.data.role;
 
-      // Permite que um gerente ou superadmin crie um novo usuário para a sua própria loja.
       allow create: if getUserData().role in ['gerente', 'superadmin']
                     && request.resource.data.storeId == getUserData().storeId;
     }
 
-    // Regra genérica para a maioria das coleções (products, clients, sales, etc.)
     match /{collection}/{docId} {
-        // Permite ler ou escrever se o 'storeId' do documento for o mesmo
-        // que o 'storeId' salvo no perfil do usuário que está fazendo a requisição.
         allow read, write: if getUserData().storeId == resource.data.storeId;
     }
 
-    // Regra para as configurações da loja
     match /settings/{storeId} {
-      // Permite ler se o ID da configuração for o mesmo da loja do usuário.
       allow read: if getUserData().storeId == storeId;
-      // Ninguém pode escrever diretamente (apenas via backend no futuro)
       allow write: if false;
     }
 
-    // Regra para as lojas
     match /stores/{storeId} {
-        // Qualquer usuário autenticado pode ler a lista de lojas (para o login)
-        allow read: if request.auth != null;
-        // Ninguém pode escrever diretamente.
+        allow read: if true; // Permite que todos leiam as lojas para a tela de seleção
         allow write: if false;
     }
   }

@@ -98,22 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
             name: storeButton.dataset.storeName
         };
 
-        const settingsRef = doc(db, "settings", state.selectedStore.id);
-        const settingsSnap = await getDoc(settingsRef);
-        if (settingsSnap.exists()) {
-            state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
-        } else {
-            const defaultSettings = {
-                storeName: state.selectedStore.name,
-                goals: { daily: 150, weekly: 1000, monthly: 4000 },
-                commissionSystem: { enabled: true, percentage: 5 },
-                bonusWheel: { enabled: false, prizes: [], minValue: 0 },
-                ownerPhone: ''
-            };
-            await setDoc(settingsRef, defaultSettings);
-            state.db.settings = { ...state.db.settings, ...defaultSettings };
-        }
-
         loadUsersForStore(state.selectedStore.id);
     });
 
@@ -255,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('login-error').textContent = '';
     });
 
-    // ########## LÓGICA DE LOGIN AJUSTADA PARA O PLANO B ##########
     document.getElementById('password-form').addEventListener('submit', async e => {
         e.preventDefault();
         const user = state.db.users.find(u => u.name.toLowerCase() === selectedUserForLogin.toLowerCase());
@@ -269,9 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const email = `${user.name.toLowerCase().replace(/\s+/g, '')}@pdv-app.com`;
 
         try {
-            // Apenas faz o login. As novas Regras de Segurança farão o resto do trabalho.
             await signInWithEmailAndPassword(auth, email, passwordInput.value);
-
+            
             state.loggedInUser = user;
 
             if (user.role !== 'superadmin' && !state.selectedStore) {
@@ -290,7 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => document.getElementById('password-view').classList.remove('animate-shake'), 500);
         }
     });
-
 
     const logout = () => {
         signOut(auth);
@@ -351,9 +332,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const initializeAppUI = () => {
+    const initializeAppUI = async () => {
         const user = state.loggedInUser;
         const store = state.selectedStore;
+
+        const settingsRef = doc(db, "settings", state.selectedStore.id);
+        const settingsSnap = await getDoc(settingsRef);
+        if (settingsSnap.exists()) {
+            state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
+        } else {
+            const defaultSettings = {
+                storeName: state.selectedStore.name,
+                goals: { daily: 150, weekly: 1000, monthly: 4000 },
+                commissionSystem: { enabled: true, percentage: 5 },
+                bonusWheel: { enabled: false, prizes: [], minValue: 0 },
+                ownerPhone: ''
+            };
+            await setDoc(settingsRef, defaultSettings);
+            state.db.settings = { ...state.db.settings, ...defaultSettings };
+        }
 
         if (!user || !user.role) {
             console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida. Fazendo logout forçado.");
@@ -366,18 +363,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('username-sidebar').textContent = user.name;
         document.getElementById('user-icon').textContent = user.name.charAt(0).toUpperCase();
 
-        if(state.listeners.users)state .listeners.users();
-// AGORA A CONSULTA É SEGURA E ESPECÍFICA PARA A LOJA ATUAL
-const usersQuery = query(collection(db, "users"), where("storeId", "==", store.id));
-state.listeners.users = onSnapshot(usersQuery, (snapshot) => {
-    state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes' || state.currentView === 'relatorios')) {
-        const activeView = document.getElementById(`${state.currentView}-view`);
-        if (activeView && activeView.classList.contains('active')) {
-            renderViewContent(state.currentView);
-        }
-    }
-});
+        if (state.listeners.users) state.listeners.users();
+        const usersQuery = query(collection(db, "users"), where("storeId", "==", store.id));
+        state.listeners.users = onSnapshot(usersQuery, (snapshot) => {
+            state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes' || state.currentView === 'relatorios')) {
+                const activeView = document.getElementById(`${state.currentView}-view`);
+                if (activeView && activeView.classList.contains('active')) {
+                    renderViewContent(state.currentView);
+                }
+            }
+        });
         
         setupStoreListeners(store.id);
 
