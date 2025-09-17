@@ -498,10 +498,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('mobile-menu-button').addEventListener('click', () => showMobileMenu(true));
     overlay.addEventListener('click', () => showMobileMenu(false));
 
-    // O resto de todas as suas funções de renderização (renderCaixa, renderProdutos, etc.) continuam aqui
+    // A partir daqui, você precisa colar o resto das suas funções de renderização
+    // (renderCaixa, renderProdutos, renderClientes, etc.)
+    // que foram omitidas do seu último envio.
     // ...
     // ...
-    
+
     const init = () => {
         const theme = localStorage.getItem('theme') || 'dark';
         applyTheme(theme);
