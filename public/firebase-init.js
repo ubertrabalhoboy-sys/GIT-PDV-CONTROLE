@@ -1,4 +1,3 @@
-// public/firebase-init.js
 
 // Importa as funções necessárias do Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -6,7 +5,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // --- ATENÇÃO ---
-// COPIE SUAS CHAVES DO ARQUIVO script.js E COLE AQUI DENTRO
+// COPIE SUAS CHAVES DO CONSOLE DO FIREBASE E COLE AQUI DENTRO
 const firebaseConfig = {
   apiKey: "AIzaSyByZ1r41crqOadLXwHH2v9LgveyCkL6erE",
   authDomain: "pdv-vendas-8a65a.firebaseapp.com",

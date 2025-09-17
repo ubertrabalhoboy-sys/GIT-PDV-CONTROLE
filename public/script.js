@@ -276,9 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const productsQuery = query(collection(db, "products"), where("storeId", "==", storeId));
         state.listeners.products = onSnapshot(productsQuery, (snapshot) => {
             state.db.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView === 'produtos' && document.getElementById('produtos-view').classList.contains('active')) {
-                renderProdutos();
-            }
+            if (state.currentView === 'produtos') { renderProdutos(); }
         }, (error) => {
             console.error("Erro ao carregar produtos:", error);
             showToast('Erro ao carregar produtos. Verifique as permissões.', 'error');
@@ -287,9 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const clientsQuery = query(collection(db, "clients"), where("storeId", "==", storeId));
         state.listeners.clients = onSnapshot(clientsQuery, (snapshot) => {
             state.db.clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView === 'clientes' && document.getElementById('clientes-view').classList.contains('active')) {
-                renderClientes();
-            }
+            if (state.currentView === 'clientes') { renderClientes(); }
         }, (error) => {
             console.error("Erro ao carregar clientes:", error);
             showToast('Erro ao carregar clientes.', 'error');
@@ -298,9 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fixedCostsQuery = query(collection(db, "fixedCosts"), where("storeId", "==", storeId));
         state.listeners.fixedCosts = onSnapshot(fixedCostsQuery, (snapshot) => {
             state.db.fixedCosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView === 'financeiro' && document.getElementById('financeiro-view').classList.contains('active')) {
-                renderFinanceiro();
-            }
+            if (state.currentView === 'financeiro') { renderFinanceiro(); }
         }, (error) => {
             console.error("Erro ao carregar custos fixos:", error);
         });
@@ -310,13 +304,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const user = state.loggedInUser;
         const store = state.selectedStore;
 
-        const settingsRef = doc(db, "settings", state.selectedStore.id);
+        const settingsRef = doc(db, "settings", store.id);
         const settingsSnap = await getDoc(settingsRef);
         if (settingsSnap.exists()) {
             state.db.settings = { ...state.db.settings, ...settingsSnap.data() };
         } else {
             const defaultSettings = {
-                storeName: state.selectedStore.name,
+                storeName: store.name,
                 goals: { daily: 150, weekly: 1000, monthly: 4000 },
                 commissionSystem: { enabled: true, percentage: 5 },
                 bonusWheel: { enabled: false, prizes: [], minValue: 0 },
@@ -327,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!user || !user.role) {
-            console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' (função) definida. Fazendo logout forçado.");
+            console.error("ERRO CRÍTICO: O objeto do usuário logado não tem uma 'role' definida. Fazendo logout forçado.");
             showToast("Erro de autenticação, por favor faça login novamente.", "error");
             logout();
             return;
@@ -341,11 +335,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const usersQuery = query(collection(db, "users"), where("storeId", "==", store.id));
         state.listeners.users = onSnapshot(usersQuery, (snapshot) => {
             state.db.users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (state.currentView && (state.currentView === 'pedidos' || state.currentView === 'configuracoes' || state.currentView === 'relatorios')) {
-                const activeView = document.getElementById(`${state.currentView}-view`);
-                if (activeView && activeView.classList.contains('active')) {
-                    renderViewContent(state.currentView);
-                }
+            if (['pedidos', 'configuracoes', 'relatorios'].includes(state.currentView)) {
+                renderViewContent(state.currentView);
             }
         });
         
@@ -359,35 +350,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const select = document.getElementById('store-switcher-select');
                 if (select) {
                     const currentStoreId = state.selectedStore ? state.selectedStore.id : (state.db.stores[0]?.id || '');
-                    select.innerHTML = '';
-                    state.db.stores.forEach(s => {
-                        select.innerHTML += `<option value="${s.id}" ${s.id === currentStoreId ? 'selected' : ''}>${s.name}</option>`;
-                    });
-                    if (!state.db.stores.some(s => s.id === currentStoreId)) {
-                        if (state.db.stores.length > 0) {
-                            state.selectedStore = state.db.stores[0];
-                            initializeAppUI();
-                            switchView(state.currentView || 'pedidos');
-                        } else {
-                            logout();
-                        }
+                    select.innerHTML = state.db.stores.map(s => `<option value="${s.id}" ${s.id === currentStoreId ? 'selected' : ''}>${s.name}</option>`).join('');
+                    if (!state.db.stores.some(s => s.id === currentStoreId) && state.db.stores.length > 0) {
+                        state.selectedStore = state.db.stores[0];
+                        initializeAppUI();
+                    } else if (state.db.stores.length === 0) {
+                        logout();
                     }
                 }
             });
 
             switcherContainer.classList.remove('hidden');
             const select = document.getElementById('store-switcher-select');
-            select.onchange = async (e) => {
-                const newStoreId = e.target.value;
-                state.selectedStore = state.db.stores.find(s => s.id === newStoreId);
-                const newSettingsRef = doc(db, "settings", state.selectedStore.id);
-                const newSettingsSnap = await getDoc(newSettingsRef);
-                if (newSettingsSnap.exists()) {
-                    state.db.settings = { ...state.db.settings, ...newSettingsSnap.data() };
-                }
-                document.getElementById('store-name-sidebar').textContent = state.selectedStore.name;
-                setupStoreListeners(newStoreId);
-                switchView(state.currentView);
+            select.onchange = (e) => {
+                state.selectedStore = state.db.stores.find(s => s.id === e.target.value);
+                initializeAppUI();
             };
         } else {
             switcherContainer.classList.add('hidden');
@@ -419,36 +396,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         document.getElementById('sidebar').addEventListener('click', e => {
-            const link = e.target.closest('a[data-view]'), logoutBtn = e.target.closest('button[data-action="logout"]');
+            const link = e.target.closest('a[data-view]');
+            const logoutBtn = e.target.closest('button[data-action="logout"]');
             if (link) { e.preventDefault(); switchView(link.dataset.view); }
             if (logoutBtn) { logout(); }
-        });
-
-        document.getElementById('app').addEventListener('click', async (e) => {
-            const shareBtn = e.target.closest('.share-daily-report-btn');
-            if(shareBtn) {
-                const ownerPhone = state.db.settings.ownerPhone?.replace(/\D/g, '');
-                if (!ownerPhone) {
-                    return showToast('Telefone do dono não configurado. Adicione em Configurações.', 'error');
-                }
-                
-                const now = new Date();
-                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                
-                const salesTodayQuery = query(collection(db, "sales"), where("storeId", "==", state.selectedStore.id), where("date", ">=", todayStart));
-                const salesSnapshot = await getDocs(salesTodayQuery);
-                const salesToday = salesSnapshot.docs.map(doc => doc.data());
-                const totalToday = salesToday.reduce((sum, s) => sum + s.total, 0);
-
-                const summaryText = `*Resumo do Dia - ${now.toLocaleDateString('pt-BR')}*\n\n` +
-                                    `*Loja:* ${state.selectedStore.name}\n` +
-                                    `*Total Vendido:* ${formatCurrency(totalToday)}\n` +
-                                    `*Vendas Realizadas:* ${salesToday.length}\n` +
-                                    `*Ticket Médio:* ${formatCurrency(salesToday.length > 0 ? totalToday / salesToday.length : 0)}`;
-
-                const encodedText = encodeURIComponent(summaryText);
-                window.open(`https://wa.me/55${ownerPhone}?text=${encodedText}`, '_blank');
-            }
         });
 
         window.lucide.createIcons();
@@ -458,7 +409,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'fade-in'));
         const activeView = document.getElementById(`${viewId}-view`);
         if (activeView) {
-            activeView.classList.add('active', 'fade-in'); state.currentView = viewId;
+            activeView.classList.add('active', 'fade-in');
+            state.currentView = viewId;
             const link = document.querySelector(`#sidebar a[data-view="${viewId}"]`);
             if (link) {
                 document.getElementById('current-view-title').textContent = link.querySelector('span').textContent;
@@ -471,12 +423,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const renderViewContent = (viewId) => {
-        const viewContainer = document.getElementById(`${viewId}-view`);
-        if (!viewContainer) {
-             console.error(`Container da view "${viewId}" não encontrado.`);
-             return;
-        }
-        
         // As funções de renderização agora injetam seu próprio HTML
         switch (viewId) {
             case 'caixa': renderCaixa(); break;
@@ -489,7 +435,8 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'relatorios': renderDashboard(); break;
             case 'configuracoes': renderConfiguracoes(); break;
             default:
-                viewContainer.innerHTML = `<p class="p-6">View "${viewId}" não encontrada.</p>`;
+                const viewContainer = document.getElementById(`${viewId}-view`);
+                if (viewContainer) viewContainer.innerHTML = `<p class="p-6">View "${viewId}" não encontrada.</p>`;
         }
     };
 
@@ -497,12 +444,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const showMobileMenu = s => { if (s) { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden') } else { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden') } };
     document.getElementById('mobile-menu-button').addEventListener('click', () => showMobileMenu(true));
     overlay.addEventListener('click', () => showMobileMenu(false));
-
-    // A partir daqui, você precisa colar o resto das suas funções de renderização
+    
+    //
+    // A PARTIR DAQUI COMEÇAM SUAS FUNÇÕES DE RENDERIZAÇÃO
     // (renderCaixa, renderProdutos, renderClientes, etc.)
-    // que foram omitidas do seu último envio.
-    // ...
-    // ...
+    // COLE O RESTANTE DO SEU CÓDIGO ORIGINAL AQUI.
+    //
+    // Exemplo:
+    // function renderCaixa() { ... }
+    // function renderProdutos() { ... }
+    // etc.
+    //
 
     const init = () => {
         const theme = localStorage.getItem('theme') || 'dark';
@@ -511,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
             localStorage.setItem('theme', newTheme);
             applyTheme(newTheme);
-            if (['relatorios', 'metas', 'ranking', 'financeiro'].includes(state.currentView) && document.getElementById(`${state.currentView}-view`).classList.contains('active')) {
+            if (['relatorios', 'metas', 'ranking', 'financeiro'].includes(state.currentView)) {
                 renderViewContent(state.currentView);
             }
         };
