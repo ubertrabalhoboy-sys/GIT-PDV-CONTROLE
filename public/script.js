@@ -1,4 +1,11 @@
+import { db, auth } from './firebase-init.js';
+import { collection, getDocs, onSnapshot, doc, addDoc, deleteDoc, setDoc, query, where, writeBatch, Timestamp, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+document.addEventListener('DOMContentLoaded', () => {
+    // ... (COLE AQUI TODO O CONTEÚDO DO SEU SCRIPT.JS ORIGINAL, DESDE "let state = {..." ATÉ O FINAL)
+});
+     
     // Inicialização do Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
