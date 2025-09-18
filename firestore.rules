@@ -9,27 +9,15 @@ service cloud.firestore {
 
     // Regras para a coleção de usuários
     match /users/{userId} {
-      // Permite que qualquer um liste os usuários (necessário para a tela de login).
       allow list: if true;
-      // Permite que um usuário logado VEJA os dados de outro usuário apenas se for da mesma loja.
       allow get: if request.auth != null && getUserData().storeId == resource.data.storeId;
-      
-      // Permite que um usuário atualize seus próprios dados, mas sem mudar a loja ou a função.
-      allow update: if request.auth.uid == userId 
-                    && request.resource.data.storeId == resource.data.storeId
-                    && request.resource.data.role == resource.data.role;
-
-      // Permite que um gerente ou superadmin crie um novo usuário para a sua própria loja.
-      allow create: if request.auth != null && getUserData().role in ['gerente', 'superadmin']
-                    && request.resource.data.storeId == getUserData().storeId;
-      
-      // Apenas o backend poderá deletar usuários no futuro
-      allow delete: if false;
+      allow update: if request.auth.uid == userId && request.resource.data.storeId == resource.data.storeId && request.resource.data.role == resource.data.role;
+      allow create: if request.auth != null && getUserData().role in ['gerente', 'superadmin'] && request.resource.data.storeId == getUserData().storeId;
+      allow delete: if false; // Apenas o backend poderá deletar usuários no futuro
     }
 
     // Regras para a coleção de lojas
     match /stores/{storeId} {
-        // Permite que QUALQUER UM leia a lista de lojas (corrige a página em branco)
         allow read: if true; 
         allow write: if false;
     }
@@ -37,7 +25,6 @@ service cloud.firestore {
     // Regras para as configurações da loja
     match /settings/{storeId} {
       allow read: if request.auth != null && getUserData().storeId == storeId;
-      // Escrita só será permitida pelo app (no futuro, podemos restringir a gerentes)
       allow write: if request.auth != null && getUserData().storeId == storeId;
     }
     
