@@ -596,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rotation = segmentAngle * index;
             return `
                 <div class="wheel-segment" style="transform: rotate(${rotation}deg) skewY(${segmentAngle - 90}deg);">
-                    <span class="segment-label">🎁</span>
+                    <span class="segment-label" style="transform: skewY(${90 - segmentAngle}deg); display: inline-block;">🎁</span>
                 </div>
             `;
         }).join('');
