@@ -2,30 +2,74 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Função auxiliar para pegar os dados (role, storeId) do usuário logado
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    // --- REGRAS PARA USUÁRIOS ---
     match /users/{userId} {
-      allow list: if true;
+      // CORRIGIDO: Apenas usuários logados podem listar outros usuários.
+      allow list: if request.auth != null;
+
+      // Um usuário logado pode ler os dados de outro usuário da mesma loja.
       allow get: if request.auth != null && getUserData().storeId == resource.data.storeId;
-      allow update: if request.auth.uid == userId && request.resource.data.storeId == resource.data.storeId && request.resource.data.role == resource.data.role;
-      allow create: if request.auth != null && getUserData().role in ['gerente', 'superadmin'] && request.resource.data.storeId == getUserData().storeId;
+
+      // Um usuário só pode atualizar o próprio perfil, e não pode mudar sua role ou storeId.
+      allow update: if request.auth.uid == userId 
+                    && request.resource.data.storeId == resource.data.storeId 
+                    && request.resource.data.role == resource.data.role;
+
+      // Apenas gerentes e superadmins podem criar novos usuários na sua própria loja.
+      allow create: if request.auth != null 
+                    && getUserData().role in ['gerente', 'superadmin'] 
+                    && request.resource.data.storeId == getUserData().storeId;
+                    
+      // Ninguém pode deletar um usuário diretamente pelas regras.
       allow delete: if false;
     }
 
+    // --- REGRAS PARA LOJAS ---
     match /stores/{storeId} {
-        allow read: if true; 
-        allow write: if false;
+      // Qualquer um pode ler a lista de lojas para a tela de login.
+      allow read: if true;
+
+      // CORRIGIDO: Apenas 'superadmin' pode criar, editar ou deletar lojas.
+      allow write: if request.auth != null && getUserData().role == 'superadmin';
     }
     
+    // --- REGRAS PARA CONFIGURAÇÕES ---
     match /settings/{storeId} {
+      // Um usuário pode ler as configurações da sua própria loja.
       allow read: if request.auth != null && getUserData().storeId == storeId;
-      allow write: if request.auth != null && getUserData().storeId == storeId;
+
+      // CORRIGIDO: Apenas 'gerente' ou 'superadmin' podem editar as configurações da sua própria loja.
+      allow write: if request.auth != null 
+                   && getUserData().role in ['gerente', 'superadmin'] 
+                   && getUserData().storeId == storeId;
     }
-    
-    match /{collection}/{docId} {
-        allow read, write: if request.auth != null && getUserData().storeId == resource.data.storeId;
+
+    // --- REGRAS PARA VENDAS ---
+    match /sales/{saleId} {
+      // Vendedores só podem ler suas próprias vendas. Gerentes/Superadmins podem ler todas da loja.
+      allow read: if request.auth != null && (
+                    (getUserData().role == 'vendedor' && resource.data.vendedor == getUserData().name) ||
+                    (getUserData().role in ['gerente', 'superadmin'] && getUserData().storeId == resource.data.storeId)
+                  );
+      // Qualquer usuário logado pode criar uma venda para sua própria loja.
+      allow create: if request.auth != null && request.resource.data.storeId == getUserData().storeId;
+      // Vendas não podem ser alteradas ou deletadas para manter a integridade dos dados.
+      allow update, delete: if false;
+    }
+
+    // --- REGRAS PARA PRODUTOS, CLIENTES E CUSTOS FIXOS ---
+    match /(products|clients|fixedCosts)/{docId} {
+        // Qualquer usuário logado pode ler os produtos/clientes da sua loja.
+        allow read: if request.auth != null && getUserData().storeId == resource.data.storeId;
+        // Apenas gerentes ou superadmins podem criar, editar ou deletar produtos/clientes.
+        allow write: if request.auth != null 
+                     && getUserData().role in ['gerente', 'superadmin'] 
+                     && (request.resource.data.storeId == getUserData().storeId);
     }
   }
 }
