@@ -762,7 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
             localStorage.setItem('theme', newTheme);
             applyTheme(newTheme);
-            if (['relatorios', 'metas', 'ranking', 'financeiro'].includes(state.currentView)) {
+            if (['relatorios', 'metas', 'ranking', 'financeiro'].includes(state.currentView) && document.getElementById(`${state.currentView}-view`).classList.contains('active')) {
                 renderViewContent(state.currentView);
             }
         };

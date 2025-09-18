@@ -123,8 +123,57 @@
     <div id="prize-won-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4 hidden"></div>
     <div id="whatsapp-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4 hidden"></div>
 
+
     <script type="text/template" id="caixa-template">
-      </script>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2">
+              <div class="custom-card p-6 rounded-lg">
+                  <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Adicionar Item</h3>
+                  <form id="add-item-form" class="space-y-4">
+                       <div class="relative">
+                          <label for="product-search" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Buscar Produto no Estoque</label>
+                          <input type="text" id="product-search" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm bg-slate-200/50 dark:bg-slate-800/50" autocomplete="off" placeholder="Digite para buscar...">
+                          <div id="product-search-results" class="absolute z-10 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md mt-1 shadow-lg max-h-48 overflow-y-auto hidden"></div>
+                      </div>
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div class="md:col-span-2">
+                              <label for="item-name" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Nome do Item/Serviço</label>
+                              <input type="text" id="item-name" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm bg-slate-200/50 dark:bg-slate-800/50" required>
+                          </div>
+                          <div>
+                              <label for="item-value" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Valor (R$)</label>
+                              <input type="number" id="item-value" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm bg-slate-200/50 dark:bg-slate-800/50" step="0.01" required>
+                          </div>
+                      </div>
+                      <div>
+                          <label for="item-exchange" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Troca (Opcional)</label>
+                          <input type="text" id="item-exchange" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm bg-slate-200/50 dark:bg-slate-800/50" placeholder="Ex: Capinha, Película">
+                      </div>
+                      <div class="text-right">
+                          <button type="submit" class="inline-flex items-center justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-blue-700">
+                              <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i> Adicionar ao Pedido
+                          </button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+          <div>
+              <div class="custom-card p-6 rounded-lg sticky top-20">
+                  <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Pedido Atual</h3>
+                  <div id="current-order-items" class="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                      <p id="no-items-message" class="text-slate-500 dark:text-slate-400 text-center py-4">Nenhum item adicionado.</p>
+                  </div>
+                  <div class="border-t border-slate-300 dark:border-slate-700 pt-4">
+                      <div class="flex justify-between items-center text-xl font-bold">
+                          <span class="text-slate-800 dark:text-slate-200">Total:</span>
+                          <span id="current-order-total" class="text-brand-primary">R$ 0,00</span>
+                      </div>
+                      <button id="finalize-order-button" class="mt-4 w-full bg-brand-secondary text-white py-3 px-4 rounded-md hover:bg-green-700 transition-colors text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed" disabled>Finalizar Pedido</button>
+                  </div>
+              </div>
+          </div>
+      </div>
+    </script>
     <script type="text/template" id="pedidos-template">
         <div class="space-y-6">
             <div id="vendedor-pedidos-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -145,11 +194,82 @@
         </div>
     </script>
     <script type="text/template" id="clientes-template">
-        </script>
+        <div class="space-y-6">
+            <div class="custom-card p-6 rounded-lg">
+                <h3 id="client-form-title" class="text-lg font-semibold mb-4">Adicionar Novo Cliente</h3>
+                <form id="add-client-form" class="space-y-4">
+                    <input type="hidden" id="client-form-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label for="client-form-name" class="block text-sm">Nome Completo</label><input type="text" id="client-form-name" class="mt-1 block w-full rounded-md bg-slate-200/50 dark:bg-slate-800/50" required></div>
+                        <div><label for="client-form-phone" class="block text-sm">Telefone (WhatsApp)</label><input type="tel" id="client-form-phone" class="mt-1 block w-full rounded-md bg-slate-200/50 dark:bg-slate-800/50"></div>
+                        <div><label for="client-form-email" class="block text-sm">Email</label><input type="email" id="client-form-email" class="mt-1 block w-full rounded-md bg-slate-200/50 dark:bg-slate-800/50"></div>
+                        <div><label for="client-form-address" class="block text-sm">Endereço</label><input type="text" id="client-form-address" class="mt-1 block w-full rounded-md bg-slate-200/50 dark:bg-slate-800/50"></div>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="reset" id="client-form-cancel" class="py-2 px-4 rounded-md text-sm hidden">Cancelar</button>
+                        <button type="submit" class="bg-brand-primary text-white py-2 px-4 rounded-md"><span id="client-form-btn-text">Salvar Cliente</span></button>
+                    </div>
+                </form>
+            </div>
+             <div class="custom-card p-6 rounded-lg">
+                <div class="flex flex-wrap items-end gap-4">
+                    <div class="flex-grow"><label for="client-search" class="block text-sm">Buscar Cliente</label><input type="search" id="client-search" placeholder="Buscar por nome ou telefone..." class="mt-1 block w-full rounded-md bg-slate-200/50 dark:bg-slate-800/50"></div>
+                </div>
+                 <form id="client-filter-form" class="mt-4 border-t pt-4 border-slate-300 dark:border-slate-700 flex flex-wrap items-end gap-4">
+                     <div class="flex-grow"><label for="filter-last-purchase" class="block text-sm">Comprou no dia</label><input type="date" id="filter-last-purchase" class="mt-1 block w-full rounded-md bg-slate-200/50 dark:bg-slate-800/50"></div>
+                     <div class="flex-grow"><label for="filter-product-purchased" class="block text-sm">Comprou o produto</label><input type="text" id="filter-product-purchased" placeholder="Nome do produto" class="mt-1 block w-full rounded-md bg-slate-200/50 dark:bg-slate-800/50"></div>
+                     <button type="submit" class="bg-brand-primary text-white py-2 px-4 rounded-md">Filtrar</button>
+                     <button type="reset" class="bg-slate-300 dark:bg-slate-600 py-2 px-4 rounded-md">Limpar</button>
+                 </form>
+            </div>
+            <div class="custom-card rounded-lg overflow-hidden">
+                <p id="client-count" class="px-6 py-2 text-sm text-slate-500"></p>
+                <table class="w-full text-sm"><thead><tr><th class="px-6 py-3">Nome</th><th class="px-6 py-3">Telefone</th><th class="px-6 py-3 text-center">Contato</th><th class="px-6 py-3 text-center">Ações</th></tr></thead><tbody id="clients-table-body"></tbody></table>
+            </div>
+        </div>
+    </script>
     <script type="text/template" id="metas-template">
-        </script>
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="custom-card p-6 rounded-lg">
+                    <h4 class="font-bold mb-2">Meta Diária</h4>
+                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4"><div id="progresso-diario-barra" class="bg-brand-primary h-4 rounded-full" style="width: 0%"></div></div>
+                    <p id="progresso-diario-texto" class="text-sm text-right mt-2">R$ 0,00 / R$ 0,00</p>
+                </div>
+                <div class="custom-card p-6 rounded-lg">
+                    <h4 class="font-bold mb-2">Meta Semanal</h4>
+                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4"><div id="progresso-semanal-barra" class="bg-brand-secondary h-4 rounded-full" style="width: 0%"></div></div>
+                    <p id="progresso-semanal-texto" class="text-sm text-right mt-2">R$ 0,00 / R$ 0,00</p>
+                </div>
+                <div class="custom-card p-6 rounded-lg">
+                    <h4 class="font-bold mb-2">Meta Mensal</h4>
+                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4"><div id="progresso-mensal-barra" class="bg-amber-500 h-4 rounded-full" style="width: 0%"></div></div>
+                    <p id="progresso-mensal-texto" class="text-sm text-right mt-2">R$ 0,00 / R$ 0,00</p>
+                </div>
+            </div>
+            <div class="custom-card p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-4">Meus Recordes</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                    <div><p class="text-sm text-slate-500">Dias de Meta Batida</p><p id="recorde-dias-consecutivos" class="text-2xl font-bold">0</p></div>
+                    <div><p class="text-sm text-slate-500">Melhor Dia</p><p id="recorde-melhor-dia" class="text-2xl font-bold">R$ 0,00</p></div>
+                    <div><p class="text-sm text-slate-500">Melhor Semana</p><p id="recorde-melhor-semana" class="text-2xl font-bold">R$ 0,00</p></div>
+                </div>
+            </div>
+        </div>
+    </script>
     <script type="text/template" id="ranking-template">
-        </script>
+        <div class="space-y-6">
+          <div class="custom-card p-4 rounded-lg">
+            <div class="flex justify-center bg-slate-200/50 dark:bg-slate-800/50 rounded-lg p-1">
+              <button data-period="day" class="ranking-period-btn flex-1 py-2 px-4 rounded-md text-sm font-semibold bg-white dark:bg-slate-900 text-brand-primary shadow">Diário</button>
+              <button data-period="week" class="ranking-period-btn flex-1 py-2 px-4 rounded-md text-sm font-semibold">Semanal</button>
+              <button data-period="month" class="ranking-period-btn flex-1 py-2 px-4 rounded-md text-sm font-semibold">Mensal</button>
+            </div>
+          </div>
+          <div id="ranking-podium-container" class="grid grid-cols-1"></div>
+          <div id="ranking-list-container" class="space-y-2"></div>
+        </div>
+    </script>
     <script type="text/template" id="relatorios-template">
         <div class="space-y-6">
             <div id="gerente-relatorios-vendedor-select-container" class="hidden">
