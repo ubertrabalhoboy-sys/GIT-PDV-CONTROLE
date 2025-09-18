@@ -590,15 +590,25 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const segmentAngle = 360 / prizes.length;
+        const numPrizes = prizes.length;
+        const segmentAngle = 360 / numPrizes;
 
-        const segmentsHTML = prizes.map((prize, index) => {
-            const rotation = segmentAngle * index;
-            return `
-                <div class="wheel-segment" style="transform: rotate(${rotation}deg) skewY(${segmentAngle - 90}deg);">
-                    <span class="segment-label" style="transform: skewY(${90 - segmentAngle}deg); display: inline-block;">🎁</span>
-                </div>
-            `;
+        // CORREÇÃO: Usa conic-gradient para um desenho de roleta robusto e preciso.
+        const colors = ['#22c55e', '#3b82f6', '#ec4899', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6'];
+        const gradientParts = prizes.map((prize, index) => {
+            const color = colors[index % colors.length];
+            return `${color} ${index * segmentAngle}deg ${(index + 1) * segmentAngle}deg`;
+        });
+        const conicGradient = `conic-gradient(${gradientParts.join(', ')})`;
+
+        // CORREÇÃO: Posiciona os ícones matematicamente sobre o gradiente.
+        const labelsRadius = 35; // Distância do centro (em %) para colocar o ícone.
+        const labelsHTML = prizes.map((prize, index) => {
+            const angleDeg = (index * segmentAngle) + (segmentAngle / 2) - 90; // -90 para alinhar com o CSS
+            const angleRad = angleDeg * (Math.PI / 180);
+            const x = 50 + labelsRadius * Math.cos(angleRad);
+            const y = 50 + labelsRadius * Math.sin(angleRad);
+            return `<div class="wheel-label" style="position: absolute; left: ${x}%; top: ${y}%; transform: translate(-50%, -50%);">🎁</div>`;
         }).join('');
 
         modal.innerHTML = `
@@ -607,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p class="text-slate-600 dark:text-slate-400 mb-4">O cliente ganhou o direito de girar a roleta!</p>
                 <div class="wheel-container">
                     <div class="wheel-pointer"></div>
-                    <div class="wheel">${segmentsHTML}</div>
+                    <div class="wheel" style="background: ${conicGradient};">${labelsHTML}</div>
                     <div class="wheel-center"></div>
                 </div>
                 <button id="spin-wheel-btn" class="w-full bg-brand-secondary text-white py-3 px-4 rounded-md hover:bg-green-700 transition-colors text-lg font-bold">GIRAR A ROLETA</button>
