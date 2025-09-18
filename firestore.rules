@@ -3,32 +3,27 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function getUserData() {
-      // Retorna os dados do documento do usuário que está fazendo a requisição
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Regras para a coleção de usuários
     match /users/{userId} {
       allow list: if true;
       allow get: if request.auth != null && getUserData().storeId == resource.data.storeId;
       allow update: if request.auth.uid == userId && request.resource.data.storeId == resource.data.storeId && request.resource.data.role == resource.data.role;
       allow create: if request.auth != null && getUserData().role in ['gerente', 'superadmin'] && request.resource.data.storeId == getUserData().storeId;
-      allow delete: if false; // Apenas o backend poderá deletar usuários no futuro
+      allow delete: if false;
     }
 
-    // Regras para a coleção de lojas
     match /stores/{storeId} {
         allow read: if true; 
         allow write: if false;
     }
     
-    // Regras para as configurações da loja
     match /settings/{storeId} {
       allow read: if request.auth != null && getUserData().storeId == storeId;
       allow write: if request.auth != null && getUserData().storeId == storeId;
     }
     
-    // Regras para todas as outras coleções (products, clients, sales, etc.)
     match /{collection}/{docId} {
         allow read, write: if request.auth != null && getUserData().storeId == resource.data.storeId;
     }
