@@ -190,7 +190,23 @@
                     <button type="reset" class="bg-slate-300 dark:bg-slate-600 py-2 px-4 rounded-md">Limpar</button>
                 </form>
             </div>
-            <div class="custom-card rounded-lg overflow-hidden"><table class="w-full text-sm"><thead><tr id="orders-table-header-row"><th scope="col" class="px-6 py-3">Cliente</th><th scope="col" class="px-6 py-3">Data</th><th scope="col" class="px-6 py-3">Pagamento</th><th scope="col" class="px-6 py-3 text-right">Total</th><th scope="col" class="px-6 py-3 text-center">Ações</th></tr></thead><tbody id="orders-table-body"></tbody></table></div>
+            <div class="custom-card rounded-lg">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm min-w-[700px]">
+                        <thead>
+                            <tr id="orders-table-header-row">
+                                <th scope="col" class="px-6 py-3">Cliente</th>
+                                <th scope="col" class="px-6 py-3">Data</th>
+                                <th scope="col" class="px-6 py-3">Pagamento</th>
+                                <th scope="col" class="px-6 py-3 text-right">Total</th>
+                                <th scope="col" class="px-6 py-3 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table-body"></tbody>
+                    </table>
+                </div>
+                <div id="orders-pagination-controls" class="p-4 flex justify-between items-center text-sm"></div>
+            </div>
         </div>
     </script>
     <script type="text/template" id="clientes-template">
@@ -222,9 +238,22 @@
                      <button type="reset" class="bg-slate-300 dark:bg-slate-600 py-2 px-4 rounded-md">Limpar</button>
                  </form>
             </div>
-            <div class="custom-card rounded-lg overflow-hidden">
+            <div class="custom-card rounded-lg">
                 <p id="client-count" class="px-6 py-2 text-sm text-slate-500"></p>
-                <table class="w-full text-sm"><thead><tr><th class="px-6 py-3">Nome</th><th class="px-6 py-3">Telefone</th><th class="px-6 py-3 text-center">Contato</th><th class="px-6 py-3 text-center">Ações</th></tr></thead><tbody id="clients-table-body"></tbody></table>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm min-w-[600px]">
+                        <thead>
+                            <tr>
+                                <th class="px-6 py-3">Nome</th>
+                                <th class="px-6 py-3">Telefone</th>
+                                <th class="px-6 py-3 text-center">Contato</th>
+                                <th class="px-6 py-3 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clients-table-body"></tbody>
+                    </table>
+                </div>
+                <div id="clients-pagination-controls" class="p-4 flex justify-between items-center text-sm"></div>
             </div>
         </div>
     </script>
